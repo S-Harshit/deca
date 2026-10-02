@@ -186,6 +186,8 @@ On one machine (loopback, so these are the app's own costs, not network): a six-
 
 ## 6. Connection resilience
 
+**Quick retry.** A first attempt that has not reached the network (ICE not connected) after 7 s is rebuilt at once, up to twice per person, by the side with the higher id only (so the two do not rebuild together). Often the first try only opens the routers (typical on one home Wi-Fi, where hidden `.local` addresses force a public-address path that needs the router to loop traffic back), and the second goes through. After that the older schedule applies: ICE restarts, then redial with backoff (1x, 2x, 4x). Tested by sabotaging the first attempt: connected by itself in about 7 s. Not applied in connect-by-code rooms, where a person carries the codes.
+
 - **Signaling blips don't read as "left".** The server holds a dropped socket's place for `GRACE_MS`; the browser reconnects by itself (backoff 0.5 s to 10 s, immediately when the network returns or the tab wakes) using a per-page-load `session` id, so it is re-attached silently and healthy peer links are kept. A deliberate Leave is announced at once.
 - **Dead sockets are detected.** Client pings every 12 s, abandons a socket silent for 35 s; the server pings too.
 - **Server restarts.** Clients reconnect and re-mesh; chat between connected peers never stops. Someone missing from the first room list gets 20 s to reappear before being called gone.

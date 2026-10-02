@@ -27,6 +27,9 @@ async function loadIceServers(): Promise<RTCIceServer[]> {
 }
 
 const BLOCKED_AFTER_MS = 25000;
+/** A first attempt that has not reached the network by now is rebuilt at once, up to QUICK_RETRIES times. Often the first try only opens the routers, and the second goes through. */
+const QUICK_RETRY_MS = 7000;
+const QUICK_RETRIES = 2;
 /** A link that has not opened its data channel by now is rebuilt. */
 const OPEN_TIMEOUT_MS = 20000;
 const MANUAL_OPEN_TIMEOUT_MS = 20 * 60_000;
@@ -116,7 +119,7 @@ export class Mesh {
    * People in the room we are not connected to (yet): since when, and how many tries so far. This is
    * what keeps their row on screen between attempts instead of vanishing and reappearing.
    */
-  private readonly waiting = new Map<string, { since: number; attempts: number }>();
+  private readonly waiting = new Map<string, { since: number; attempts: number; quick: number }>();
   private lastEmit = "";
   private closed = false;
   /** Set when reconnecting would be wrong: another tab took over, or the room is full. */
@@ -358,7 +361,7 @@ export class Mesh {
 
   /** Start (or keep) the clock on someone we are trying to reach. */
   private markWaiting(id: string) {
-    if (!this.waiting.has(id)) this.waiting.set(id, { since: Date.now(), attempts: 0 });
+    if (!this.waiting.has(id)) this.waiting.set(id, { since: Date.now(), attempts: 0, quick: 0 });
     this.later(() => this.emit(), BLOCKED_AFTER_MS + 500); // so "connecting" can turn into "can't connect"
     this.emit();
   }
@@ -465,6 +468,17 @@ export class Mesh {
     this.later(() => {
       if (this.peers.get(remoteId) === peer && peer.ctl?.readyState !== "open") this.linkLost(remoteId);
     }, this.hub ? MANUAL_OPEN_TIMEOUT_MS : OPEN_TIMEOUT_MS); // a person has to carry the code: give them time
+    // One side only (the higher id, as with every other redial), so the two do not rebuild at the same moment.
+    if (!this.hub && this.peerId > remoteId) {
+      this.later(() => {
+        const w = this.waiting.get(remoteId);
+        const st = pc.iceConnectionState;
+        if (this.closed || this.peers.get(remoteId) !== peer || !w || w.quick >= QUICK_RETRIES) return;
+        if (peer.ctl?.readyState === "open" || st === "connected" || st === "completed") return;
+        w.quick++;
+        this.dial(remoteId, this.names.get(remoteId) ?? remoteId);
+      }, QUICK_RETRY_MS);
+    }
     pc.oniceconnectionstatechange = () => {
       if (this.peers.get(remoteId) !== peer) return;
       this.emit();
