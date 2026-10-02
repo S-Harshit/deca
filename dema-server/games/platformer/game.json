@@ -1,0 +1,9 @@
+{
+  "title": "Pixel Hop",
+  "controls": [
+    "Arrow keys or A / D: run (hold Shift to run faster)",
+    "Space, Up or W: jump (hold for higher)",
+    "Stomp enemies from above, grab the coins",
+    "R: restart \u00b7 M: mute \u00b7 Esc: back to chat"
+  ]
+}

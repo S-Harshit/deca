@@ -1,0 +1,8 @@
+{
+  "title": "Snake",
+  "controls": [
+    "Arrow keys or WASD: steer",
+    "Space: restart",
+    "Esc: back to chat"
+  ]
+}

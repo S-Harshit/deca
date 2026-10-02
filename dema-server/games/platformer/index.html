@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Pixel Hop</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0d1117; overflow: hidden; }
+  body { display: grid; place-items: center; }
+  canvas { width: min(100vw, calc(100vh * 320 / 192)); height: min(100vh, calc(100vw * 192 / 320)); image-rendering: pixelated; outline: none; background: #6ec6ff; }
+</style>
+</head>
+<body>
+<canvas id="c" width="320" height="192" tabindex="0"></canvas>
+<script>
+/*
+ * Pixel Hop: an original side-scrolling platformer. All code, art (drawn in code), level (generated
+ * from a fixed seed) and sounds (synthesised) are original to this project, MIT licensed.
+ * Arrow keys / WASD move, Space / Up / W jump (hold for higher), Shift runs, R restarts, M mutes.
+ * Add ?bot=1 to watch an autopilot play (used to check the level can be finished).
+ */
+const W = 320, H = 192, T = 16, COLS = 210, ROWS = 12, GROUND = ROWS - 2;
+const cv = document.getElementById("c"), g = cv.getContext("2d");
+g.imageSmoothingEnabled = false;
+const BOT = new URLSearchParams(location.search).has("bot");
+
+// ---------- level: generated from a fixed seed, so everyone plays the same one ----------
+let seed = 7; const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+const EMPTY = 0, SOLID = 1, BRICK = 2, BLOCK = 3, USED = 4, SPIKE = 5;
+const grid = Array.from({ length: ROWS }, () => new Uint8Array(COLS));
+const coins = [], slimes0 = [], checkpoints = [];
+const ground = (c0, c1, h = 0) => { for (let c = c0; c < c1; c++) for (let r = GROUND - h; r < ROWS; r++) grid[r][c] = SOLID; };
+const arc = (c, row, n) => { for (let i = 0; i < n; i++) coins.push({ x: (c + i) * T + 4, y: (row - Math.round(Math.sin((i / Math.max(1, n - 1)) * Math.PI) * 1.5)) * T + 2, got: false }); };
+function flatBit(c, len) {
+  ground(c, c + len);
+  if (len >= 8 && rnd() < 0.6) { const b = c + 2 + Math.floor(rnd() * (len - 6)); grid[GROUND - 4][b] = BRICK; grid[GROUND - 4][b + 1] = BLOCK; grid[GROUND - 4][b + 2] = BRICK; arc(b - 1, GROUND - 6, 5); }
+  else arc(c + 2, GROUND - 2, Math.min(5, len - 3));
+  if (len >= 10) slimes0.push({ x: (c + 3 + Math.floor(rnd() * (len - 9))) * T, dir: rnd() < 0.5 ? -1 : 1 }); // never in the last 6 tiles: a hop over it must not land in a pit
+}
+ground(0, 14); let c = 14, flat = true;
+while (c < COLS - 22) {
+  const t = Math.floor(rnd() * 5);
+  if (c > 60 && checkpoints.length === 0) checkpoints.push(c * T); if (c > 120 && checkpoints.length === 1) checkpoints.push(c * T);
+  if (t === 1 && flat) { c += 2 + Math.floor(rnd() * 2); const len = 6 + Math.floor(rnd() * 4); flatBit(c, len); c += len; flat = true; }
+  else if (t === 2) { // two steps up, a plateau, two steps down
+    for (let i = 0; i < 2; i++) { ground(c, c + 2, i + 1); c += 2; }
+    ground(c, c + 4, 2); arc(c, GROUND - 5, 4); c += 4;
+    for (let i = 1; i >= 0; i--) { ground(c, c + 2, i + 1); c += 2; } flat = false;
+  } else if (t === 3) { const len = 15; ground(c, c + len); grid[GROUND - 1][c + 4] = SPIKE; grid[GROUND - 1][c + 11] = SPIKE; arc(c + 3, GROUND - 3, 3); arc(c + 10, GROUND - 3, 3); c += len; flat = true; }
+  else { const len = 8 + Math.floor(rnd() * 5); flatBit(c, len); c += len; flat = true; }
+}
+ground(c, COLS); const FLAG_COL = COLS - 9;
+
+// ---------- sound: tiny synthesised effects ----------
+let actx = null, muted = false;
+const beep = (f0, f1, dur, type = "square", vol = 0.06) => {
+  if (muted) return;
+  try {
+    actx ??= new AudioContext(); if (actx.state === "suspended") actx.resume();
+    const o = actx.createOscillator(), v = actx.createGain(), t = actx.currentTime;
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    v.gain.setValueAtTime(vol, t); v.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(v); v.connect(actx.destination); o.start(t); o.stop(t + dur);
+  } catch {}
+};
+const sfx = { jump: () => beep(300, 700, 0.14), coin: () => { beep(880, 1320, 0.07); }, stomp: () => beep(220, 90, 0.12, "triangle", 0.1), hurt: () => beep(300, 60, 0.4, "sawtooth", 0.07), win: () => { beep(523, 523, 0.12); setTimeout(() => beep(659, 659, 0.12), 120); setTimeout(() => beep(784, 1046, 0.35), 240); }, bump: () => beep(140, 100, 0.08, "square", 0.05) };
+
+// ---------- state ----------
+let p, slimes, score, got, lives, cam, state, frame, cp, hold = 0, popups = [], bumps = [];
+const keys = {}; let jumpBuf = 0, coyote = 0, jumpHeld = false;
+function resetWorld(full) {
+  if (full) { for (let r = 0; r < ROWS; r++) for (let q = 0; q < COLS; q++) if (grid[r][q] === USED) grid[r][q] = BLOCK; coins.forEach((k) => (k.got = false)); score = 0; got = 0; lives = 3; cp = 40; state = "play"; }
+  p = { x: cp, y: (GROUND - 1) * T - 4, w: 12, h: 16, vx: 0, vy: 0, on: false, face: 1, inv: 90 };
+  slimes = slimes0.filter((s) => full || s.x > cp - 80 || true).map((s) => ({ x: s.x, y: (GROUND - 1) * T + 4, w: 14, h: 12, vx: 0.45 * s.dir, vy: 0, dead: 0, on: false, alive: true }));
+  slimes.forEach((s) => { if (s.x < cp + 90 && s.x > cp - 40) s.alive = false; }); // never spawn one on top of you
+  popups = []; bumps = [];
+}
+const solid = (tx, ty) => tx < 0 || tx >= COLS || (ty >= 0 && ty < ROWS && grid[ty][tx] >= SOLID && grid[ty][tx] <= USED);
+function move(b, bumpHeads) {
+  b.x += b.vx;
+  for (let ty = Math.floor(b.y / T); ty <= Math.floor((b.y + b.h - 0.01) / T); ty++) {
+    if (b.vx > 0 && solid(Math.floor((b.x + b.w) / T), ty)) { b.x = Math.floor((b.x + b.w) / T) * T - b.w; b.vx = b.turn ? -b.vx : 0; b.hit = true; }
+    else if (b.vx < 0 && solid(Math.floor(b.x / T), ty)) { b.x = (Math.floor(b.x / T) + 1) * T; b.vx = b.turn ? -b.vx : 0; b.hit = true; }
+  }
+  b.y += b.vy; b.on = false;
+  const x0 = Math.floor((b.x + 1) / T), x1 = Math.floor((b.x + b.w - 1) / T);
+  if (b.vy >= 0) { const ty = Math.floor((b.y + b.h) / T); for (let tx = x0; tx <= x1; tx++) if (solid(tx, ty)) { b.y = ty * T - b.h; b.vy = 0; b.on = true; break; } }
+  else { const ty = Math.floor(b.y / T); for (let tx = x0; tx <= x1; tx++) if (solid(tx, ty)) { b.y = (ty + 1) * T; b.vy = 0; if (bumpHeads) bump(tx, ty); break; } }
+}
+function bump(tx, ty) {
+  bumps.push({ x: tx, y: ty, t: 0 });
+  if (grid[ty][tx] === BLOCK) { grid[ty][tx] = USED; got++; score += 100; sfx.coin(); popups.push({ x: tx * T + 4, y: ty * T - 6, t: 0 }); } else sfx.bump();
+}
+function hurt() {
+  if (p.inv > 0 || state !== "play") return;
+  sfx.hurt(); lives--;
+  if (lives <= 0) { state = "over"; return; }
+  p.x = cp; p.y = (GROUND - 1) * T - 4; p.vx = p.vy = 0; p.inv = 120;
+}
+const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+function update() {
+  frame++;
+  if (BOT) botThink();
+  if (state !== "play") return;
+  const left = keys.ArrowLeft || keys.a, right = keys.ArrowRight || keys.d, run = keys.Shift;
+  const max = run ? 2.4 : 1.6, acc = run ? 0.16 : 0.12;
+  if (left && !right) { p.vx = Math.max(p.vx - acc, -max); p.face = -1; } else if (right && !left) { p.vx = Math.min(p.vx + acc, max); p.face = 1; }
+  else p.vx *= p.on ? 0.8 : 0.96;
+  if (Math.abs(p.vx) < 0.02) p.vx = 0;
+  const wantJump = keys[" "] || keys.ArrowUp || keys.w;
+  if (wantJump && !jumpHeld) jumpBuf = 6; jumpHeld = !!wantJump;
+  coyote = p.on ? 6 : coyote - 1; jumpBuf--;
+  if (jumpBuf > 0 && coyote > 0) { p.vy = -5.2; p.on = false; coyote = 0; jumpBuf = 0; sfx.jump(); }
+  if (!wantJump && p.vy < -2) p.vy += 0.5; // let go early = shorter hop
+  p.vy = Math.min(p.vy + 0.3, 6);
+  move(p, true);
+  if (p.inv > 0) p.inv--;
+  if (p.y > H + 40) hurt();
+  for (const k of checkpoints) if (p.x > k && cp < k) cp = k;
+  // hazards
+  const tx0 = Math.floor(p.x / T), tx1 = Math.floor((p.x + p.w) / T), ty = Math.floor((p.y + p.h - 1) / T);
+  // the hit area is a little narrower than the drawn spike: near-misses are forgiven
+  for (let tx = tx0; tx <= tx1; tx++) if (grid[ty]?.[tx] === SPIKE && p.y + p.h > ty * T + 8 && p.x + p.w > tx * T + 4 && p.x < tx * T + T - 4) hurt();
+  // coins
+  for (const k of coins) if (!k.got && overlap(p, { x: k.x, y: k.y, w: 8, h: 12 })) { k.got = true; got++; score += 50; sfx.coin(); }
+  // slimes
+  for (const s of slimes) {
+    if (!s.alive) continue;
+    if (s.dead) { if (--s.dead === 0) s.alive = false; continue; }
+    s.turn = true; s.vy = Math.min(s.vy + 0.3, 6); move(s, false);
+    if (s.on) { const ahead = Math.floor((s.x + (s.vx > 0 ? s.w : 0)) / T), below = Math.floor((s.y + s.h + 2) / T); if (!solid(ahead, below)) s.vx = -s.vx; }
+    if (overlap(p, s)) {
+      if (p.vy > 0.5 && p.y + p.h - s.y < 10) { s.dead = 18; p.vy = keys[" "] || keys.ArrowUp || keys.w ? -5 : -3.4; score += 200; sfx.stomp(); }
+      else if (!BOT) hurt();
+    }
+  }
+  if (p.x + p.w > FLAG_COL * T + 4) { state = "win"; score += 500; sfx.win(); }
+  cam = Math.max(0, Math.min(COLS * T - W, p.x + p.w / 2 - W / 2));
+  popups.forEach((o) => o.t++); popups = popups.filter((o) => o.t < 30); bumps.forEach((b) => b.t++); bumps = bumps.filter((b) => b.t < 8);
+}
+
+// ---------- autopilot (only with ?bot=1): looks ahead and jumps; used to prove the level is finishable ----------
+function botThink() {
+  keys.ArrowRight = true; keys.Shift = true; keys[" "] = false;
+  const front = Math.floor((p.x + p.w + 6) / T), feet = Math.floor((p.y + p.h + 2) / T);
+  const gapAhead = !solid(front, feet) && !solid(front + 1, feet) && p.on;
+  const wallAhead = solid(Math.floor((p.x + p.w + 4) / T), Math.floor((p.y + p.h - 4) / T));
+  const spike = [0, 1, 2].some((i) => grid[GROUND - 1]?.[front + i] === SPIKE);
+  const slime = slimes.some((s) => s.alive && !s.dead && s.x > p.x && s.x - p.x < 34 && Math.abs(s.y - p.y) < 20) && solid(front + 5, feet) && solid(front + 3, feet);
+  if ((gapAhead || wallAhead || spike || slime) && (p.on || coyote > 0)) keys[" "] = true;
+  if (!p.on && p.vy < 0) keys[" "] = true; // hold for the full jump
+}
+
+// ---------- drawing ----------
+const rect = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x - cam), Math.round(y), w, h); };
+function cloud(x, y) { g.fillStyle = "#fff"; g.fillRect(x, y, 34, 8); g.fillRect(x + 6, y - 6, 20, 8); g.fillRect(x + 22, y - 3, 14, 6); }
+function draw() {
+  const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, "#58b4ff"); sky.addColorStop(1, "#bfe7ff"); g.fillStyle = sky; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 12; i++) cloud(((i * 150 - cam * 0.25) % (W + 200) + W + 200) % (W + 200) - 60, 18 + (i % 4) * 22);
+  g.fillStyle = "#7ad39a"; for (let i = 0; i < 10; i++) { const hx = ((i * 190 - cam * 0.5) % (W + 260) + W + 260) % (W + 260) - 130; g.beginPath(); g.moveTo(hx, GROUND * T); g.quadraticCurveTo(hx + 60, GROUND * T - 70 - (i % 3) * 14, hx + 140, GROUND * T); g.fill(); }
+  const c0 = Math.floor(cam / T), c1 = c0 + Math.ceil(W / T) + 1;
+  for (let r = 0; r < ROWS; r++) for (let q = c0; q <= c1; q++) {
+    const t = grid[r]?.[q]; if (!t) continue; const x = q * T, y = r * T; const bump = bumps.find((b) => b.x === q && b.y === r); const by = bump ? -Math.sin((bump.t / 8) * Math.PI) * 5 : 0;
+    if (t === SOLID) { rect(x, y, T, T, "#8a5a2b"); rect(x + 2, y + 5, 3, 3, "#6f4720"); rect(x + 9, y + 10, 3, 3, "#6f4720"); if (!grid[r - 1]?.[q] || grid[r - 1][q] === SPIKE) { rect(x, y, T, 4, "#4caf50"); rect(x, y + 4, T, 2, "#388e3c"); } }
+    else if (t === BRICK) { rect(x, y + by, T, T, "#c4622d"); g.fillStyle = "#8f3f17"; for (const [bx, byy, bw] of [[0, 4, 16], [0, 10, 16]]) g.fillRect(x - cam, y + byy + by, bw, 1); g.fillRect(x - cam + 8, y + by, 1, 4); g.fillRect(x - cam + 4, y + 5 + by, 1, 5); g.fillRect(x - cam + 12, y + 11 + by, 1, 5); }
+    else if (t === BLOCK) { rect(x, y + by, T, T, "#ffcf33"); rect(x + 1, y + 1 + by, T - 2, T - 2, "#f5a900"); g.fillStyle = "#fff6c2"; g.font = "bold 11px monospace"; g.fillText("?", x - cam + 4, y + 12 + by); }
+    else if (t === USED) rect(x, y + by, T, T, "#9a8f86");
+    else if (t === SPIKE) { g.fillStyle = "#cfd8dc"; for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(x - cam + i * 5.3, y + T); g.lineTo(x - cam + i * 5.3 + 2.7, y + 6); g.lineTo(x - cam + i * 5.3 + 5.3, y + T); g.fill(); } }
+  }
+  // flag
+  const fx = FLAG_COL * T; rect(fx + 6, (GROUND - 6) * T, 3, 6 * T, "#eceff1"); rect(fx + 3, (GROUND - 6) * T - 3, 9, 4, "#ffd54f");
+  g.fillStyle = "#e53935"; g.beginPath(); g.moveTo(fx + 9 - cam, (GROUND - 6) * T + 3); g.lineTo(fx + 27 - cam, (GROUND - 6) * T + 11); g.lineTo(fx + 9 - cam, (GROUND - 6) * T + 19); g.fill();
+  // coins (spinning)
+  for (const k of coins) if (!k.got) { const w = Math.abs(Math.cos((frame + k.x) / 14)) * 7 + 1; g.fillStyle = "#ffd23f"; g.fillRect(Math.round(k.x - cam + 4 - w / 2), k.y, Math.round(w), 12); g.fillStyle = "#fff3a0"; g.fillRect(Math.round(k.x - cam + 4 - w / 2), k.y, 1, 12); }
+  // slimes
+  for (const s of slimes) if (s.alive) { const sq = s.dead ? 0.4 : 1 + Math.sin(frame / 8) * 0.08; const h = Math.round(s.h * sq); g.fillStyle = "#43c463"; g.fillRect(Math.round(s.x - cam), Math.round(s.y + s.h - h), s.w, h); g.fillStyle = "#2e9b4a"; g.fillRect(Math.round(s.x - cam), Math.round(s.y + s.h - 2), s.w, 2); if (!s.dead) { g.fillStyle = "#fff"; g.fillRect(Math.round(s.x - cam + 3), Math.round(s.y + 3), 3, 4); g.fillRect(Math.round(s.x - cam + 8), Math.round(s.y + 3), 3, 4); g.fillStyle = "#111"; g.fillRect(Math.round(s.x - cam + 4 + (s.vx > 0 ? 1 : 0)), Math.round(s.y + 5), 2, 2); g.fillRect(Math.round(s.x - cam + 9 + (s.vx > 0 ? 1 : 0)), Math.round(s.y + 5), 2, 2); } }
+  // player: a little robot
+  if (!(p.inv > 0 && frame % 6 < 3)) {
+    const px = Math.round(p.x - cam), py = Math.round(p.y), step = p.on && Math.abs(p.vx) > 0.3 ? Math.floor(frame / 5) % 2 : 0;
+    g.fillStyle = "#37474f"; g.fillRect(px + 1 + step, py + 13, 4, 3); g.fillRect(px + 7 - step, py + 13, 4, 3);
+    g.fillStyle = "#4fc3f7"; g.fillRect(px, py + 4, 12, 10); g.fillStyle = "#29b6f6"; g.fillRect(px, py + 11, 12, 3);
+    g.fillStyle = "#eceff1"; g.fillRect(px + 1, py, 10, 6); g.fillStyle = "#111"; g.fillRect(px + (p.face > 0 ? 6 : 2), py + 2, 3, 3); g.fillStyle = "#ff7043"; g.fillRect(px + 5, py - 3, 2, 3);
+  }
+  popups.forEach((o) => { g.fillStyle = "#ffd23f"; g.fillRect(Math.round(o.x - cam), Math.round(o.y - o.t * 0.8), 6, 10); });
+  // HUD
+  g.font = "bold 9px monospace"; g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(0, 0, W, 14); g.fillStyle = "#fff";
+  g.fillText("COINS " + String(got).padStart(2, "0") + "   SCORE " + String(score).padStart(5, "0") + "   LIVES " + "♥".repeat(Math.max(0, lives)), 6, 10);
+  if (muted) g.fillText("MUTED", W - 40, 10);
+  const say = (a, b) => { g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(40, 66, W - 80, 56); g.fillStyle = "#fff"; g.font = "bold 14px monospace"; g.textAlign = "center"; g.fillText(a, W / 2, 90); g.font = "9px monospace"; g.fillText(b, W / 2, 108); g.textAlign = "left"; };
+  if (state === "win") say("LEVEL CLEAR!", "Score " + score + "  ·  Space to play again");
+  if (state === "over") say("GAME OVER", "Space to try again");
+  if (!document.hasFocus() && !BOT) say("PAUSED", "Click the game to play");
+}
+
+// ---------- loop (fixed 60 Hz; pauses when the game loses focus so it never eats CPU in the background) ----------
+let last = performance.now(), acc = 0;
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(100, now - last); last = now;
+  if (document.hasFocus() || BOT) { acc += dt; while (acc >= 1000 / 60) { update(); acc -= 1000 / 60; } }
+  draw();
+}
+addEventListener("keydown", (e) => {
+  if ([" ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
+  keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = true;
+  if ((e.key === " " || e.key === "Enter") && state !== "play") resetWorld(true);
+  if (e.key.toLowerCase() === "r") resetWorld(true);
+  if (e.key.toLowerCase() === "m") muted = !muted;
+});
+addEventListener("keyup", (e) => { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = false; });
+addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
+cv.addEventListener("pointerdown", () => cv.focus());
+frame = 0; cam = 0; resetWorld(true); cv.focus(); requestAnimationFrame(loop);
+window.__pixelHop = { get p() { return p; }, get state() { return state; }, get score() { return score; }, get lives() { return lives; }, get cols() { return COLS; }, get coinsLeft() { return coins.filter((k) => !k.got).length; }, step(n = 1) { for (let i = 0; i < n; i++) update(); } };
+</script>
+</body>
+</html>

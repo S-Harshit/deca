@@ -1,0 +1,29 @@
+# Builds deca-ready.zip (the app pre-built, one-click launchers, plain guide) and attaches it to the release.
+# Push a tag like v1.0.0, or run it by hand from the Actions tab.
+name: Release package
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/package.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deca-ready
+          path: deca-ready.zip
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: deca-ready.zip

@@ -1,0 +1,17 @@
+.run/
+.bin/
+node_modules/
+dist/
+dist-static/
+
+# Games panel: only the bundled sample (snake) is part of the project. Anything else you drop into
+# dema-server/games/ stays on your machine: it is never committed or deployed with the project.
+dema-server/games/*
+!dema-server/games/snake/
+!dema-server/games/platformer/
+!dema-server/games/freedoom/
+dema-server/games/freedoom/*.wad
+
+# built by scripts/package.mjs
+deca-ready.zip
+.package/

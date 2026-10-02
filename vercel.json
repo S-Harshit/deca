@@ -1,0 +1,5 @@
+{
+  "buildCommand": "node scripts/build-static.mjs",
+  "outputDirectory": "dist-static",
+  "installCommand": "echo skip"
+}

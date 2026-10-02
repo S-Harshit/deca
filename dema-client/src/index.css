@@ -1,0 +1,80 @@
+/* ---- themes: every colour in the app comes from these variables ---- */
+[data-theme="midnight"] {
+  --bg: #0f1115;
+  --bg-deep: #0a0c10;
+  --panel: #171a21;
+  --panel-2: #1f232d;
+  --border: #2a2f3a;
+  --text: #e8eaf0;
+  --muted: #8b93a5;
+  --accent: #7c83ff;
+  --on-accent: #fff;
+  --danger: #ff6b7a;
+  --ok: #3ddc97;
+  --shadow: 0 20px 60px #0008;
+  --name-l: 68%;
+  color-scheme: dark;
+}
+:root:not([data-theme]),
+[data-theme="graphite"] {
+  --bg: #151515; --bg-deep: #0e0e0e; --panel: #1d1d1d; --panel-2: #262626; --border: #333;
+  --text: #ececec; --muted: #9a9a9a; --accent: #c6f432; --on-accent: #111;
+  --danger: #ff6b6b; --ok: #5fd38d; --shadow: 0 20px 60px #000a; --name-l: 68%; color-scheme: dark;
+}
+[data-theme="light"] {
+  --bg: #f4f5f8; --bg-deep: #e7e9ef; --panel: #ffffff; --panel-2: #f0f2f7; --border: #dfe2ea;
+  --text: #1b1f2a; --muted: #687085; --accent: #5b62e6; --on-accent: #fff;
+  --danger: #d6334a; --ok: #1f9d68; --shadow: 0 16px 40px #2a3a5a26; --name-l: 38%; color-scheme: light;
+}
+[data-theme="forest"] {
+  --bg: #0d1512; --bg-deep: #08100d; --panel: #13201b; --panel-2: #1a2a24; --border: #263a32;
+  --text: #e3f0ea; --muted: #82a093; --accent: #3ddc97; --on-accent: #06281a;
+  --danger: #ff7b7b; --ok: #3ddc97; --shadow: 0 20px 60px #0009; --name-l: 68%; color-scheme: dark;
+}
+[data-theme="rose"] {
+  --bg: #fbf3f4; --bg-deep: #f3e4e7; --panel: #ffffff; --panel-2: #fbeef0; --border: #efd9dd;
+  --text: #2b1a1e; --muted: #7a5b62; --accent: #cf374c; --on-accent: #fff;
+  --danger: #c2283c; --ok: #1f9d68; --shadow: 0 16px 40px #5a2a3026; --name-l: 38%; color-scheme: light;
+}
+[data-theme="sunset"] {
+  --bg: #1a1214; --bg-deep: #120c0d; --panel: #231719; --panel-2: #2b1d20; --border: #3d2a2e;
+  --text: #f6e9e4; --muted: #b09690; --accent: #ff9a5a; --on-accent: #2a1204;
+  --danger: #ff6b7a; --ok: #6fdc9a; --shadow: 0 20px 60px #000a; --name-l: 68%; color-scheme: dark;
+}
+
+:root {
+  /* syntax highlighting, dark themes; the light themes override below */
+  --hl-keyword: #c792ea; --hl-string: #a5e075; --hl-number: #f78c6c; --hl-func: #82aaff; --hl-type: #ffcb6b; --hl-comment: #7f8aa3;
+  --font-display: "Space Grotesk", Inter, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* derived from --accent, so a custom accent recolours everything */
+  --accent-hover: color-mix(in srgb, var(--accent) 82%, black);
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 45%, transparent);
+  --danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
+  --radius: 8px;
+  --gap: 0.75rem;
+  --pad: 1rem;
+
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+[data-compact="true"] { --gap: 0.4rem; --pad: 0.6rem; }
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--bg); transition: background 0.2s; }
+h1, h2, h3, h4 { margin: 0; font-family: var(--font-display); }
+code { font-family: var(--font-mono); font-size: 0.88em; }
+a { color: var(--accent); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+[data-theme="light"], [data-theme="rose"] {
+  --hl-keyword: #8a3fc2; --hl-string: #3a7d1e; --hl-number: #c2571a; --hl-func: #2b59c3; --hl-type: #a06a00; --hl-comment: #7a8194;
+}
+

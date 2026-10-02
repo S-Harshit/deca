@@ -1,0 +1,9 @@
+# Render blueprint: one free web service = signaling + the built client on one port (wss for free).
+services:
+  - type: web
+    name: deca
+    runtime: node
+    plan: free
+    buildCommand: cd dema-client && npm ci && npm run build && cd ../dema-server && npm ci
+    startCommand: cd dema-server && node server.js
+    healthCheckPath: /healthz

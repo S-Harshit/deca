@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Snake</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #111; color: #eee; font: 14px system-ui, sans-serif; overflow: hidden; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  canvas { background: #1a1a1a; border: 2px solid #333; max-width: 96vw; max-height: 78vh; image-rendering: pixelated; }
+  #hud { display: flex; gap: 18px; opacity: .85; } b { color: #c6f432; }
+</style>
+</head>
+<body>
+<div id="hud"><span>Score <b id="s">0</b></span><span>Best <b id="b">0</b></span><span id="msg">Arrow keys or WASD · Space to restart</span></div>
+<canvas id="c" width="400" height="400" tabindex="0"></canvas>
+<script>
+// A tiny original Snake, here as the sample game for the Games panel.
+const N = 20, cell = 20, cv = document.getElementById("c"), g = cv.getContext("2d");
+let snake, dir, next, food, score, best = 0, dead, timer;
+const rnd = () => Math.floor(Math.random() * N);
+function reset() {
+  snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }]; dir = next = { x: 1, y: 0 }; score = 0; dead = false; place();
+  document.getElementById("msg").textContent = "Arrow keys or WASD · Space to restart"; clearInterval(timer); timer = setInterval(tick, 110); draw();
+}
+function place() { do { food = { x: rnd(), y: rnd() }; } while (snake.some((p) => p.x === food.x && p.y === food.y)); }
+function tick() {
+  dir = next; const h = { x: (snake[0].x + dir.x + N) % N, y: (snake[0].y + dir.y + N) % N };
+  if (snake.some((p) => p.x === h.x && p.y === h.y)) { dead = true; clearInterval(timer); document.getElementById("msg").textContent = "Game over · Space to restart"; draw(); return; }
+  snake.unshift(h);
+  if (h.x === food.x && h.y === food.y) { score++; best = Math.max(best, score); place(); } else snake.pop();
+  document.getElementById("s").textContent = score; document.getElementById("b").textContent = best; draw();
+}
+function draw() {
+  g.fillStyle = "#1a1a1a"; g.fillRect(0, 0, 400, 400);
+  g.fillStyle = "#ff6b6b"; g.fillRect(food.x * cell + 3, food.y * cell + 3, cell - 6, cell - 6);
+  snake.forEach((p, i) => { g.fillStyle = dead ? "#777" : i ? "#7fbf2a" : "#c6f432"; g.fillRect(p.x * cell + 1, p.y * cell + 1, cell - 2, cell - 2); });
+}
+const keys = { ArrowUp: [0, -1], w: [0, -1], ArrowDown: [0, 1], s: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], ArrowRight: [1, 0], d: [1, 0] };
+addEventListener("keydown", (e) => {
+  const k = keys[e.key]; if (e.key === " ") { e.preventDefault(); reset(); return; }
+  if (!k) return; e.preventDefault(); if (k[0] !== -dir.x || k[1] !== -dir.y) next = { x: k[0], y: k[1] };
+});
+cv.focus(); reset();
+</script>
+</body>
+</html>

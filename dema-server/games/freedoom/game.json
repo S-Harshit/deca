@@ -1,0 +1,15 @@
+{
+  "title": "Freedoom",
+  "heavy": true,
+  "note": "28 MB download and CPU-heavy: expect a busier fan if you are also on a call.",
+  "controls": [
+    "Arrow keys: move and turn",
+    "A: fire",
+    "Z: open doors / use",
+    "S: run (hold)",
+    "X + arrows: strafe (or Q / E)",
+    "Tab / R: previous / next weapon",
+    "Enter: menu \u00b7 V: map",
+    "Esc: back to chat"
+  ]
+}
