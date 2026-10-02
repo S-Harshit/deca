@@ -53,7 +53,7 @@ Environment variables for the server (all optional):
 
 ## Free hosting without a backend
 
-`npm run build:static` makes `dist-static/`, a plain folder of files that works on GitHub Pages, Vercel, Netlify or any static host. In that build people join by exchanging codes ("connect by code"), so nothing needs a server. For GitHub Pages, set Settings, Pages, Source to "GitHub Actions" and push to `main` (`.github/workflows/pages.yml` does the rest). For Vercel, import the repository (`vercel.json` is included). Codes are signed, newcomers need the host's approval, and members can compare check words. Details in [SPEC.md](docs/SPEC.md#connect-by-code-no-signaling-server).
+`npm run build:static` makes `dist-static/`, a plain folder of files that works on GitHub Pages, Vercel, Netlify or any static host. In that build people join by exchanging codes ("connect by code"), so nothing needs a server. For GitHub Pages, set Settings, Pages, Source to "GitHub Actions" and run the "pages" workflow from the Actions tab (`.github/workflows/pages.yml`; it needs a public repo or a paid plan). For Vercel, import the repository (`vercel.json` is included). Codes are signed, newcomers need the host's approval, and members can compare check words. Details in [SPEC.md](docs/SPEC.md#connect-by-code-no-signaling-server).
 
 ## Hosting
 

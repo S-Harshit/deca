@@ -1,9 +1,8 @@
-# Publishes the no-server build to GitHub Pages on every push to main.
-# One-time setup: repository Settings > Pages > Source: "GitHub Actions".
+# Publishes the no-server build to GitHub Pages. Run it by hand (Actions tab) once Pages is enabled.
+# One-time setup: repository Settings > Pages > Source: "GitHub Actions" (a private repo needs a paid plan).
+# To publish on every push instead, add:  push: { branches: [main] }  under "on:".
 name: pages
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
