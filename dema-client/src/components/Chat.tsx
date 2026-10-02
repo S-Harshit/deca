@@ -832,7 +832,7 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
   const send = () => {
     if (isBlankMessage(text)) return; // includes a code block that was left empty
     const command = text.trim().toLowerCase();
-    // Hidden: not listed anywhere in the UI. A self-playing runner strip for this tab only. Not listed anywhere in the UI.
+    // Hidden: not listed anywhere in the UI. A self-playing runner strip for this tab only.
     if (command === "/run" || command === "/run on" || command === "/run off") {
       const want = command === "/run" ? !runnerOn() : command === "/run on";
       if (want && matchMedia("(prefers-reduced-motion: reduce)").matches) notify("Reduced motion is on, so the runner stays off.");

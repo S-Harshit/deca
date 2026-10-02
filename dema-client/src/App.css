@@ -395,6 +395,44 @@ code.inline { font-family: var(--font-mono); font-size: 0.86em; background: var(
 .card.simple .tagline { color: var(--muted); }
 .card.simple input { text-align: center; flex: none; }
 
+
+
+
+
+
+/* ---- classic home screen (the original two-column "ticket"), scoped to .landing.classic ---- */
+.landing.classic, .landing.dotted { background-image: radial-gradient(color-mix(in srgb, var(--text) 10%, transparent) 1px, transparent 1.2px), radial-gradient(60rem 40rem at 20% -10%, var(--accent-soft), transparent); background-size: 22px 22px, auto; background-color: var(--bg); }
+.landing-inner { width: min(980px, 100%); display: grid; grid-template-columns: 1.15fr 1fr; gap: 3rem; align-items: stretch; }
+.hero-copy { display: flex; flex-direction: column; justify-content: center; gap: 1rem; }
+.hero-copy h1 { font-size: clamp(1.8rem, 4vw, 2.7rem); line-height: 1.12; letter-spacing: -0.02em; }
+.hero-copy p { margin: 0; font-size: 1.05rem; max-width: 34rem; }
+.hero-copy .tagline { font-size: 1.5rem; }
+.points { list-style: none; padding: 0; margin: 0.4rem 0 0; display: flex; flex-direction: column; gap: 0.6rem; color: var(--muted); font-family: var(--font-mono); font-size: 0.85rem; }
+.points li { display: flex; align-items: center; gap: 0.6rem; }
+.points li svg { color: var(--accent); }
+.ticket { position: relative; justify-content: flex-start; border: 2px dashed color-mix(in srgb, var(--text) 26%, transparent); background: var(--panel); box-shadow: 8px 8px 0 var(--accent-soft); }
+.ticket::before, .ticket::after { content: ""; position: absolute; top: 3.35rem; width: 22px; height: 22px; border-radius: 50%; background: var(--bg); border: 2px dashed color-mix(in srgb, var(--text) 26%, transparent); }
+.ticket::before { left: -13px; clip-path: inset(0 0 0 50%); }
+.ticket::after { right: -13px; clip-path: inset(0 50% 0 0); }
+.ticket-head { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.18em; color: var(--muted); border-bottom: 2px dashed color-mix(in srgb, var(--text) 18%, transparent); padding-bottom: 0.7rem; }
+.barcode { margin-top: auto; height: 30px; border-radius: 2px; opacity: 0.3; background: repeating-linear-gradient(90deg, var(--text) 0 2px, transparent 2px 5px, var(--text) 5px 6px, transparent 6px 10px, var(--text) 10px 13px, transparent 13px 15px); }
+@media (max-width: 860px) {
+  .landing-inner { grid-template-columns: 1fr; gap: 1.5rem; }
+  .hero-copy { text-align: center; align-items: center; }
+  .ticket::before, .ticket::after { display: none; }
+}
+
+/* deciders sit in the feed like messages: a little air above each, icons sized to the text */
+.line:has(.coin-row), .line:has(.rps-row), .line:has(.blame-row) { margin-top: 0.3rem; }
+.line:has(.coin-row) + .line, .line:has(.rps-row) + .line, .line:has(.blame-row) + .line { margin-top: 0.3rem; }
+
+/* ---- the host's red "wake up" button + the screen flash it causes ---- */
+.horn-btn { background: #d92d20; border-color: #d92d20; color: #fff; font-weight: 700; letter-spacing: 0.02em; box-shadow: 0 2px 0 #9b1c14; margin-top: 0.6rem; }
+.horn-btn:hover { background: #b42318; border-color: #b42318; }
+.horn-btn:disabled { opacity: 1; background: #7a2a25; border-color: #7a2a25; color: #fff; box-shadow: none; }
+.horn-flash { position: fixed; inset: 0; z-index: 400; pointer-events: none; border: 10px solid #d92d20; background: color-mix(in srgb, #d92d20 18%, transparent); animation: horn-fade 1.6s ease-out forwards; }
+@keyframes horn-fade { 0% { opacity: 1; } 100% { opacity: 0; } }
+
 /* ---- games panel (experimental): sits under the video; the wrapper exists only while a game is open ---- */
 .media-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .game-panel { display: flex; flex-direction: column; min-height: 0; background: var(--bg-deep); border-top: 1px solid var(--border); }
@@ -477,7 +515,7 @@ code.inline { font-family: var(--font-mono); font-size: 0.86em; background: var(
 .line.arch { opacity: 0.88; }
 .aid { font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); font-weight: 400; }
 
-/* ---- wallpaper: only while one is set (html[data-wall="on"]); ---- */
+/* ---- wallpaper: only while one is set (html[data-wall="on"]) ---- */
 html[data-wall="on"] body { background: transparent; }
 html[data-wall="on"] body::before { content: ""; position: fixed; inset: -24px; z-index: -2; background: var(--wall-img) center / cover no-repeat; filter: blur(var(--wall-blur, 0px)); }
 html[data-wall="on"] body::after { content: ""; position: fixed; inset: 0; z-index: -1; background: color-mix(in srgb, var(--bg) var(--wall-dim, 55%), transparent); }
