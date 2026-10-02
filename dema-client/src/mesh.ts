@@ -400,7 +400,7 @@ export class Mesh {
       const params = sender.getParameters();
       if (!params.encodings?.length) continue;
       const screen = track.kind === "video" && track.contentHint === "detail";
-      params.encodings[0].maxBitrate = track.kind === "audio" ? 32_000 : screen ? 1_000_000 : 450_000;
+      params.encodings[0].maxBitrate = track.kind === "audio" ? (track.contentHint === "music" ? 96_000 : 32_000) : screen ? 1_000_000 : 450_000;
       sender.setParameters(params).catch(() => undefined);
     }
   }

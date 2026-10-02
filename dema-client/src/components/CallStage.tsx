@@ -194,7 +194,7 @@ function VideoTile({
       <div className="tile-label">
         {!tile.mic && !screen && <Icon name="micOff" size={13} />}
         {label}
-        {screen && " · screen"}
+        {screen && (tile.mic ? " · screen with sound" : " · screen")}
       </div>
       <div className="tile-actions">
         <button className="icon-btn glass" aria-label={pinned ? "Unpin" : "Pin"} title={pinned ? "Unpin" : "Pin to spotlight"} onClick={onPin}>

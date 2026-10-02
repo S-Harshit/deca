@@ -969,7 +969,7 @@ export class Space {
     const out: Tile[] = [];
     if (this.screen) {
       const key = `${this.peerId}:${this.screen.id}`;
-      out.push({ key, peerId: this.peerId, stream: this.screen, kind: "screen", mic: false, cam: true, local: true });
+      out.push({ key, peerId: this.peerId, stream: this.screen, kind: "screen", mic: hasTrack(this.screen, "audio"), cam: true, local: true });
     }
     if (this.camera) {
       const key = `${this.peerId}:${this.camera.id}`;
@@ -1009,7 +1009,7 @@ export class Space {
         ago: Date.now() - this.cameraStartedAt,
       });
     }
-    if (this.screen) streams.push({ id: this.screen.id, kind: "screen", mic: false, cam: true });
+    if (this.screen) streams.push({ id: this.screen.id, kind: "screen", mic: hasTrack(this.screen, "audio"), cam: true });
     return { t: "media", streams };
   }
 
@@ -1072,9 +1072,17 @@ export class Space {
     this.mediaError = "";
     try {
       if (!navigator.mediaDevices?.getDisplayMedia) throw new Error("Screen sharing isn't available in this browser");
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: 10, max: 15 }, width: { max: 1280 }, height: { max: 720 } },
-      });
+      const video = { frameRate: { ideal: 10, max: 15 }, width: { max: 1280 }, height: { max: 720 } };
+      // Ask for sound too: the picker offers it (a tab, or the whole screen on Windows/ChromeOS) and the person may decline.
+      // No voice processing: it would mangle music and film audio. Browsers that reject the option get a video-only share.
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia({ video, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, systemAudio: "include" } as DisplayMediaStreamOptions);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "NotAllowedError") throw err;
+        stream = await navigator.mediaDevices.getDisplayMedia({ video });
+      }
+      stream.getAudioTracks().forEach((t) => (t.contentHint = "music"));
       stream.getVideoTracks().forEach((t) => {
         t.contentHint = "detail";
         t.addEventListener("ended", () => this.stopScreen()); // the browser's own "Stop sharing"
