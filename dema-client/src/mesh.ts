@@ -72,6 +72,8 @@ type Handlers = {
 };
 
 type Peer = {
+  /** We made the offer (as opposed to answering theirs). */
+  dialed?: boolean;
   name: string;
   pc: RTCPeerConnection;
   polite: boolean;
@@ -468,16 +470,24 @@ export class Mesh {
     this.later(() => {
       if (this.peers.get(remoteId) === peer && peer.ctl?.readyState !== "open") this.linkLost(remoteId);
     }, this.hub ? MANUAL_OPEN_TIMEOUT_MS : OPEN_TIMEOUT_MS); // a person has to carry the code: give them time
-    // One side only (the higher id, as with every other redial), so the two do not rebuild at the same moment.
-    if (!this.hub && this.peerId > remoteId) {
-      this.later(() => {
+    // The side that did NOT make the failed offer rebuilds first, so the retry runs the other way round (that is what pressing
+    // Retry by hand did, and it is the direction that gets through when a router only lets traffic in after it has gone out).
+    // The side that made the offer waits twice as long, so the two never rebuild at the same moment.
+    if (!this.hub) {
+      let waited = false;
+      const check = () => {
         const w = this.waiting.get(remoteId);
         const st = pc.iceConnectionState;
         if (this.closed || this.peers.get(remoteId) !== peer || !w || w.quick >= QUICK_RETRIES) return;
         if (peer.ctl?.readyState === "open" || st === "connected" || st === "completed") return;
+        if (peer.dialed && !waited) {
+          waited = true; // `dialed` is set just after the peer is made, so it is read now, not when this was scheduled
+          return void this.later(check, QUICK_RETRY_MS);
+        }
         w.quick++;
         this.dial(remoteId, this.names.get(remoteId) ?? remoteId);
-      }, QUICK_RETRY_MS);
+      };
+      this.later(check, QUICK_RETRY_MS);
     }
     pc.oniceconnectionstatechange = () => {
       if (this.peers.get(remoteId) !== peer) return;
@@ -635,6 +645,7 @@ export class Mesh {
     this.manualFailed.delete(remoteId);
     this.drop(remoteId); // never leave an old connection behind a new one
     const peer = this.createPeer(remoteId, name);
+    peer.dialed = true;
     // Creating the channels triggers negotiationneeded, which sends the offer.
     this.attach(remoteId, peer, peer.pc.createDataChannel("ctl"));
     this.attach(remoteId, peer, peer.pc.createDataChannel("file"));
