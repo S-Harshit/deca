@@ -45,6 +45,11 @@ function listGames() {
         } catch {
           // no game.json: the folder name is the title
         }
+        return { d, meta };
+      })
+      // a game that needs a data file (Freedoom's 28 MB .wad is not in the repository) is not offered until the file is there
+      .filter(({ d, meta }) => !Array.isArray(meta.requires) || meta.requires.every((f) => typeof f === "string" && !f.includes("..") && fs.existsSync(path.join(GAMES, d.name, f))))
+      .map(({ d, meta }) => {
         const text = (v, n) => (typeof v === "string" ? v.slice(0, n) : "");
         return {
           id: d.name,

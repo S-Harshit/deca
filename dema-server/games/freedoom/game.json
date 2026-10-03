@@ -1,6 +1,7 @@
 {
   "title": "Freedoom",
   "heavy": true,
+  "requires": ["freedoom1.wad"],
   "note": "28 MB download and CPU-heavy: expect a busier fan if you are also on a call.",
   "controls": [
     "Arrow keys: move and turn",
