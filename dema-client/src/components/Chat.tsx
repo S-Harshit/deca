@@ -159,6 +159,7 @@ function Timeline({
   let prev: SpaceEvent | null = null;
   const rows = state.visible.map((e) => {
     if (e.type === "chat" && isBlankMessage(String(e.payload.text ?? ""))) return null; // an empty code block from an older client
+    if (e.type === "score") return null; // shown only in the leaderboard
     if (e.type !== "chat" && e.type !== "file_offer" && e.type !== "coin" && e.type !== "rps" && e.type !== "blame") {
       prev = null;
       return (

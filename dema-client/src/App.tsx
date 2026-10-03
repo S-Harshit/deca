@@ -1,3 +1,6 @@
+import { onKonami } from "./konami";
+import { useScoresDialog, setScoresDialog } from "./scoresDialog";
+import { ScoresDialog } from "./components/ScoresDialog";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { rid } from "./log";
 import { Space, type Snapshot } from "./space";
@@ -309,6 +312,8 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
   const [flash, setFlash] = useState(false);
   const [games, setGames] = useState<Game[]>([]);
   const [gameOpen, setGameOpen] = useState(false);
+  const scoresOpen = useScoresDialog();
+  useEffect(() => onKonami(() => setScoresDialog(true)), []); // hidden: the leaderboard opens with the Konami code
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}games.json`)
       .then((r) => (r.ok ? r.json() : []))
@@ -491,12 +496,13 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
         </aside>
         {prefsApi && <SidebarGrip width={sidebarW} onChange={(w) => prefsApi.update({ sidebarW: w })} />}
 
+        {scoresOpen && <ScoresDialog snap={snap} games={games} onClose={() => setScoresDialog(false)} />}
         <main className={`main ${hasStage || showGame ? "has-stage" : ""} ${chatExpanded ? "chat-big" : ""}`}>
           {showGame ? (
             // The wrapper only exists while a game is open, so the normal call layout is untouched.
             <div className="media-col">
               {hasStage && <CallStage snap={snap} />}
-              <GamesPanel games={games} onClose={() => setGameOpen(false)} />
+              <GamesPanel games={games} onScore={space.recordScore.bind(space)} onClose={() => setGameOpen(false)} />
             </div>
           ) : runner ? (
             // The hidden /run strip: under the video when there is one, otherwise above the chat. Only while no game is open.

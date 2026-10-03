@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "./Icons";
 
 export type Game = { id: string; title: string; heavy?: boolean; note?: string; controls?: string[] };
@@ -8,7 +8,7 @@ export type Game = { id: string; title: string; heavy?: boolean; note?: string; 
  * Everyone who opens it plays their own copy; nothing about the game is shared or synced.
  * Games run on this site's origin, so only add games you trust.
  */
-export function GamesPanel({ games, onClose }: Readonly<{ games: Game[]; onClose: () => void }>) {
+export function GamesPanel({ games, onScore, onClose }: Readonly<{ games: Game[]; onScore: (game: string, value: number) => void; onClose: () => void }>) {
   // Never open on a heavy game: start with the first light one (or the first game if all are heavy).
   const [id, setId] = useState((games.find((g) => !g.heavy) ?? games[0]).id);
   const [started, setStarted] = useState<string[]>([]); // heavy games the user chose to start
@@ -16,6 +16,19 @@ export function GamesPanel({ games, onClose }: Readonly<{ games: Game[]; onClose
   const [nonce, setNonce] = useState(0); // bumping it reloads the frame
   const frame = useRef<HTMLIFrameElement>(null);
   const game = games.find((g) => g.id === id) ?? games[0];
+
+  // A game reports a finished run with  parent.postMessage({ deca: "score", value: 123 }, "*").  Only this panel's own frame is listened to.
+  const report = useRef(onScore);
+  report.current = onScore;
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.source !== frame.current?.contentWindow || e.origin !== location.origin) return;
+      const d = e.data as { deca?: unknown; value?: unknown } | null;
+      if (d?.deca === "score" && typeof d.value === "number" && Number.isFinite(d.value)) report.current(game.id, Math.floor(d.value));
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, [game.id]);
 
   const waiting = !!game.heavy && !started.includes(game.id);
   const controls = game.controls ?? [];

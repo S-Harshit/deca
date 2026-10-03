@@ -4,7 +4,7 @@
 
 import { isBlankMessage, safeWebUrl } from "./message";
 import type { ExportFile, ExportInput } from "./roomExport";
-import { derive, EventLog, HANDS, isEvent, MAX_ARCHIVES, MAX_FILE, rid, type ArchiveRef, type EventType, type SpaceEvent, type SpaceState } from "./log";
+import { derive, EventLog, HANDS, isEvent, MAX_ARCHIVES, MAX_FILE, MAX_SCORE, rid, type ArchiveRef, type EventType, type SpaceEvent, type SpaceState } from "./log";
 import { openArchive, sha256Hex, type ArchiveData } from "./archive";
 import type { ParsedImport } from "./roomImport";
 import { LocalSignaling, type Code } from "./localSignal";
@@ -513,6 +513,15 @@ export class Space {
     if (!this.canSpeak("chat")) return "The host has turned chat off";
     this.author("coin", { result: crypto.getRandomValues(new Uint8Array(1))[0] & 1 ? "heads" : "tails" });
     return "";
+  }
+
+  private lastScore = 0;
+  /** A game in the games panel finished with this score: add it to the room's leaderboard. */
+  recordScore(game: string, value: number) {
+    if (!/^[a-z0-9_-]{1,40}$/i.test(game) || !Number.isSafeInteger(value) || value <= 0 || value > MAX_SCORE) return;
+    if (Date.now() - this.lastScore < 1500) return; // a game that reports twice for one ending, or a loop
+    this.lastScore = Date.now();
+    this.author("score", { game, value });
   }
 
   private lastShare = 0;

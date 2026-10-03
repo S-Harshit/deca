@@ -64,10 +64,13 @@ const beep = (f0, f1, dur, type = "square", vol = 0.06) => {
 const sfx = { jump: () => beep(300, 700, 0.14), coin: () => { beep(880, 1320, 0.07); }, stomp: () => beep(220, 90, 0.12, "triangle", 0.1), hurt: () => beep(300, 60, 0.4, "sawtooth", 0.07), win: () => { beep(523, 523, 0.12); setTimeout(() => beep(659, 659, 0.12), 120); setTimeout(() => beep(784, 1046, 0.35), 240); }, bump: () => beep(140, 100, 0.08, "square", 0.05) };
 
 // ---------- state ----------
+let reported = false;
+// Tell the page this run is over, once, so the room's leaderboard can add it (the page ignores this when there is no leaderboard).
+function report() { if (!reported && score > 0) { reported = true; parent.postMessage({ deca: "score", value: score }, "*"); } }
 let p, slimes, score, got, lives, cam, state, frame, cp, hold = 0, popups = [], bumps = [];
 const keys = {}; let jumpBuf = 0, coyote = 0, jumpHeld = false;
 function resetWorld(full) {
-  if (full) { for (let r = 0; r < ROWS; r++) for (let q = 0; q < COLS; q++) if (grid[r][q] === USED) grid[r][q] = BLOCK; coins.forEach((k) => (k.got = false)); score = 0; got = 0; lives = 3; cp = 40; state = "play"; }
+  if (full) { reported = false; for (let r = 0; r < ROWS; r++) for (let q = 0; q < COLS; q++) if (grid[r][q] === USED) grid[r][q] = BLOCK; coins.forEach((k) => (k.got = false)); score = 0; got = 0; lives = 3; cp = 40; state = "play"; }
   p = { x: cp, y: (GROUND - 1) * T - 4, w: 12, h: 16, vx: 0, vy: 0, on: false, face: 1, inv: 90 };
   slimes = slimes0.filter((s) => full || s.x > cp - 80 || true).map((s) => ({ x: s.x, y: (GROUND - 1) * T + 4, w: 14, h: 12, vx: 0.45 * s.dir, vy: 0, dead: 0, on: false, alive: true }));
   slimes.forEach((s) => { if (s.x < cp + 90 && s.x > cp - 40) s.alive = false; }); // never spawn one on top of you
@@ -92,7 +95,7 @@ function bump(tx, ty) {
 function hurt() {
   if (p.inv > 0 || state !== "play") return;
   sfx.hurt(); lives--;
-  if (lives <= 0) { state = "over"; return; }
+  if (lives <= 0) { state = "over"; report(); return; }
   p.x = cp; p.y = (GROUND - 1) * T - 4; p.vx = p.vy = 0; p.inv = 120;
 }
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -133,7 +136,7 @@ function update() {
       else if (!BOT) hurt();
     }
   }
-  if (p.x + p.w > FLAG_COL * T + 4) { state = "win"; score += 500; sfx.win(); }
+  if (p.x + p.w > FLAG_COL * T + 4) { state = "win"; score += 500; sfx.win(); report(); }
   cam = Math.max(0, Math.min(COLS * T - W, p.x + p.w / 2 - W / 2));
   popups.forEach((o) => o.t++); popups = popups.filter((o) => o.t < 30); bumps.forEach((b) => b.t++); bumps = bumps.filter((b) => b.t < 8);
 }

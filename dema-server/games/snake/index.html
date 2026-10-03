@@ -25,7 +25,7 @@ function reset() {
 function place() { do { food = { x: rnd(), y: rnd() }; } while (snake.some((p) => p.x === food.x && p.y === food.y)); }
 function tick() {
   dir = next; const h = { x: (snake[0].x + dir.x + N) % N, y: (snake[0].y + dir.y + N) % N };
-  if (snake.some((p) => p.x === h.x && p.y === h.y)) { dead = true; clearInterval(timer); document.getElementById("msg").textContent = "Game over · Space to restart"; draw(); return; }
+  if (snake.some((p) => p.x === h.x && p.y === h.y)) { dead = true; clearInterval(timer); if (score > 0) parent.postMessage({ deca: "score", value: score }, "*"); document.getElementById("msg").textContent = "Game over · Space to restart"; draw(); return; }
   snake.unshift(h);
   if (h.x === food.x && h.y === food.y) { score++; best = Math.max(best, score); place(); } else snake.pop();
   document.getElementById("s").textContent = score; document.getElementById("b").textContent = best; draw();

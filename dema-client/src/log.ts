@@ -5,6 +5,10 @@ export const MAX_FILE = 50 * 1024 * 1024;
 
 import { safeWebUrl } from "./message";
 
+/** Largest score accepted, and how many results one person can add to a room (the log keeps every event). */
+export const MAX_SCORE = 1_000_000_000;
+const MAX_SCORES_PER_AUTHOR = 200;
+
 export type EventType =
   | "joined"
   | "returned"
@@ -20,6 +24,7 @@ export type EventType =
   | "blame"
   | "archive_added"
   | "page_share"
+  | "score"
   | "horn";
 
 export type SpaceEvent = {
@@ -48,6 +53,7 @@ const TYPES = new Set<string>([
   "blame",
   "archive_added",
   "page_share",
+  "score",
   "horn",
 ]);
 
@@ -173,6 +179,7 @@ export function derive(events: SpaceEvent[], initialHost: string): SpaceState {
   let closed = false;
   let perms = { chat: true, files: true, music: true };
   const members = new Map<string, Member>();
+  const scoreCount = new Map<string, number>();
   const kicked = new Set<string>();
   const visible: SpaceEvent[] = [];
   const throws: SpaceEvent[] = [];
@@ -276,6 +283,13 @@ export function derive(events: SpaceEvent[], initialHost: string): SpaceState {
         if (HANDS.includes(p.throw) && (isHost || perms.chat)) {
           visible.push(e);
           throws.push(e);
+        }
+        break;
+      case "score":
+        // A game result from the author's own device (self-reported, like the coin): bounded, and only members count.
+        if (/^[a-z0-9_-]{1,40}$/i.test(String(p.game)) && Number.isSafeInteger(p.value) && p.value >= 0 && p.value <= MAX_SCORE && members.has(e.author) && (scoreCount.get(e.author) ?? 0) < MAX_SCORES_PER_AUTHOR) {
+          scoreCount.set(e.author, (scoreCount.get(e.author) ?? 0) + 1);
+          visible.push(e);
         }
         break;
       case "horn":
