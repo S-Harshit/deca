@@ -3,7 +3,9 @@ import { notify } from "../toast";
 import type { RoomOptions } from "../log";
 import type { Snapshot } from "../space";
 import { buildSummary } from "../summary";
+import { Avatar } from "./Avatar";
 import type { Game } from "./GamesPanel";
+import { Icon } from "./Icons";
 
 const mmss = (ms: number) => {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -44,55 +46,91 @@ export function EndsIn({ options }: Readonly<{ options: RoomOptions }>) {
 export function RoomSummary({ snap, games }: Readonly<{ snap: Snapshot; games: Game[] }>) {
   const s = buildSummary(snap.state, snap.me, snap.highlights);
   const title = (id: string) => games.find((g) => g.id === id)?.title ?? id;
+  const stat = (n: number | string, label: string) => (
+    <div className="stat">
+      <strong>{n}</strong>
+      <span>{label}</span>
+    </div>
+  );
   return (
     <div className="summary" aria-label="Room summary">
-      <h3>Summary</h3>
-      <p>
-        {s.minutes} min · {s.people.length} {s.people.length === 1 ? "person" : "people"} · {s.messages} {s.messages === 1 ? "message" : "messages"}
-      </p>
-      <p className="muted small">{s.people.join(", ")}</p>
-      {s.files.length > 0 && (
-        <section>
-          <h4>Files shared</h4>
-          <ul>{s.files.map((f, i) => <li key={i}>{f}</li>)}</ul>
-        </section>
-      )}
-      {s.links.length > 0 && (
-        <section>
-          <h4>Pages opened for everyone</h4>
-          <p>{s.links.join(", ")}</p>
-        </section>
-      )}
-      {s.screens.length > 0 && (
-        <section>
-          <h4>Screens shared</h4>
-          <p>{s.screens.map((x) => `${x.name} ×${x.count}`).join(", ")}</p>
-        </section>
-      )}
-      {s.tracks.length > 0 && (
-        <section>
-          <h4>Music</h4>
-          <ul>{s.tracks.map((t, i) => <li key={i}>{t}</li>)}</ul>
-        </section>
-      )}
-      {s.games.length > 0 && (
-        <section>
-          <h4>Games</h4>
-          {s.games.map((g) => (
-            <p key={g.game}>
-              <strong>{title(g.game)}</strong> · {g.plays} {g.plays === 1 ? "play" : "plays"} · {g.top.map((t, i) => `${i + 1}. ${t.name} ${t.best.toLocaleString()}`).join("  ")}
-            </p>
-          ))}
-        </section>
-      )}
-      {s.horn.count > 0 && (
-        <section>
-          <h4>Air horn</h4>
-          <p>
-            {s.horn.count} {s.horn.count === 1 ? "time" : "times"}: {s.horn.by.join(", ")}
-          </p>
-        </section>
-      )}
+      <div className="stats">
+        {stat(s.minutes, s.minutes === 1 ? "minute" : "minutes")}
+        {stat(s.people.length, s.people.length === 1 ? "person" : "people")}
+        {stat(s.messages, s.messages === 1 ? "message" : "messages")}
+      </div>
+      <div className="who-chips">
+        {s.people.map((p) => (
+          <span key={p.id} className="chip">
+            <Avatar name={p.name} id={p.id} size={20} />
+            {p.name}
+          </span>
+        ))}
+      </div>
+      <div className="sum-grid">
+        {s.files.length > 0 && (
+          <section className="sum-card">
+            <h4>
+              <Icon name="file" size={14} /> Files shared
+            </h4>
+            <ul>{s.files.map((f, i) => <li key={i}>{f}</li>)}</ul>
+          </section>
+        )}
+        {s.links.length > 0 && (
+          <section className="sum-card">
+            <h4>
+              <Icon name="link" size={14} /> Pages opened
+            </h4>
+            <ul>{s.links.map((l) => <li key={l}>{l}</li>)}</ul>
+          </section>
+        )}
+        {s.screens.length > 0 && (
+          <section className="sum-card">
+            <h4>
+              <Icon name="monitor" size={14} /> Screens shared
+            </h4>
+            <ul>{s.screens.map((x) => <li key={x.name}>{x.name} · {x.count} {x.count === 1 ? "time" : "times"}</li>)}</ul>
+          </section>
+        )}
+        {s.tracks.length > 0 && (
+          <section className="sum-card">
+            <h4>
+              <Icon name="music" size={14} /> Music
+            </h4>
+            <ul>{s.tracks.map((t, i) => <li key={i}>{t}</li>)}</ul>
+          </section>
+        )}
+        {s.games.map((g) => (
+          <section key={g.game} className="sum-card">
+            <h4>
+              <Icon name="gamepad" size={14} /> {title(g.game)}
+              <span className="muted small"> · {g.plays} {g.plays === 1 ? "play" : "plays"}</span>
+            </h4>
+            <ol className="podium">
+              {g.top.map((t, i) => (
+                <li key={i}>
+                  <span className="rank">{i + 1}</span>
+                  <span>{t.name}</span>
+                  <b>{t.best.toLocaleString()}</b>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))}
+        {s.horn.count > 0 && (
+          <section className="sum-card">
+            <h4>
+              <Icon name="bell" size={14} /> Air horn
+            </h4>
+            <ul>
+              <li>
+                {s.horn.count} {s.horn.count === 1 ? "time" : "times"}
+              </li>
+              {s.horn.by.map((b) => <li key={b}>{b}</li>)}
+            </ul>
+          </section>
+        )}
+      </div>
       <p className="muted small">Counted from what this device saw. Music and screens are what reached you.</p>
     </div>
   );

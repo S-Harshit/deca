@@ -413,7 +413,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
     return (
       <div className="landing">
         <div className="corner">{theme}</div>
-        <div className="card hero ended">
+        <div className={`card hero ended ${(snap.ended === "closed" || snap.ended === "time") && snap.state.options.summary ? "with-summary" : ""}`}>
           <h2>{ENDED[snap.ended].title}</h2>
           <p className="muted">{ENDED[snap.ended].text}</p>
           {(snap.ended === "closed" || snap.ended === "time") && snap.state.options.summary && <RoomSummary snap={snap} games={games} />}

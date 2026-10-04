@@ -114,6 +114,7 @@ Join flow: the newcomer dials every peer already in the room; link format `/#/s/
 - Comfortable up to ~4 people on video.
 
 ### Music (shared listening room)
+- **Popped-out player and wallpaper.** With a wallpaper set, the sidebar is blurred (`backdrop-filter`), which makes it a stacking context and the box its "fixed" children are placed in, so a popped-out player went behind the video stage. The sidebar drops its blur while the player is out. Tested with the wallpaper on, over a call.
 - **Maximised player and the end of a track.** The maximise/exit button is shown whenever the player is maximised, and when a track ends with nothing queued while the player fills the screen (browser fullscreen on desktop, the page-filling overlay on phones), the big view closes by itself. Before this the button vanished with the track and a phone had no way out. Tested on desktop and a phone-sized screen.
 - Paste a YouTube link; everyone's own embedded player plays the same video in sync. No audio is streamed through the app.
 - State `{ rev, by, cur, playing, pos, queue }` travels over the data channels (not the log); highest `(rev, by)` wins. Late joiners are sent the current state; the DJ sends a heartbeat every 10 s to correct drift.

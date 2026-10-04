@@ -8,7 +8,7 @@ export type Highlights = { tracks: string[]; screens: { peerId: string; count: n
 
 export type RoomSummary = {
   minutes: number;
-  people: string[];
+  people: { id: string; name: string }[];
   messages: number;
   files: string[];
   links: string[];
@@ -40,7 +40,7 @@ export function buildSummary(state: SpaceState, me: string, highlights: Highligh
   for (const e of horns) hornBy.set(e.author, (hornBy.get(e.author) ?? 0) + 1);
   return {
     minutes: Math.max(1, Math.round((now - first) / 60000)),
-    people: [...state.members.values()].map((m) => (m.peerId === me ? "You" : m.name)),
+    people: [...state.members.values()].map((m) => ({ id: m.peerId, name: m.peerId === me ? "You" : m.name })),
     messages: ev.filter((e) => e.type === "chat" && !isBlankMessage(String(e.payload.text ?? ""))).length,
     files: files.slice(0, 10),
     links: links.slice(0, 10),
