@@ -82,6 +82,8 @@ function describe(e: SpaceEvent, name: (id: string) => string): { kind: "msg" | 
       return { kind: "sys", who, text: `${who} threw ${String(p.throw)}` };
     case "horn":
       return { kind: "sys", who, text: `${who} sounded the air horn` };
+    case "room_options":
+      return { kind: "sys", who, text: p.endsAt === undefined ? "room options changed" : p.endsAt ? "an end time was set for the room" : "the end time was removed" };
     case "score":
       return { kind: "sys", who, text: `${who} scored ${Number(p.value)} in ${String(p.game).slice(0, 40)}` };
     case "perms_changed":

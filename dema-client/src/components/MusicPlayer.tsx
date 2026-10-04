@@ -83,6 +83,13 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
     addEventListener("keydown", esc);
     return () => removeEventListener("keydown", esc);
   }, [softMax]);
+  // The track ended with nothing queued while the player fills the screen: its own buttons are gone, so leave the big view
+  // (otherwise a phone has no way out, and the page's own controls stay hidden behind it).
+  useEffect(() => {
+    if (cur || !(fsMax || softMax)) return;
+    setSoftMax(false);
+    if (document.fullscreenElement) void document.exitFullscreen();
+  }, [cur, fsMax, softMax]);
   // Fullscreen the whole panel (not just the video) so play/seek/volume stay usable; the player is
   // only restyled, never remounted, so the music doesn't restart.
   const toggleMax = () => {
@@ -327,7 +334,7 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
             <Icon name="popout" size={14} />
           </button>
         )}
-        {cur && (
+        {(cur || max) && (
           <button className="icon-btn small" aria-label={max ? "Exit full screen" : "Maximise player"} title={max ? "Exit full screen (Esc)" : "Maximise"} onClick={toggleMax}>
             <Icon name={max ? "minimize" : "maximize"} size={14} />
           </button>

@@ -4,6 +4,7 @@
 
 import { isBlankMessage, safeWebUrl } from "./message";
 import type { ExportFile, ExportInput } from "./roomExport";
+import type { Highlights } from "./summary";
 import { derive, EventLog, HANDS, isEvent, MAX_ARCHIVES, MAX_FILE, MAX_SCORE, rid, type ArchiveRef, type EventType, type SpaceEvent, type SpaceState } from "./log";
 import { openArchive, sha256Hex, type ArchiveData } from "./archive";
 import type { ParsedImport } from "./roomImport";
@@ -82,7 +83,9 @@ export type ManualInfo = {
 
 export type Snapshot = {
   connected: boolean;
-  ended: null | "kicked" | "closed" | "replaced" | "full" | "locked" | "taken" | "busy";
+  ended: null | "kicked" | "closed" | "time" | "replaced" | "full" | "locked" | "taken" | "busy";
+  /** What this device saw of the room that the log does not hold (for the end screen). */
+  highlights: Highlights;
   /** The host has closed the room to newcomers. */
   locked: boolean;
   /** How many people a space holds (0 = unknown or unlimited). */
@@ -151,6 +154,11 @@ export class Space {
   private announceTimer?: ReturnType<typeof setTimeout>;
   private refreshTimer?: ReturnType<typeof setTimeout>;
   private ended: Snapshot["ended"] = null;
+  /** Tracks heard and screens shared in this visit, for the end summary (the log has neither). */
+  private readonly tracks: string[] = [];
+  private readonly screenShares = new Map<string, Set<string>>();
+  private endTimer: ReturnType<typeof setTimeout> | undefined;
+  private endsAtScheduled = 0;
   private camera: MediaStream | null = null;
   private screen: MediaStream | null = null;
   private micOn = true;
@@ -256,6 +264,7 @@ export class Space {
     return {
       connected: this.connected,
       ended: this.ended,
+      highlights: { tracks: [...this.tracks], screens: [...this.screenShares].map(([peerId, ids]) => ({ peerId, count: ids.size })) },
       capacity: this.capacity,
       locked: this.locked,
       relays: this.relayPaths(),
@@ -296,11 +305,29 @@ export class Space {
   }
 
   /** React to kicks / closure that the log now says are in force. */
-  private enforce({ kicked, closed }: SpaceState) {
+  private enforce({ kicked, closed, closedAt, options, hostId }: SpaceState) {
     if (this.ended || this.tornDown) return;
     for (const id of kicked) if (id !== this.peerId) this.mesh.block(id);
-    if (closed) this.end("closed");
+    this.scheduleEnd(options.endsAt, hostId);
+    if (closed) this.end(options.endsAt > 0 && closedAt >= options.endsAt - 5000 ? "time" : "closed");
     else if (kicked.has(this.peerId)) this.end("kicked");
+  }
+
+  /**
+   * An end time the host set: when it comes, the host's device closes the room (so people who join later see it closed), and every
+   * other device ends its own copy a few seconds after, in case the host is gone. Clocks are trusted to be roughly right.
+   */
+  private scheduleEnd(endsAt: number, hostId: string) {
+    if (endsAt === this.endsAtScheduled) return;
+    this.endsAtScheduled = endsAt;
+    clearTimeout(this.endTimer);
+    if (!endsAt) return;
+    this.endTimer = setTimeout(() => {
+      if (this.ended || this.tornDown) return;
+      if (this.snapshot.state.hostId === this.peerId && !this.snapshot.state.closed) this.author("space_closed", {});
+      this.endTimer = setTimeout(() => !this.ended && !this.tornDown && this.end("time"), 4000);
+    }, Math.max(0, endsAt - Date.now()));
+    void hostId;
   }
 
   private end(reason: NonNullable<Snapshot["ended"]>) {
@@ -320,6 +347,7 @@ export class Space {
     this.tornDown = true;
     clearTimeout(this.announceTimer);
     clearTimeout(this.refreshTimer);
+    clearTimeout(this.endTimer);
     clearInterval(this.musicTimer);
     for (const s of [this.camera, this.screen]) s?.getTracks().forEach((t) => t.stop());
     this.camera = this.screen = null;
@@ -481,6 +509,7 @@ export class Space {
               },
             ]);
           this.info.set(from, new Map(entries));
+          for (const [id, i] of entries) if (i.kind === "screen") this.noteScreen(from, id);
           this.refresh();
         }
         break;
@@ -670,6 +699,10 @@ export class Space {
   }
   closeSpace() {
     this.author("space_closed", {});
+  }
+  /** Host only: the summary on the end screen, and an end time for the room (0 turns it off). */
+  setOptions(o: { summary?: boolean; endsAt?: number }) {
+    if (this.peerId === this.snapshot.state.hostId) this.author("room_options", o);
   }
 
   // --- imported history ---
@@ -910,6 +943,8 @@ export class Space {
 
   // --- music ---
   private setMusic(next: MusicState, broadcast: boolean) {
+    const t = next.cur;
+    if (t && t.vid !== this.music?.cur?.vid && !this.tracks.includes(t.title || t.vid)) this.tracks.push(t.title || t.vid);
     this.music = next;
     this.musicAt = Date.now();
     if (broadcast) this.mesh.broadcast({ t: "music", s: next });
@@ -1097,6 +1132,7 @@ export class Space {
         t.addEventListener("ended", () => this.stopScreen()); // the browser's own "Stop sharing"
       });
       this.screen = stream;
+      this.noteScreen(this.peerId, stream.id);
       this.publish();
       return;
     } catch (err) {
@@ -1104,6 +1140,12 @@ export class Space {
       if (!(err instanceof DOMException && err.name === "NotAllowedError")) this.mediaError = mediaErrorText(err);
     }
     this.refresh();
+  }
+
+  private noteScreen(peerId: string, streamId: string) {
+    const set = this.screenShares.get(peerId) ?? new Set<string>();
+    set.add(streamId);
+    this.screenShares.set(peerId, set);
   }
 
   stopScreen() {

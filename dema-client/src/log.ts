@@ -9,6 +9,9 @@ import { safeWebUrl } from "./message";
 export const MAX_SCORE = 1_000_000_000;
 const MAX_SCORES_PER_AUTHOR = 200;
 
+export type RoomOptions = { summary: boolean; /** When the room ends, in ms (0 = no end time). Set by the host from their own clock. */ endsAt: number };
+const MAX_ROOM_MS = 24 * 3600 * 1000;
+
 export type EventType =
   | "joined"
   | "returned"
@@ -25,6 +28,7 @@ export type EventType =
   | "archive_added"
   | "page_share"
   | "score"
+  | "room_options"
   | "horn";
 
 export type SpaceEvent = {
@@ -54,6 +58,7 @@ const TYPES = new Set<string>([
   "archive_added",
   "page_share",
   "score",
+  "room_options",
   "horn",
 ]);
 
@@ -131,6 +136,10 @@ export type SpaceState = {
   members: Map<string, Member>;
   kicked: Set<string>;
   closed: boolean;
+  /** When the closing event was authored (the host's clock), or 0. */
+  closedAt: number;
+  /** Host choices that are off by default: an end time for the room, and a summary shown when it ends. */
+  options: RoomOptions;
   perms: { chat: boolean; files: boolean; music: boolean };
   /** Rock-paper-scissors throws that were answered: each side maps to the other. */
   rpsPairs: Map<string, string>;
@@ -177,7 +186,9 @@ const byOrder = (a: SpaceEvent, b: SpaceEvent) => a.ts - b.ts || (a.id < b.id ? 
 export function derive(events: SpaceEvent[], initialHost: string): SpaceState {
   let hostId = initialHost;
   let closed = false;
+  let closedAt = 0;
   let perms = { chat: true, files: true, music: true };
+  let options: RoomOptions = { summary: false, endsAt: 0 };
   const members = new Map<string, Member>();
   const scoreCount = new Map<string, number>();
   const kicked = new Set<string>();
@@ -315,9 +326,20 @@ export function derive(events: SpaceEvent[], initialHost: string): SpaceState {
           visible.push(e);
         }
         break;
+      case "room_options":
+        // Host only; each field is optional and the latest valid one wins. An end time is bounded (at most a day ahead of the host's own clock).
+        if (isHost) {
+          const next = { ...options };
+          if (typeof p.summary === "boolean") next.summary = p.summary;
+          if (p.endsAt === 0 || (Number.isSafeInteger(p.endsAt) && p.endsAt > e.ts && p.endsAt <= e.ts + MAX_ROOM_MS)) next.endsAt = p.endsAt;
+          options = next;
+          visible.push(e);
+        }
+        break;
       case "space_closed":
         if (isHost) {
           closed = true;
+          closedAt = e.ts;
           visible.push(e);
         }
         break;
@@ -337,5 +359,5 @@ export function derive(events: SpaceEvent[], initialHost: string): SpaceState {
     rpsSecond.add(t.id);
   }
 
-  return { hostId, members, kicked, closed, perms, rpsPairs, rpsSecond, visible, archives };
+  return { hostId, members, kicked, closed, closedAt, options, perms, rpsPairs, rpsSecond, visible, archives };
 }

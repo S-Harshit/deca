@@ -593,3 +593,11 @@ html[data-wall="on"] .topbar { position: relative; z-index: 60; }
 .scores .rank { color: var(--muted); font-family: var(--font-mono); }
 .scores .best { font-weight: 700; font-variant-numeric: tabular-nums; }
 .scores .plays { text-align: right; }
+
+.ends-in { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.ends-in.soon { background: var(--danger); color: #fff; border-color: var(--danger); }
+.summary { text-align: left; margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.35rem; max-height: 45vh; overflow: auto; }
+.summary h3 { margin: 0; }
+.summary h4 { margin: 0.5rem 0 0.15rem; font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.summary p, .summary ul { margin: 0; }
+.summary ul { padding-left: 1.1rem; }

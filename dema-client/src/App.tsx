@@ -1,3 +1,4 @@
+import { EndsIn, RoomSummary } from "./components/RoomEnd";
 import { onKonami } from "./konami";
 import { useScoresDialog, setScoresDialog } from "./scoresDialog";
 import { ScoresDialog } from "./components/ScoresDialog";
@@ -289,6 +290,7 @@ function Landing({
 const ENDED = {
   kicked: { title: "You were removed", text: "The host removed you from this space." },
   closed: { title: "Space closed", text: "The host closed this space." },
+  time: { title: "Time's up", text: "This space reached the end time the host set." },
   locked: { title: "This room is locked", text: "The host has closed this room to newcomers. Ask them to unlock it, then try again." },
   taken: { title: "That identity is in use", text: "Someone else is already connected with this identity. Open the invite link in a fresh tab." },
   busy: { title: "The server is busy", text: "Too many rooms or connections right now. Try again in a moment." },
@@ -414,6 +416,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
         <div className="card hero ended">
           <h2>{ENDED[snap.ended].title}</h2>
           <p className="muted">{ENDED[snap.ended].text}</p>
+          {(snap.ended === "closed" || snap.ended === "time") && snap.state.options.summary && <RoomSummary snap={snap} games={games} />}
           {(snap.ended === "replaced" || snap.ended === "full" || snap.ended === "locked" || snap.ended === "busy") && (
             <button className="primary big" onClick={onRejoin}>
               {snap.ended === "replaced" ? "Use it here instead" : "Try again"}
@@ -454,6 +457,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
           </span>
           <code className="pill ticket-pill" title="Room code">#{code}</code>
           <PresenceStack snap={snap} />
+          <EndsIn options={state.options} />
           <span className={`status ${snap.connected ? "on" : "off"}`}>
             <span className="hide-md">{snap.connected ? "connected" : "connecting…"}</span>
           </span>
@@ -596,6 +600,39 @@ registerWidget({ id: "members", title: "Members", order: 10, render: ({ space, s
 registerWidget({ id: "music", title: "Music", order: 20, render: ({ space, snap }) => <MusicPlayer space={space} snap={snap} /> });
 registerWidget({ id: "host", title: "Host controls", order: 30, hostOnly: true, render: ({ space, snap }) => <HostControls space={space} snap={snap} /> });
 
+/** Two host choices, both off by default: an end time for the room, and a summary on the end screen. */
+function RoomOptionsControls({ space, snap }: Readonly<{ space: Space; snap: Snapshot }>) {
+  const { options } = snap.state;
+  const [minutes, setMinutes] = useState(60);
+  return (
+    <>
+      <label className="toggle" title="The room closes for everyone when the time is up. Everyone sees a countdown.">
+        <input type="checkbox" checked={options.endsAt > 0} onChange={(e) => space.setOptions({ endsAt: e.target.checked ? Date.now() + minutes * 60000 : 0 })} />
+        End this room after a set time
+      </label>
+      {options.endsAt > 0 ? (
+        <div className="row small-row">
+          <button className="small-btn" onClick={() => space.setOptions({ endsAt: options.endsAt + 15 * 60000 })}>
+            Add 15 min
+          </button>
+        </div>
+      ) : (
+        <select aria-label="How long the room lasts" value={minutes} onChange={(e) => setMinutes(Number(e.target.value))}>
+          {[5, 15, 30, 45, 60, 90, 120].map((m) => (
+            <option key={m} value={m}>
+              {m} minutes
+            </option>
+          ))}
+        </select>
+      )}
+      <label className="toggle" title="When the room ends, everyone sees who was here, what was shared, and the highlights.">
+        <input type="checkbox" checked={options.summary} onChange={(e) => space.setOptions({ summary: e.target.checked })} />
+        Show a summary when the room ends
+      </label>
+    </>
+  );
+}
+
 function HostControls({ space, snap }: Readonly<{ space: Space; snap: Snapshot }>) {
   const { perms } = snap.state;
   return (
@@ -621,6 +658,7 @@ function HostControls({ space, snap }: Readonly<{ space: Space; snap: Snapshot }
         <input type="checkbox" checked={perms.music} onChange={(e) => space.setPerms({ ...perms, music: e.target.checked })} />
         Members can control music
       </label>
+      <RoomOptionsControls space={space} snap={snap} />
       <HornButton space={space} />
       <button
         className="danger wide"

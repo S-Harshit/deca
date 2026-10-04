@@ -146,6 +146,8 @@ function Timeline({
         return `${name(e.author)} sounded the air horn`;
       case "page_share":
         return `${name(e.author)} opened a page for everyone: ${hostOf(e.payload.url)}`;
+      case "room_options":
+        return e.payload.endsAt === undefined ? "" : e.payload.endsAt ? `${name(e.author)} set this room to end at ${new Date(Number(e.payload.endsAt)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : `${name(e.author)} removed the end time`;
       case "archive_added":
         return `${name(e.author)} added imported history (${String(e.payload.events)} lines)`;
       case "perms_changed":
@@ -160,6 +162,7 @@ function Timeline({
   const rows = state.visible.map((e) => {
     if (e.type === "chat" && isBlankMessage(String(e.payload.text ?? ""))) return null; // an empty code block from an older client
     if (e.type === "score") return null; // shown only in the leaderboard
+    if (e.type === "room_options" && e.payload.endsAt === undefined) return null; // the summary switch has no line of its own
     if (e.type !== "chat" && e.type !== "file_offer" && e.type !== "coin" && e.type !== "rps" && e.type !== "blame") {
       prev = null;
       return (
