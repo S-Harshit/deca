@@ -1,0 +1,18 @@
+# Runs the unit tests and a quick set of browser tests. Manual only for now (the browser tests are timing-sensitive and a few need internet):
+# Actions tab > tests > Run workflow.
+name: tests
+on:
+  workflow_dispatch:
+jobs:
+  quick:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: cd dema-client && npm ci && npm run build
+      - run: cd dema-server && npm ci
+      - run: cd tests && npm ci
+      - run: cd tests && npx playwright-core install --with-deps chromium
+      - run: cd tests && node run.mjs quick

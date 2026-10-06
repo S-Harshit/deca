@@ -15,3 +15,8 @@ dema-server/games/freedoom/*.wad
 # built by scripts/package.mjs
 deca-ready.zip
 .package/
+
+# tests
+tests/node_modules/
+tests/.build/
+tests/.fixtures/

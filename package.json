@@ -7,7 +7,11 @@
     "start": "node scripts/start.mjs",
     "local": "node scripts/start.mjs --local",
     "package": "node scripts/package.mjs",
-    "build:static": "node scripts/build-static.mjs"
+    "build:static": "node scripts/build-static.mjs",
+    "test": "node tests/run.mjs",
+    "test:quick": "node tests/run.mjs quick"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }

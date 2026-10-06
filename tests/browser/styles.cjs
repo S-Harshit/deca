@@ -1,0 +1,21 @@
+const { chromium } = require("../lib/browser.cjs");
+let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; console.log(c ? "PASS" : "FAIL", n, c ? "" : x); };
+(async () => {
+  const b = await chromium.launch({ });
+  const p = await (await b.newContext({ viewport: { width: 1300, height: 800 } })).newPage();
+  await p.goto("http://localhost:8080/");
+  await p.evaluate(() => { const k = "deca.prefs"; const v = JSON.parse(localStorage.getItem(k) || "{}"); v.home = "classic"; localStorage.setItem(k, JSON.stringify(v)); });
+  await p.reload();
+  const g = await p.evaluate(() => { const e = document.querySelector(".landing-inner"); return e && getComputedStyle(e).display; });
+  ok("classic home is a grid", g === "grid", String(g));
+  ok("ticket styled", await p.evaluate(() => { const e = document.querySelector(".ticket"); return !!e && getComputedStyle(e).borderStyle.includes("dashed"); }));
+  await p.evaluate(() => localStorage.removeItem("deca.prefs")); await p.reload();
+  await p.locator("input").first().fill("Ann"); await p.getByRole("button", { name: /create/i }).first().click(); await p.locator(".composer textarea").waitFor();
+  const h = await p.locator(".horn-btn").first(); const n = await h.count();
+  ok("wake-up button exists for the host", n === 1);
+  ok("it is red", n === 1 && (await h.evaluate((e) => getComputedStyle(e).backgroundColor)) === "rgb(217, 45, 32)");
+  await p.getByLabel("Flip a coin").click().catch(() => {});
+  await p.locator(".horn-btn").first().click(); await p.waitForTimeout(300);
+  ok("pressing it shows the flash overlay", (await p.locator(".horn-flash").count()) >= 1 && (await p.locator(".horn-flash").first().evaluate((e) => getComputedStyle(e).position)) === "fixed");
+  console.log(`\n${pass} passed, ${fail} failed`); await b.close();
+})();

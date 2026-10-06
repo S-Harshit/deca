@@ -34,7 +34,7 @@ A room can run with no signaling server: `localSignal.ts` is an in-browser stand
 - **Games** are static folders in `dema-server/games/<id>/`. Only `snake`, `platformer`, and `freedoom` (without its `.wad`) are tracked; everything else there is git-ignored on purpose. Never commit or fetch copyrighted game assets (the FullScreenMario remake is under a DMCA takedown).
 
 ## Testing
-Browser tests (Playwright + Chromium) and unit tests exist but currently live outside the repo (session scratch), and they hit one server from one address, so run suites **one or two at a time**: six in parallel trip the per-address limits by design. When testing the UI, assert on behaviour and measure layout; do not rely on screenshots alone.
+Tests live in `tests/` (see `tests/README.md`): unit tests in `unit/`, Playwright browser tests in `browser/`. `cd tests && npm install && node run.mjs [quick|unit|browser|<words>]` (the root also has `npm test`). The runner starts the server from the BUILT client (`dema-client/dist`), so rebuild the client first. Browser suites run **one at a time** (one server, per-address limits by design). When testing the UI, assert on behaviour and measure layout; do not rely on screenshots alone. Add a test for each feature or bug fix, in the file for its topic, and keep `docs/SPEC.md` saying what is verified.
 
 ## Conventions
 - Keep comments to the *why*; no emojis in code. TypeScript is strict (`noUnusedLocals`, `erasableSyntaxOnly`: no constructor parameter properties).

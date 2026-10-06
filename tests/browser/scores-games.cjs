@@ -1,0 +1,32 @@
+const { chromium } = require("../lib/browser.cjs");
+let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; console.log(c ? "PASS" : "FAIL", n, c ? "" : x); };
+(async () => {
+  const b = await chromium.launch({ });
+  const A = await (await b.newContext({ viewport: { width: 1300, height: 900 } })).newPage();
+  await A.goto("http://localhost:8080/"); await A.locator("input").first().fill("Ann"); await A.getByRole("button", { name: /create/i }).first().click(); await A.locator(".composer textarea").waitFor();
+  await A.getByRole("button", { name: /game/i }).first().click().catch(async () => { await A.getByLabel(/games/i).first().click(); });
+  await A.locator("iframe").waitFor(); await A.waitForTimeout(600);
+  const dlg = A.getByRole("dialog", { name: "Leaderboard" });
+  const konami = async () => { await A.locator("body").click({ position: { x: 5, y: 5 } }); for (const k of ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"]) await A.keyboard.press(k); await dlg.waitFor({ timeout: 3000 }); };
+  const games = await A.evaluate(async () => (await (await fetch("games.json")).json()).map((g) => g.id));
+  console.log("games:", games.join());
+  // pick snake in the dropdown
+  const sel = A.locator(".game-bar select"); if (await sel.count()) await sel.selectOption("snake"); await A.waitForTimeout(800);
+  let f = A.frames().find((x) => /games\/snake/.test(x.url()));
+  await f.evaluate(() => { score = 5; snake = [{ x: 10, y: 10 }, { x: 11, y: 10 }, { x: 11, y: 11 }, { x: 10, y: 11 }]; dir = next = { x: 0, y: 1 }; });
+  await A.waitForTimeout(1200);
+  await konami(); let t = (await dlg.innerText()).replace(/\n+/g, " ");
+  ok("a real Snake game over adds its score", /Snake/.test(t) && /You\s+5/.test(t), t);
+  await A.keyboard.press("Escape"); await A.waitForTimeout(1600);
+  await sel.selectOption("platformer"); await A.waitForTimeout(1000);
+  f = A.frames().find((x) => /games\/platformer/.test(x.url()));
+  await f.evaluate(() => { score = 300; lives = 1; p.inv = 0; hurt(); });
+  await A.waitForTimeout(1200);
+  await konami(); t = (await dlg.innerText()).replace(/\n+/g, " ");
+  ok("a real Pixel Hop game over adds its score, listed under its title", /Pixel Hop/.test(t), t);
+  await dlg.locator("select").selectOption({ label: "Pixel Hop" }); t = (await dlg.innerText()).replace(/\n+/g, " ");
+  ok("with the right number", /You\s+300/.test(t), t);
+  await A.keyboard.press("Escape");
+  const feed = await A.locator(".chat").innerText(); ok("no score lines in the chat feed", !/score|scored/i.test(feed), feed.slice(-200));
+  console.log(`\n${pass} passed, ${fail} failed`); await b.close();
+})();

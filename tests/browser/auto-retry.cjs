@@ -1,0 +1,20 @@
+const { chromium } = require("../lib/browser.cjs");
+let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; console.log(c ? "PASS" : "FAIL", n, c ? "" : x); };
+(async () => {
+  const b = await chromium.launch({ });
+  const mk = async (sabotageFirst) => { const c = await b.newContext(); const p = await c.newPage(); if (sabotageFirst) await p.addInitScript(() => { let n = 0; const o = RTCPeerConnection.prototype.setRemoteDescription; RTCPeerConnection.prototype.setRemoteDescription = function (d) { if (d?.sdp && n === 0) { n++; window.__sabotaged = (window.__sabotaged || 0) + 1; d = { type: d.type, sdp: d.sdp.replace(/a=ice-pwd:.+/g, "a=ice-pwd:" + "x".repeat(24)) }; } return o.call(this, d); }; }); return p; };
+  const A = await mk(false);
+  await A.goto("http://localhost:8080/"); await A.locator("input").first().fill("Ann"); await A.getByRole("button", { name: /create/i }).first().click(); await A.locator(".composer textarea").waitFor();
+  const url = A.url();
+  const B = await mk(true); await B.goto(url); await B.locator("input").first().fill("Bob"); await B.getByRole("button", { name: /join/i }).first().click(); await B.locator(".composer textarea").waitFor();
+  const t0 = Date.now();
+  const online = (p) => p.waitForFunction(() => /\b2 \/ /.test(document.querySelector(".members")?.closest("section")?.querySelector("h3")?.innerText || ""), null, { timeout: 60000 });
+  await online(A).catch(() => {}); await online(B).catch(() => {});
+  const secs = (Date.now() - t0) / 1000;
+  const ann = await A.locator(".members").innerText(), bob = await B.locator(".members").innerText();
+  ok("first attempt was really sabotaged on Bob's side", (await B.evaluate(() => window.__sabotaged || 0)) >= 1);
+  ok("connected by itself, no Retry pressed (" + secs.toFixed(1) + " s)", /Bob/.test(ann) && /Ann/.test(bob) && !/connecting|can't connect/.test(ann + bob), ann.replace(/\s+/g, " ") + " | " + bob.replace(/\s+/g, " "));
+  ok("...within 25 s, before 'can't connect directly' would show", secs < 25, String(secs));
+  await A.getByRole("textbox").first().fill("hi").catch(() => {});
+  console.log(`\n${pass} passed, ${fail} failed`); await b.close();
+})();
