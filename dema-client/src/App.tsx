@@ -459,7 +459,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
           <PresenceStack snap={snap} />
           <EndsIn options={state.options} />
           <span className={`status ${snap.connected ? "on" : "off"}`}>
-            <span className="hide-md">{snap.connected ? "connected" : "connecting…"}</span>
+            <span className="hide-md">{snap.connected ? "online" : "connecting…"}</span>
           </span>
         </div>
         <div className="row">

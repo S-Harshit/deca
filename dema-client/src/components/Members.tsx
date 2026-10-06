@@ -128,11 +128,11 @@ export function Members({ space, snap, isHost }: Readonly<{ space: Space; snap: 
       {snap.settled && (
       <div className="room-io">
         <button className="ghost small-btn" onClick={() => setExporting(true)} title="Save this room's history to your computer">
-          <Icon name="download" size={13} /> Export
+          <Icon name="upload" size={13} /> Export
         </button>
         {isHost && (
           <button className="ghost small-btn" onClick={() => setImporting(true)} title="Bring an exported room's history into this room">
-            <Icon name="upload" size={13} /> Import
+            <Icon name="download" size={13} /> Import
           </button>
         )}
       </div>
