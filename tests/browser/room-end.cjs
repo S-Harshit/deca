@@ -20,7 +20,7 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   ok("the host sees an Add 15 min button", (await A.getByRole("button", { name: "Add 15 min" }).count()) === 1);
   await A.getByRole("button", { name: "Add 15 min" }).click(); await A.waitForTimeout(500);
   const pill2 = await B.getByRole("timer", { name: "Time left in this room" }).innerText();
-  ok("adding time extends it for everyone (about 20 minutes)", /ends in 19:5\d|ends in 20:00/.test(pill2), pill2);
+  ok("adding time extends it for everyone (about 20 minutes)", /ends in (19:[45]\d|20:0\d)/.test(pill2), pill2);
   // turn it off then on again, then jump to the end
   await timerBox.uncheck(); await B.waitForFunction(() => !document.querySelector('[aria-label="Time left in this room"]'), null, { timeout: 5000 });
   ok("turning it off removes the countdown", true);

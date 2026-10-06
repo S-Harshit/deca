@@ -624,19 +624,30 @@ html[data-wall="on"] .topbar { position: relative; z-index: 60; }
 html[data-theme="shadcn"] { --font-display: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; --radius: 6px; }
 html[data-theme="shadcn"] :is(h1, h2, h3, h4, .wordmark, .wm) { font-weight: 600; letter-spacing: -0.015em; }
 html[data-theme="shadcn"] :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; box-shadow: none; }
-/* buttons: outline by default, filled for primary, quiet for ghost; no keycap press */
-html[data-theme="shadcn"] :is(button, .button, .icon-btn) { background: var(--panel); border-color: var(--border); font-weight: 500; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
-html[data-theme="shadcn"] :is(button, .button, .icon-btn):hover { background: var(--panel-2); border-color: var(--border); }
-html[data-theme="shadcn"] :is(button, .button, .icon-btn):active { transform: none; box-shadow: none; }
-html[data-theme="shadcn"] :is(button.primary, .button.primary, .icon-btn.primary-ish) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+/* buttons and inputs. Written with :where() on the theme so these rules sit just above the base element rules but below every component
+   class (.horn-btn, .scrim, .icon-btn.hangup ...): a stronger selector here once turned the red "wake up" button white. */
+/* element selector and class selectors kept apart: one :is() list would take the class's weight and beat .primary, .scrim and friends */
+:where(html[data-theme="shadcn"]) body button { background: var(--panel); border-color: var(--border); font-weight: 500; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+:where(html[data-theme="shadcn"]) body :is(.button, .icon-btn) { background: var(--panel); border-color: var(--border); font-weight: 500; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+:where(html[data-theme="shadcn"]) body button:hover { background: var(--panel-2); border-color: var(--border); }
+:where(html[data-theme="shadcn"]) body :is(.button, .icon-btn):hover { background: var(--panel-2); border-color: var(--border); }
+:where(html[data-theme="shadcn"]) body button:active { transform: none; box-shadow: none; }
+:where(html[data-theme="shadcn"]) body :is(.button, .icon-btn):active { transform: none; box-shadow: none; }
+/* one control height (shadcn's h-9), so an input and the button beside it line up */
+:where(html[data-theme="shadcn"]) body :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="file"]), select) { height: 2.25rem; padding-block: 0; font-size: 0.9rem; }
+:where(html[data-theme="shadcn"]) body :is(button, .button):not(.icon-btn):not(.small-btn):not(.big):not(.tap-play):not(.scrim) { min-height: 2.25rem; padding-block: 0; }
+:where(html[data-theme="shadcn"]) body .icon-btn:not(.small):not(.glass) { width: 2.25rem; height: 2.25rem; }
+html[data-theme="shadcn"] :is(button.primary, .button.primary, .icon-btn.primary-ish) { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
 html[data-theme="shadcn"] :is(button.primary, .button.primary, .icon-btn.primary-ish):hover { background: color-mix(in srgb, var(--accent) 90%, white); border-color: transparent; }
 html[data-theme="shadcn"] :is(button.primary:disabled, .button.primary.disabled) { background: var(--panel-2); border-color: var(--border); color: var(--muted); box-shadow: none; }
 html[data-theme="shadcn"] button.ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--text); }
 html[data-theme="shadcn"] button.ghost:hover { background: var(--panel-2); }
-html[data-theme="shadcn"] :is(button.danger, .icon-btn.danger):hover { background: var(--danger-soft); border-color: var(--danger); }
-html[data-theme="shadcn"] .icon-btn.hangup { background: var(--danger); border-color: var(--danger); color: #fff; }
 html[data-theme="shadcn"] .icon-btn.live { background: var(--panel-2); border-color: var(--text); color: var(--text); }
-html[data-theme="shadcn"] .icon-btn.glass { background: #000a; color: #fff; box-shadow: none; }
+html[data-theme="shadcn"] .icon-btn.glass { box-shadow: none; }
+/* the red buttons stay red */
+html[data-theme="shadcn"] .horn-btn { background: #d92d20; border-color: #d92d20; color: #fff; box-shadow: none; }
+html[data-theme="shadcn"] .horn-btn:hover { background: #b42318; border-color: #b42318; }
+html[data-theme="shadcn"] .horn-btn:disabled { background: #7a2a25; border-color: #7a2a25; color: #fff; }
 /* inputs */
 html[data-theme="shadcn"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: var(--panel); border-color: var(--border); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
 html[data-theme="shadcn"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select):focus { border-color: var(--text); box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px color-mix(in srgb, var(--text) 25%, transparent); }
