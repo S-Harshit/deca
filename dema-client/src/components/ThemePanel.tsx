@@ -142,7 +142,7 @@ function Wallpaper({ prefs, update }: Readonly<{ prefs: Prefs; update: (patch: P
   const picker = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const dark = !["light", "rose"].includes(prefs.theme);
+  const dark = !["light", "rose", "shadcn"].includes(prefs.theme);
   const palette = { hue: prefs.wallHue, sat: prefs.wallSat, colorful: prefs.wallColorful };
   const complement = accentFrom(palette, "complement", dark);
   const match = accentFrom(palette, "match", dark);

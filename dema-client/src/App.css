@@ -616,3 +616,44 @@ html[data-wall="on"] .topbar { position: relative; z-index: 60; }
 .summary .podium .rank { color: var(--muted); font-family: var(--font-mono); }
 .summary .podium b { font-variant-numeric: tabular-nums; color: var(--accent); }
 .summary p { margin: 0; }
+
+/* =====================================================================================
+   shadcn/ui look ("Zinc"). Every rule is scoped to html[data-theme="shadcn"]: flat surfaces, 1px borders, soft shadows,
+   Inter everywhere, a near-black primary button, a plain focus ring. No other theme changes.
+   ===================================================================================== */
+html[data-theme="shadcn"] { --font-display: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; --radius: 6px; }
+html[data-theme="shadcn"] :is(h1, h2, h3, h4, .wordmark, .wm) { font-weight: 600; letter-spacing: -0.015em; }
+html[data-theme="shadcn"] :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; box-shadow: none; }
+/* buttons: outline by default, filled for primary, quiet for ghost; no keycap press */
+html[data-theme="shadcn"] :is(button, .button, .icon-btn) { background: var(--panel); border-color: var(--border); font-weight: 500; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+html[data-theme="shadcn"] :is(button, .button, .icon-btn):hover { background: var(--panel-2); border-color: var(--border); }
+html[data-theme="shadcn"] :is(button, .button, .icon-btn):active { transform: none; box-shadow: none; }
+html[data-theme="shadcn"] :is(button.primary, .button.primary, .icon-btn.primary-ish) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+html[data-theme="shadcn"] :is(button.primary, .button.primary, .icon-btn.primary-ish):hover { background: color-mix(in srgb, var(--accent) 90%, white); border-color: transparent; }
+html[data-theme="shadcn"] :is(button.primary:disabled, .button.primary.disabled) { background: var(--panel-2); border-color: var(--border); color: var(--muted); box-shadow: none; }
+html[data-theme="shadcn"] button.ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--text); }
+html[data-theme="shadcn"] button.ghost:hover { background: var(--panel-2); }
+html[data-theme="shadcn"] :is(button.danger, .icon-btn.danger):hover { background: var(--danger-soft); border-color: var(--danger); }
+html[data-theme="shadcn"] .icon-btn.hangup { background: var(--danger); border-color: var(--danger); color: #fff; }
+html[data-theme="shadcn"] .icon-btn.live { background: var(--panel-2); border-color: var(--text); color: var(--text); }
+html[data-theme="shadcn"] .icon-btn.glass { background: #000a; color: #fff; box-shadow: none; }
+/* inputs */
+html[data-theme="shadcn"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: var(--panel); border-color: var(--border); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+html[data-theme="shadcn"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select):focus { border-color: var(--text); box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px color-mix(in srgb, var(--text) 25%, transparent); }
+/* surfaces: cards with a thin border and a soft shadow instead of the offset "sticker" shadow */
+html[data-theme="shadcn"] .panel { box-shadow: var(--shadow); }
+html[data-theme="shadcn"] .panel h3 { text-transform: none; letter-spacing: 0; font-size: 0.875rem; }
+html[data-theme="shadcn"] .modal { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+html[data-theme="shadcn"] :is(.invite-card, .ticket) { border-style: solid; border-width: 1px; border-color: var(--border); box-shadow: var(--shadow); background: var(--panel); }
+html[data-theme="shadcn"] :is(.ticket::before, .ticket::after) { display: none; }
+html[data-theme="shadcn"] .ticket-pill { border-style: solid; }
+html[data-theme="shadcn"] .chat { background-image: none; }
+html[data-theme="shadcn"] .landing:is(.classic, .dotted) { background-image: none; }
+/* small things */
+html[data-theme="shadcn"] :is(.pill, .badge, .count) { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+html[data-theme="shadcn"] .tile { border: 1px solid var(--border); }
+html[data-theme="shadcn"] .stage-main .tile { border-color: var(--border); }
+html[data-theme="shadcn"] .tile-label { background: rgb(9 9 11 / 0.7); color: #fafafa; transform: none; text-transform: none; font-weight: 500; }
+html[data-theme="shadcn"] .line.mine .what { border-left-color: var(--text); }
+html[data-theme="shadcn"] .sys::before, html[data-theme="shadcn"] .sys::after { content: none; }
+html[data-theme="shadcn"] .sys { font-family: inherit; font-size: 0.8rem; color: var(--muted); }

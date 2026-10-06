@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { accentFrom } from "./wallpaper";
 
-export type ThemeId = "midnight" | "light" | "graphite" | "forest" | "rose" | "sunset";
+export type ThemeId = "midnight" | "light" | "graphite" | "forest" | "rose" | "sunset" | "shadcn";
 
 /** `colors` is [background, surface, accent], only used to draw the swatch. */
 export const THEMES: { id: ThemeId; label: string; colors: [string, string, string] }[] = [
@@ -11,6 +11,7 @@ export const THEMES: { id: ThemeId; label: string; colors: [string, string, stri
   { id: "forest", label: "Forest", colors: ["#0d1512", "#1a2a24", "#3ddc97"] },
   { id: "rose", label: "Rosé", colors: ["#fbf3f4", "#ffffff", "#cf374c"] },
   { id: "sunset", label: "Sunset", colors: ["#1a1214", "#2b1d20", "#ff9a5a"] },
+  { id: "shadcn", label: "Zinc", colors: ["#ffffff", "#f4f4f5", "#18181b"] },
 ];
 
 export const ACCENTS = ["#c6f432", "#7c83ff", "#3ddc97", "#ff6b7a", "#ffb454", "#4cc9f0", "#c77dff"];
@@ -61,7 +62,7 @@ export type Prefs = {
   wallRev: number;
 };
 
-const LIGHT_THEMES: ThemeId[] = ["light", "rose"];
+const LIGHT_THEMES: ThemeId[] = ["light", "rose", "shadcn"];
 
 export const SIDEBAR_MIN = 220;
 export const SIDEBAR_MAX = 440;

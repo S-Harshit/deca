@@ -36,6 +36,12 @@
   --text: #2b1a1e; --muted: #7a5b62; --accent: #cf374c; --on-accent: #fff;
   --danger: #c2283c; --ok: #1f9d68; --shadow: 0 16px 40px #5a2a3026; --name-l: 38%; color-scheme: light;
 }
+/* shadcn/ui "zinc" look: white and zinc greys, near-black primary, 1px borders, soft shadows (see the scoped rules in App.css) */
+[data-theme="shadcn"] {
+  --bg: #ffffff; --bg-deep: #fafafa; --panel: #ffffff; --panel-2: #f4f4f5; --border: #e4e4e7;
+  --text: #09090b; --muted: #71717a; --accent: #18181b; --on-accent: #fafafa;
+  --danger: #dc2626; --ok: #16a34a; --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); --name-l: 38%; color-scheme: light;
+}
 [data-theme="sunset"] {
   --bg: #1a1214; --bg-deep: #120c0d; --panel: #231719; --panel-2: #2b1d20; --border: #3d2a2e;
   --text: #f6e9e4; --muted: #b09690; --accent: #ff9a5a; --on-accent: #2a1204;
@@ -74,7 +80,7 @@ a { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-[data-theme="light"], [data-theme="rose"] {
+[data-theme="light"], [data-theme="rose"], [data-theme="shadcn"] {
   --hl-keyword: #8a3fc2; --hl-string: #3a7d1e; --hl-number: #c2571a; --hl-func: #2b59c3; --hl-type: #a06a00; --hl-comment: #7a8194;
 }
 

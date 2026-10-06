@@ -172,6 +172,7 @@ Leave opens a dialog that states what it will do (host handover target, space en
 "deca." wordmark and a ten-dot ring logo (deca = ten); keycap-style buttons; IRC-style chat feed (time, coloured name, text; stacked name-over-text in narrow panels via a container query); sticker-style video labels.
 
 ### Themes (Appearance panel, preferences in `localStorage` `deca.prefs`)
+- **Zinc (shadcn look).** A light theme in the style of shadcn/ui: white and zinc greys, a near-black primary button, 1px borders, soft shadows instead of the offset "sticker" shadow, no dot grid or tilted labels, Inter throughout, a plain 2px focus ring. It is CSS only (tokens in `index.css`, every rule scoped to `html[data-theme="shadcn"]` at the end of `App.css`); it does not use the shadcn component library, which would bring in Tailwind and Radix. Tested (`tests/browser/theme-zinc.cjs`): picking it, colours, flat panels, button colour, a call, reload, phone width.
 - Six themes: Midnight, **Graphite (default; lime accent)**, Light, Forest, Rosé, Sunset.
 - Accent colour (presets or custom), text size, corner roundness, compact spacing.
 - **Home screen**: *Simple* (default, one centred card) or *Classic* (two-column with copy beside the card). Both use the same "room ticket" card: dashed edge, side notches, ROOM TICKET / ADMIT ONE header, barcode, dotted backdrop.
