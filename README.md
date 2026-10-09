@@ -84,11 +84,21 @@ scripts/build-static.mjs   builds dist-static/ for GitHub Pages / Vercel (no ser
 scripts/deca.sh            developer script: build + run + public tunnel
 package.json, render.yaml  npm shortcuts (npm start); one-click hosting recipe for Render
 CLAUDE.md                  guidance for AI coding assistants (and a handy dev cheat sheet)
+tests/                     unit and Playwright browser tests (see tests/README.md)
+CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, THIRD_PARTY_NOTICES.md
 .github/                   release automation
 ```
 
 Checks: `cd dema-client && npx tsc -b && npx eslint src && npm run build`.
 
+## Status
+
+Deca is an experiment that works, not a polished product: it is built for small private rooms (up to 8 people), has been tested mostly in Chromium, and has rough edges. Issues and pull requests are welcome; please read [CONTRIBUTING.md](CONTRIBUTING.md) first. Security reports go through [SECURITY.md](SECURITY.md). Be kind: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## Privacy, in short
+
+No accounts, no analytics, nothing stored on the server. Chat, files and calls go between browsers (if you use a relay it carries only encrypted bytes). Your browser does request fonts from Google Fonts and, if you use music, YouTube's player; image previews are on by default (fetching a picture from a link reveals your address to its host; turn them off in Appearance). Details: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the Security section of [docs/SPEC.md](docs/SPEC.md).
+
 ## License
 
-[MIT](LICENSE). Bundled third-party pieces keep their own licenses (Freedoom: BSD, see `dema-server/games/freedoom/LICENSE-Freedoom.txt`).
+[MIT](LICENSE). Third-party pieces keep their own licences: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
