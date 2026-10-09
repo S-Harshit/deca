@@ -1,5 +1,7 @@
 # Deca: local peer-to-peer spaces
 
+> Built entirely by AI (Claude, by Anthropic) working with a human who set the direction. This document is the source of truth for how Deca behaves.
+
 A browser-only "room you carry in a link". People join via a link and chat, share files and images, call, and listen to music together. Everything travels peer to peer over WebRTC. A tiny WebSocket server only introduces peers; it never sees content.
 
 Layout of the repo:

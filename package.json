@@ -2,7 +2,7 @@
   "name": "deca",
   "private": true,
   "type": "module",
-  "description": "A room you carry in a link.",
+  "description": "A room you carry in a link. Built entirely by AI.",
   "scripts": {
     "start": "node scripts/start.mjs",
     "local": "node scripts/start.mjs --local",

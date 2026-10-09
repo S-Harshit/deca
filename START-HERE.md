@@ -37,3 +37,6 @@ Everything is plain text you can read: the launcher is `scripts/start.mjs`.
 - Only on this computer, with no public link? Run `node scripts/start.mjs --local` in a terminal.
 - Linux: `node scripts/start.mjs`.
 - Something not working? The file `.run/server.log` shows what happened.
+
+---
+Deca was built entirely by AI (Claude, by Anthropic), with a person choosing what to build and trying it out. It is free and open source (MIT).
