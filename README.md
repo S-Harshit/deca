@@ -24,7 +24,7 @@ Chat, calls, files, music and games, directly between your browsers. No accounts
 
 ## Built entirely by AI
 
-Every line of code, every test and all the documentation in this repository were written by **Claude** (Anthropic), working with a human who chose what to build, tried the results and gave feedback. Read the code and the [security notes](docs/SPEC.md#security) before relying on it for anything sensitive.
+Built entirely by AI.
 
 ## What it is
 
