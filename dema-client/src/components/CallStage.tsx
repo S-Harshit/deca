@@ -180,7 +180,7 @@ function VideoTile({
   return (
     <div ref={box} className={`tile ${screen ? "screen" : ""} ${full ? "full" : ""}`} onDoubleClick={toggleFull}>
       {/* Always mounted so remote audio keeps playing even when the camera is off. */}
-      <video ref={video} autoPlay playsInline muted={tile.local} className={showVideo ? "" : "hidden"} />
+      <video ref={video} autoPlay playsInline muted={tile.local} className={`${showVideo ? "" : "hidden"} ${tile.local && !screen ? "mirror" : ""}`} />
       {!showVideo && (
         <div className="tile-off">
           <Avatar name={label} id={tile.peerId} size={64} />

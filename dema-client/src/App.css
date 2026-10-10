@@ -668,3 +668,6 @@ html[data-theme="shadcn"] .tile-label { background: rgb(9 9 11 / 0.7); color: #f
 html[data-theme="shadcn"] .line.mine .what { border-left-color: var(--text); }
 html[data-theme="shadcn"] .sys::before, html[data-theme="shadcn"] .sys::after { content: none; }
 html[data-theme="shadcn"] .sys { font-family: inherit; font-size: 0.8rem; color: var(--muted); }
+
+/* your own camera is shown mirrored, like a mirror and like other video apps; only you see it that way (others get the true image) */
+.tile video.mirror { transform: scaleX(-1); }

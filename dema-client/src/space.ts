@@ -1117,11 +1117,12 @@ export class Space {
     try {
       if (!navigator.mediaDevices?.getDisplayMedia) throw new Error("Screen sharing isn't available in this browser");
       const video = { frameRate: { ideal: 10, max: 15 }, width: { max: 1280 }, height: { max: 720 } };
-      // Ask for sound too: the picker offers it (a tab, or the whole screen on Windows/ChromeOS) and the person may decline.
+      // Ask for sound too: the picker offers a tab's audio and the person may decline. Not the whole system's sound, and not this
+      // tab: both would carry the other people's voices (and our own music) straight back to them as an echo.
       // No voice processing: it would mangle music and film audio. Browsers that reject the option get a video-only share.
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getDisplayMedia({ video, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, systemAudio: "include" } as DisplayMediaStreamOptions);
+        stream = await navigator.mediaDevices.getDisplayMedia({ video, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, systemAudio: "exclude", selfBrowserSurface: "exclude" } as DisplayMediaStreamOptions);
       } catch (err) {
         if (err instanceof DOMException && err.name === "NotAllowedError") throw err;
         stream = await navigator.mediaDevices.getDisplayMedia({ video });

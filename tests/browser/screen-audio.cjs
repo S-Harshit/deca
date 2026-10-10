@@ -16,6 +16,11 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
     await A.getByLabel("Start call").click(); await B.getByLabel("Start call").click(); await A.waitForTimeout(1500);
     await A.getByLabel("Share screen").click(); await A.waitForTimeout(3500);
     ok("the browser was asked for audio without voice processing", /"audio":\{[^}]*"echoCancellation":false/.test((await A.evaluate(() => window.__asked))[0] || ""), JSON.stringify(await A.evaluate(() => window.__asked)));
+    ok("it asks for tab audio only, and does not offer this Deca tab (no echo of the call)", /"systemAudio":"exclude"/.test((await A.evaluate(() => window.__asked))[0] || "") && /"selfBrowserSurface":"exclude"/.test((await A.evaluate(() => window.__asked))[0] || ""), JSON.stringify(await A.evaluate(() => window.__asked)));
+    const tf = (p, sel) => p.evaluate((s) => { const v = document.querySelector(s); return v ? getComputedStyle(v).transform : "none"; }, sel);
+    ok("your own camera is shown mirrored to you", (await tf(A, ".tile:not(.screen) video.mirror")) === "matrix(-1, 0, 0, 1, 0, 0)", await tf(A, ".tile:not(.screen) video.mirror"));
+    ok("your own screen preview is not mirrored", (await tf(A, ".tile.screen video")) === "none");
+    ok("the other person sees your camera the right way round (their view of you is not mirrored)", (await B.locator(".tile:not(.screen) video:not(.mirror)").count()) >= 1);
     const lbl = (p) => p.locator(".tile-label", { hasText: "screen" }).first().innerText();
     const la = await lbl(A), lb = await lbl(B);
     ok("sharer's tile says " + (withAudio ? "with sound" : "plain screen"), /with sound/.test(la) === withAudio, la);
