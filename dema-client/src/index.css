@@ -42,6 +42,35 @@
   --text: #09090b; --muted: #71717a; --accent: #18181b; --on-accent: #fafafa;
   --danger: #dc2626; --ok: #16a34a; --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); --name-l: 38%; color-scheme: light;
 }
+/* Early web: a grey bevelled desktop toolkit on a teal background, system fonts, blue links */
+[data-theme="web95"] {
+  --bg: #008080; --bg-deep: #006868; --panel: #c0c0c0; --panel-2: #d4d0c8; --border: #808080;
+  --text: #000000; --muted: #404040; --accent: #000080; --on-accent: #ffffff;
+  --danger: #b00000; --ok: #006400; --shadow: none; --name-l: 28%; color-scheme: light;
+  --font-display: Tahoma, "MS Sans Serif", Verdana, Geneva, sans-serif;
+}
+/* Paper: warm off-white, ink black, a serif for headings */
+[data-theme="paper"] {
+  --bg: #f4eee0; --bg-deep: #e9e1cf; --panel: #fbf7ec; --panel-2: #f0e9d8; --border: #d6cbb2;
+  --text: #1d1a14; --muted: #6f6347; --accent: #9a3d12; --on-accent: #fffaf0;
+  --danger: #a4281f; --ok: #3f7a3a; --shadow: 0 1px 0 #d6cbb2; --name-l: 30%; color-scheme: light;
+  --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, "Times New Roman", serif;
+}
+/* Terminal: one phosphor colour on black, all monospace */
+[data-theme="terminal"] {
+  --bg: #050a05; --bg-deep: #020402; --panel: #081008; --panel-2: #0d180d; --border: #1c4a1c;
+  --text: #3dff7a; --muted: #22a14c; --accent: #3dff7a; --on-accent: #021002;
+  --danger: #ff5f5f; --ok: #3dff7a; --shadow: none; --name-l: 62%; color-scheme: dark;
+  --font-display: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --hl-keyword: #b6ffc9; --hl-string: #7dffa0; --hl-number: #f0ffd0; --hl-func: #5affa0; --hl-type: #9affb8; --hl-comment: #1f8a45;
+}
+/* Newspaper: black ink on cool newsprint, thin rules, serif type */
+[data-theme="newspaper"] {
+  --bg: #f2f2ef; --bg-deep: #e6e6e1; --panel: #ffffff; --panel-2: #f6f6f2; --border: #1a1a1a;
+  --text: #111111; --muted: #555555; --accent: #111111; --on-accent: #ffffff;
+  --danger: #b3261e; --ok: #2e6b34; --shadow: none; --name-l: 25%; color-scheme: light;
+  --font-display: "Times New Roman", Times, Georgia, serif;
+}
 [data-theme="sunset"] {
   --bg: #1a1214; --bg-deep: #120c0d; --panel: #231719; --panel-2: #2b1d20; --border: #3d2a2e;
   --text: #f6e9e4; --muted: #b09690; --accent: #ff9a5a; --on-accent: #2a1204;
@@ -80,7 +109,7 @@ a { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-[data-theme="light"], [data-theme="rose"], [data-theme="shadcn"] {
+[data-theme="light"], [data-theme="rose"], [data-theme="shadcn"], [data-theme="web95"], [data-theme="paper"], [data-theme="newspaper"] {
   --hl-keyword: #8a3fc2; --hl-string: #3a7d1e; --hl-number: #c2571a; --hl-func: #2b59c3; --hl-type: #a06a00; --hl-comment: #7a8194;
 }
 

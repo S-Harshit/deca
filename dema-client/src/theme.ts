@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { accentFrom } from "./wallpaper";
 
-export type ThemeId = "midnight" | "light" | "graphite" | "forest" | "rose" | "sunset" | "shadcn";
+export type ThemeId = "midnight" | "light" | "graphite" | "forest" | "rose" | "sunset" | "shadcn" | "web95" | "paper" | "terminal" | "newspaper";
 
 /** `colors` is [background, surface, accent], only used to draw the swatch. */
 export const THEMES: { id: ThemeId; label: string; colors: [string, string, string] }[] = [
@@ -12,6 +12,10 @@ export const THEMES: { id: ThemeId; label: string; colors: [string, string, stri
   { id: "rose", label: "Rosé", colors: ["#fbf3f4", "#ffffff", "#cf374c"] },
   { id: "sunset", label: "Sunset", colors: ["#1a1214", "#2b1d20", "#ff9a5a"] },
   { id: "shadcn", label: "Zinc", colors: ["#ffffff", "#f4f4f5", "#18181b"] },
+  { id: "web95", label: "Early web", colors: ["#008080", "#c0c0c0", "#000080"] },
+  { id: "paper", label: "Paper", colors: ["#f4eee0", "#fbf7ec", "#9a3d12"] },
+  { id: "terminal", label: "Terminal", colors: ["#050a05", "#0f1a0f", "#3dff7a"] },
+  { id: "newspaper", label: "Newspaper", colors: ["#f2f2ef", "#ffffff", "#111111"] },
 ];
 
 export const ACCENTS = ["#c6f432", "#7c83ff", "#3ddc97", "#ff6b7a", "#ffb454", "#4cc9f0", "#c77dff"];
@@ -22,7 +26,7 @@ export const SCALES = [
   { label: "XL", value: 1.25 },
 ];
 export const RADII = [
-  { label: "Sharp", value: 4 },
+  { label: "Sharp", value: 0 },
   { label: "Soft", value: 8 },
   { label: "Round", value: 18 },
 ];
@@ -66,7 +70,7 @@ export type Prefs = {
   wallRev: number;
 };
 
-const LIGHT_THEMES: ThemeId[] = ["light", "rose", "shadcn"];
+export const LIGHT_THEMES: ThemeId[] = ["light", "rose", "shadcn", "web95", "paper", "newspaper"];
 
 export const SIDEBAR_MIN = 220;
 export const SIDEBAR_MAX = 440;
@@ -86,6 +90,7 @@ function sanitize(p: Prefs): Prefs {
     sidebarW: w === null ? null : Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, w)),
     collapsed: Array.isArray(p.collapsed) ? p.collapsed.filter((c) => typeof c === "string").slice(0, 8) : d.collapsed,
     clock: p.clock === "12" || p.clock === "24" ? p.clock : "auto",
+    radius: p.radius === 4 ? 0 : p.radius, // "Sharp" used to be 4 px; it is square now, and anyone who picked it keeps it
     titleBadge: typeof p.titleBadge === "boolean" ? p.titleBadge : d.titleBadge,
     joinAlert: typeof p.joinAlert === "boolean" ? p.joinAlert : d.joinAlert,
     startWithCamera: typeof p.startWithCamera === "boolean" ? p.startWithCamera : d.startWithCamera,

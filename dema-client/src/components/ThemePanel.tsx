@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ACCENTS, RADII, SCALES, THEMES, type Prefs } from "../theme";
+import { ACCENTS, LIGHT_THEMES, RADII, SCALES, THEMES, type Prefs } from "../theme";
 import { clearWallpaper, saveWallpaper, accentFrom } from "../wallpaper";
 import { Icon } from "./Icons";
 
@@ -150,7 +150,7 @@ function Wallpaper({ prefs, update }: Readonly<{ prefs: Prefs; update: (patch: P
   const picker = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const dark = !["light", "rose", "shadcn"].includes(prefs.theme);
+  const dark = !LIGHT_THEMES.includes(prefs.theme);
   const palette = { hue: prefs.wallHue, sat: prefs.wallSat, colorful: prefs.wallColorful };
   const complement = accentFrom(palette, "complement", dark);
   const match = accentFrom(palette, "match", dark);

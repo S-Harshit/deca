@@ -3,6 +3,7 @@
 
 export const MAX_FILE = 50 * 1024 * 1024;
 
+import { applyTool, emptyTools, TOOL_TYPES, type RoomTools } from "./tools";
 import { safeWebUrl } from "./message";
 
 /** Largest score accepted, and how many results one person can add to a room (the log keeps every event). */
@@ -29,6 +30,15 @@ export type EventType =
   | "page_share"
   | "score"
   | "room_options"
+  | "doc_set"
+  | "doc_del"
+  | "poll_new"
+  | "poll_vote"
+  | "poll_end"
+  | "draw"
+  | "draw_clear"
+  | "portal_add"
+  | "portal_del"
   | "horn";
 
 export type SpaceEvent = {
@@ -59,6 +69,7 @@ const TYPES = new Set<string>([
   "page_share",
   "score",
   "room_options",
+  ...TOOL_TYPES,
   "horn",
 ]);
 
@@ -136,6 +147,8 @@ export type SpaceState = {
   members: Map<string, Member>;
   kicked: Set<string>;
   closed: boolean;
+  /** Pages and notes, polls, the drawing board and doors to other rooms (see tools.ts). */
+  tools: RoomTools;
   /** When the closing event was authored (the host's clock), or 0. */
   closedAt: number;
   /** Host choices that are off by default: an end time for the room, and a summary shown when it ends. */
@@ -190,6 +203,7 @@ export function derive(events: SpaceEvent[], initialHost: string): SpaceState {
   let perms = { chat: true, files: true, music: true };
   let options: RoomOptions = { summary: false, endsAt: 0 };
   const members = new Map<string, Member>();
+  const tools = emptyTools();
   const scoreCount = new Map<string, number>();
   const kicked = new Set<string>();
   const visible: SpaceEvent[] = [];
@@ -326,6 +340,17 @@ export function derive(events: SpaceEvent[], initialHost: string): SpaceState {
           visible.push(e);
         }
         break;
+      case "doc_set":
+      case "doc_del":
+      case "poll_new":
+      case "poll_vote":
+      case "poll_end":
+      case "draw":
+      case "draw_clear":
+      case "portal_add":
+      case "portal_del":
+        if (applyTool(tools, e, members.has(e.author) && (isHost || perms.chat), isHost)) visible.push(e);
+        break;
       case "room_options":
         // Host only; each field is optional and the latest valid one wins. An end time is bounded (at most a day ahead of the host's own clock).
         if (isHost) {
@@ -359,5 +384,5 @@ export function derive(events: SpaceEvent[], initialHost: string): SpaceState {
     rpsSecond.add(t.id);
   }
 
-  return { hostId, members, kicked, closed, closedAt, options, perms, rpsPairs, rpsSecond, visible, archives };
+  return { hostId, members, kicked, closed, closedAt, tools, options, perms, rpsPairs, rpsSecond, visible, archives };
 }

@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import type { Space, Snapshot, Tile } from "../space";
+import { notify } from "../toast";
 import { usePrefsValue } from "../theme";
 import { Avatar } from "./Avatar";
 import { Icon } from "./Icons";
+
+/** The floating call window, or a single picture-in-picture video where that is all the browser can do. Loaded on first use. */
+async function popOut(space: Space) {
+  const { toggleCallWindow } = await import("../callWindow");
+  const how = await toggleCallWindow(space);
+  if (how === "video") notify("This browser can only float one video: the call itself stays here. Chrome or Edge can float the whole call.");
+  if (how === "none") notify("Your browser cannot float the call. Chrome or Edge can.", "error");
+}
 
 /** Call buttons for the top bar: start/leave call, mic, camera, screen share. */
 export function CallControls({ space, snap }: Readonly<{ space: Space; snap: Snapshot }>) {
@@ -45,6 +54,11 @@ export function CallControls({ space, snap }: Readonly<{ space: Space; snap: Sna
       >
         <Icon name="monitor" />
       </button>
+      {(inCall || sharing) && (
+        <button className="icon-btn" aria-label="Pop out the call" title="Pop the call out into a small window that stays on top of other apps" onClick={() => void popOut(space)}>
+          <Icon name="popout" />
+        </button>
+      )}
       {inCall && (
         <button className="icon-btn hangup" aria-label="Leave call" title="Leave call" onClick={() => space.stopCamera()}>
           <Icon name="phoneOff" />

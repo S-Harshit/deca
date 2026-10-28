@@ -1,3 +1,5 @@
+import { lazy, Suspense } from "react";
+import { openTool, useTool } from "./toolsDialog";
 import { markTransfer, isTransfer } from "./transfer";
 import { deviceName } from "./qr";
 import { QrDialog } from "./components/QrDialog";
@@ -321,6 +323,8 @@ const ENDED = {
   },
 };
 
+const RoomTools = lazy(() => import("./components/RoomTools")); // loaded only when someone opens a tool
+
 function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space; onLeave: () => void; onRejoin: () => void; theme: React.ReactNode }>) {
   const snap = useSyncExternalStore(space.subscribe, space.getSnapshot);
   const { state, me } = snap;
@@ -333,6 +337,18 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
   const [gameOpen, setGameOpen] = useState(false);
   const scoresOpen = useScoresDialog();
   const qrOpen = useQrDialog();
+  const tool = useTool();
+  useEffect(() => {
+    // Ctrl+K / Cmd+K: search this room
+    const key = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        openTool("search");
+      }
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, []);
   const personal = isTransfer(space.spaceId);
   useEffect(() => onKonami(() => setScoresDialog(true)), []); // hidden: the leaderboard opens with the Konami code
   useEffect(() => {
@@ -507,6 +523,9 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
           <button aria-label="Invite people" title="Copy invite link" onClick={invite}>
             <Icon name={copied ? "check" : "link"} size={16} /> <span className="hide-md">{copied ? "Copied" : "Invite"}</span>
           </button>
+          <button className="icon-btn" aria-label="Search this room" title="Search this room (Ctrl+K)" onClick={() => openTool("search")}>
+            <Icon name="search" size={16} />
+          </button>
           <button className="icon-btn" aria-label="Show QR code" title="Open this room on another device" onClick={() => setQrDialog(true)}>
             <Icon name="qr" size={16} />
           </button>
@@ -541,6 +560,11 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
         </aside>
         {prefsApi && <SidebarGrip width={sidebarW} onChange={(w) => prefsApi.update({ sidebarW: w })} />}
 
+        {tool.tab && (
+          <Suspense fallback={null}>
+            <RoomTools space={space} snap={snap} tab={tool.tab} focus={tool.focus} />
+          </Suspense>
+        )}
         {qrOpen && <QrDialog link={snap.manual?.invite ?? location.href} onClose={() => setQrDialog(false)} />}
         {scoresOpen && <ScoresDialog snap={snap} games={games} onClose={() => setScoresDialog(false)} />}
         <main className={`main ${hasStage || showGame ? "has-stage" : ""} ${chatExpanded ? "chat-big" : ""}`}>
@@ -640,6 +664,25 @@ function HornButton({ space }: Readonly<{ space: Space }>) {
 
 registerWidget({ id: "members", title: "Members", order: 10, render: ({ space, snap, isHost }) => <Members space={space} snap={snap} isHost={isHost} /> });
 registerWidget({ id: "music", title: "Music", order: 20, render: ({ space, snap }) => <MusicPlayer space={space} snap={snap} /> });
+registerWidget({
+  id: "tools",
+  title: "Room tools",
+  order: 25,
+  render: () => (
+    <section className="panel" aria-label="Room tools">
+      <h3>
+        <SlotToggle /> Room tools
+      </h3>
+      <div className="tool-launch">
+        <button className="small-btn" onClick={() => openTool("docs")}>Pages &amp; notes</button>
+        <button className="small-btn" onClick={() => openTool("polls")}>Polls</button>
+        <button className="small-btn" onClick={() => openTool("board")}>Board</button>
+        <button className="small-btn" onClick={() => openTool("doors")}>Doors</button>
+        <button className="small-btn" onClick={() => openTool("search")}>Search</button>
+      </div>
+    </section>
+  ),
+});
 registerWidget({ id: "host", title: "Host controls", order: 30, hostOnly: true, render: ({ space, snap }) => <HostControls space={space} snap={snap} /> });
 
 /** Two host choices, both off by default: an end time for the room, and a summary on the end screen. */

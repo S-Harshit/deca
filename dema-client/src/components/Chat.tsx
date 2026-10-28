@@ -149,6 +149,12 @@ function Timeline({
         return `${name(e.author)} opened a page for everyone: ${hostOf(e.payload.url)}`;
       case "room_options":
         return e.payload.endsAt === undefined ? "" : e.payload.endsAt ? `${name(e.author)} set this room to end at ${new Date(Number(e.payload.endsAt)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : `${name(e.author)} removed the end time`;
+      case "doc_set":
+        return `${name(e.author)} made ${e.payload.kind === "page" ? "a page" : "a note"}: ${String(e.payload.title ?? "").slice(0, 60)}`;
+      case "poll_new":
+        return `${name(e.author)} started a poll: ${String(e.payload.q ?? "").slice(0, 100)}`;
+      case "portal_add":
+        return `${name(e.author)} added a door: ${String(e.payload.label || "another room").slice(0, 60)}`;
       case "archive_added":
         return `${name(e.author)} added imported history (${String(e.payload.events)} lines)`;
       case "perms_changed":
@@ -178,7 +184,7 @@ function Timeline({
     // Plain chat lines are the bulk of a long conversation: a memoised row is skipped when nothing about it changed.
     if (e.type === "chat") return <ChatLine key={e.id} e={e} mine={mine} grouped={grouped} name={name(e.author)} clock={clock} onMedia={onMedia} />;
     return (
-      <div key={e.id} className={`line ${mine ? "mine" : ""} ${grouped ? "grouped" : ""}`}>
+      <div key={e.id} data-eid={e.id} className={`line ${mine ? "mine" : ""} ${grouped ? "grouped" : ""}`}>
         <span className="t">{time(e.ts, clock)}</span>
         <span className="who" style={{ color: nameColor(e.author) }} title={name(e.author)}>
           {grouped ? "" : mine ? "you" : name(e.author)}
@@ -314,7 +320,7 @@ const ChatLine = memo(function ChatLine({
   onMedia,
 }: Readonly<{ e: SpaceEvent; mine: boolean; grouped: boolean; name: string; clock: "auto" | "12" | "24"; onMedia: () => void }>) {
   return (
-    <div className={`line ${mine ? "mine" : ""} ${grouped ? "grouped" : ""}`}>
+    <div data-eid={e.id} className={`line ${mine ? "mine" : ""} ${grouped ? "grouped" : ""}`}>
       <span className="t">{time(e.ts, clock)}</span>
       <span className="who" style={{ color: nameColor(e.author) }} title={name}>
         {grouped ? "" : mine ? "you" : name}

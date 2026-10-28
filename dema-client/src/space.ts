@@ -5,6 +5,7 @@
 import { isBlankMessage, safeWebUrl } from "./message";
 import type { ExportFile, ExportInput } from "./roomExport";
 import type { Highlights } from "./summary";
+import { LIMITS, portalUrl } from "./tools";
 import { derive, EventLog, HANDS, isEvent, MAX_ARCHIVES, MAX_FILE, MAX_SCORE, rid, type ArchiveRef, type EventType, type SpaceEvent, type SpaceState } from "./log";
 import { openArchive, sha256Hex, type ArchiveData } from "./archive";
 import type { ParsedImport } from "./roomImport";
@@ -543,6 +544,60 @@ export class Space {
     if (!this.canSpeak("chat")) return "The host has turned chat off";
     this.author("coin", { result: crypto.getRandomValues(new Uint8Array(1))[0] & 1 ? "heads" : "tails" });
     return "";
+  }
+
+  // --- pages and notes, polls, the drawing board, doors (see tools.ts for the rules and limits) ---
+  private toolsError() {
+    return this.canSpeak("chat") ? "" : "The host has turned chat off";
+  }
+  /** A fresh id for a page, note, poll or door. */
+  newToolId() {
+    return rid().slice(0, 12);
+  }
+  /** Create or change a page (only its author) or a note (anyone). Returns an error message, or "". */
+  saveDoc(id: string, kind: "page" | "note", title: string, body: string) {
+    const err = this.toolsError();
+    if (err) return err;
+    if (body.length > (kind === "page" ? LIMITS.pageChars : LIMITS.noteChars)) return kind === "page" ? "That page is too long" : "That note is too long";
+    this.author("doc_set", { id, kind, title: title.slice(0, LIMITS.titleChars), body });
+    return "";
+  }
+  deleteDoc(id: string) {
+    this.author("doc_del", { id });
+  }
+  newPoll(q: string, opts: string[]) {
+    const err = this.toolsError();
+    if (err) return err;
+    const clean = opts.map((o) => o.trim()).filter(Boolean);
+    if (!q.trim()) return "Write a question";
+    if (clean.length < 2) return "Give at least two options";
+    if (clean.length > LIMITS.pollOptions) return `At most ${LIMITS.pollOptions} options`;
+    this.author("poll_new", { id: this.newToolId(), q: q.trim(), opts: clean });
+    return "";
+  }
+  vote(id: string, opt: number) {
+    if (!this.toolsError()) this.author("poll_vote", { id, opt });
+  }
+  endPoll(id: string) {
+    this.author("poll_end", { id });
+  }
+  /** A finished stroke on the board: points are 0..1000 across the paper, already thinned by the caller. */
+  drawStroke(c: number, w: number, pts: number[]) {
+    if (!this.toolsError()) this.author("draw", { c, w, pts });
+  }
+  clearBoard() {
+    if (!this.toolsError()) this.author("draw_clear", {});
+  }
+  addPortal(url: string, label: string) {
+    const err = this.toolsError();
+    if (err) return err;
+    const safe = portalUrl(url.trim());
+    if (!safe) return "That is not a link to a Deca room (it should end in #/s/…)";
+    this.author("portal_add", { id: this.newToolId(), url: safe, label: label.trim().slice(0, LIMITS.labelChars) });
+    return "";
+  }
+  removePortal(id: string) {
+    this.author("portal_del", { id });
   }
 
   private lastScore = 0;
