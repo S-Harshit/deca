@@ -330,28 +330,14 @@ html[data-theme="cyberpunk"] :is(.ws-tab, .ws-item, .hit, .poll-opt, .swatch, .d
 @media (prefers-reduced-motion: reduce) { html[data-theme="cyberpunk"] .wm { animation: none; } }
 
 /* =============================================== BLACK HOLE: an accretion disk drawn in gradients behind frosted glass =============================================== */
-html[data-theme="blackhole"] { --font-display: "Inter", "Segoe UI", system-ui, sans-serif; background: #000; }
+html[data-theme="blackhole"] { --font-display: "Inter", "Segoe UI", system-ui, sans-serif; }
 html[data-theme="blackhole"] body { background: transparent; }
-/* the sky: stars scattered by gradients, turning very slowly about the hole */
-html[data-theme="blackhole"] body::before { content: ""; position: fixed; inset: -50%; z-index: -4; pointer-events: none; transform-origin: 72% 46%;
-  background-image: radial-gradient(1.2px 1.2px at 8% 12%, #fff, transparent), radial-gradient(1px 1px at 17% 71%, #cfd8ff, transparent), radial-gradient(1.6px 1.6px at 26% 33%, #fff, transparent), radial-gradient(1px 1px at 33% 88%, #ffe9c9, transparent), radial-gradient(1.2px 1.2px at 41% 9%, #fff, transparent), radial-gradient(1px 1px at 48% 57%, #bcd0ff, transparent), radial-gradient(1.8px 1.8px at 55% 24%, #fff, transparent), radial-gradient(1px 1px at 61% 79%, #fff, transparent), radial-gradient(1.2px 1.2px at 67% 40%, #ffd9b0, transparent), radial-gradient(1px 1px at 74% 91%, #cfd8ff, transparent), radial-gradient(1.6px 1.6px at 81% 15%, #fff, transparent), radial-gradient(1px 1px at 88% 62%, #fff, transparent), radial-gradient(1.2px 1.2px at 93% 35%, #bcd0ff, transparent), radial-gradient(1px 1px at 4% 52%, #fff, transparent), radial-gradient(1.4px 1.4px at 22% 6%, #ffe9c9, transparent), radial-gradient(1px 1px at 37% 46%, #fff, transparent), radial-gradient(1px 1px at 59% 5%, #cfd8ff, transparent), radial-gradient(1.2px 1.2px at 78% 74%, #fff, transparent), radial-gradient(1px 1px at 96% 84%, #fff, transparent), radial-gradient(1.4px 1.4px at 12% 93%, #bcd0ff, transparent);
-  background-size: 50% 50%; animation: bh-sky 420s linear infinite; }
-@keyframes bh-sky { to { transform: rotate(360deg); } }
-/* behind: the glowing halo (light bent over and under the hole), the black disk, the far side of the accretion disk */
-html[data-theme="blackhole"]::after { content: ""; position: fixed; z-index: -3; pointer-events: none; width: 130vmin; height: 130vmin; left: 72%; top: 46%; translate: -50% -50%;
-  background: radial-gradient(circle at 50% 50%, #000 0 15.2%, transparent 15.6%), radial-gradient(ellipse 46% 7.5% at 50% 50%, transparent 40%, #ffe9c2 55%, #ff8a1f 70%, rgb(120 25 0 / 0.8) 86%, transparent 100%), radial-gradient(circle at 50% 50%, transparent 15%, #fff1d6 15.8%, #ffb25a 17.5%, rgb(255 120 30 / 0.55) 21%, rgb(120 40 200 / 0.18) 32%, transparent 48%);
-  rotate: -9deg; animation: bh-pulse 7s ease-in-out infinite; }
-@keyframes bh-pulse { 50% { filter: brightness(1.18) saturate(1.1); } }
-/* in front of the hole: the near half of the disk sweeping across it */
-html[data-theme="blackhole"]::before { content: ""; position: fixed; z-index: -2; pointer-events: none; width: 130vmin; height: 130vmin; left: 72%; top: 46%; translate: -50% -50%; rotate: -9deg;
-  background: radial-gradient(ellipse 46% 7.5% at 50% 50%, transparent 40%, #ffe9c2 55%, #ff8a1f 70%, rgb(120 25 0 / 0.8) 86%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 50%, #000 50.5%); -webkit-mask-image: linear-gradient(to bottom, transparent 50%, #000 50.5%); animation: bh-pulse 7s ease-in-out infinite; }
-html[data-theme="blackhole"] body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at 72% 46%, transparent 25%, rgb(0 0 0 / 0.6) 100%); }
-@media (max-width: 860px) { html[data-theme="blackhole"]::after, html[data-theme="blackhole"]::before { left: 50%; top: 24%; width: 150vmin; height: 150vmin; } html[data-theme="blackhole"] body::before { transform-origin: 50% 24%; } }
-@media (prefers-reduced-motion: reduce) { html[data-theme="blackhole"] body::before, html[data-theme="blackhole"]::after, html[data-theme="blackhole"]::before,  }
+/* the sky is a live shader on a canvas (components/BlackHole.tsx); this glow shows until it draws, or when WebGL is missing */
+html[data-theme="blackhole"] { background: radial-gradient(ellipse 30% 9% at 72% 54%, rgb(255 138 31 / 0.55), transparent 70%), radial-gradient(circle at 72% 54%, #000 0 6%, transparent 7%), #000; }
+.bh-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; display: block; }
 /* the interface is frosted glass over it */
 html[data-theme="blackhole"] :is(.topbar, .sidebar, .composer, .stage) { background: rgb(6 6 14 / 0.52); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); border-color: rgb(255 255 255 / 0.1); }
-html[data-theme="blackhole"] :is(.chat, .timeline) { background: rgb(4 4 10 / 0.38); background-image: none; backdrop-filter: blur(5px); }
+html[data-theme="blackhole"] :is(.chat, .timeline) { background: rgb(4 4 10 / 0.3); background-image: none; backdrop-filter: blur(1.5px); }
 html[data-theme="blackhole"] :is(.panel, .modal, .popover, .invite-card, .menu, .palette, .feed-card, .workspace, .poll, .ws-form) { background: rgb(10 10 22 / 0.58); border: 1px solid rgb(255 255 255 / 0.14); box-shadow: 0 8px 40px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.08); backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2); }
 html[data-theme="blackhole"] .workspace { border-width: 0 0 0 1px; }
 html[data-theme="blackhole"] .panel h3 { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.72rem; color: #ffc88a; }

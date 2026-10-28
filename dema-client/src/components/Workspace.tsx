@@ -1,9 +1,10 @@
 // The workspace: a pane docked beside the chat (a sheet on a phone) with the room's shared things: notes and pages, polls and a
 // drawing board. The chat stays visible and usable next to it. Loaded only when opened (React.lazy in App.tsx).
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Snapshot, Space } from "../space";
 import { notify } from "../toast";
-import { LIMITS, PALETTE, between, noteBlocks, pageDocument, tally, type Doc } from "../tools";
+import { LIMITS, PALETTE, pageDocument, tally, type Doc } from "../tools";
+import type { Collab } from "../collab";
 import { openTool, type ToolTab } from "../toolsDialog";
 import { ask } from "../confirm";
 
@@ -15,7 +16,7 @@ const TABS: { id: ToolTab; label: string }[] = [
 
 export default function Workspace({ space, snap, tab, focus }: Readonly<{ space: Space; snap: Snapshot; tab: ToolTab; focus: string | null }>) {
   useEffect(() => {
-    const key = (e: KeyboardEvent) => e.key === "Escape" && !(e.target instanceof HTMLElement && e.target.closest("[role=alertdialog]")) && openTool(null);
+    const key = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && !(e.target instanceof HTMLElement && e.target.closest("[role=alertdialog]")) && openTool(null);
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, []);
@@ -84,7 +85,7 @@ function DocsTab({ space, snap, focus }: Readonly<{ space: Space; snap: Snapshot
             </li>
           ))}
         </ul>
-        {docs.length === 0 && <p className="muted small">A note is written by everyone together, paragraph by paragraph. A page is HTML only its author can change. Both end with the room.</p>}
+        {docs.length === 0 && <p className="muted small">A note is written by everyone together, live. A page is HTML its author controls, and can open for everyone to edit. Both end with the room.</p>}
       </div>
       <div className="ws-main">{doc ? (doc.kind === "note" ? <NoteEditor key={doc.id} doc={doc} space={space} snap={snap} onGone={() => setSel(null)} /> : <PageEditor key={doc.id} doc={doc} space={space} snap={snap} onGone={() => setSel(null)} />) : <p className="muted ws-empty">Pick a note or page, or make a new one.</p>}</div>
     </div>
@@ -99,10 +100,10 @@ function DocHead({ doc, space, snap, onGone, note }: Readonly<{ doc: Doc; space:
     if (title === saved.current) return;
     const t = setTimeout(() => {
       saved.current = title;
-      space.saveDoc(doc.id, doc.kind, title, doc.body);
+      space.saveDoc(doc.id, doc.kind, title, doc.body, doc.open);
     }, 600);
     return () => clearTimeout(t);
-  }, [title, doc.id, doc.kind, doc.body, space]);
+  }, [title, doc.id, doc.kind, doc.body, doc.open, space]);
   const remove = async () => {
     if (await ask({ title: `Delete "${doc.title}"?`, lines: ["It is removed for everyone in the room."], confirm: "Delete", danger: true })) {
       space.deleteDoc(doc.id);
@@ -112,7 +113,7 @@ function DocHead({ doc, space, snap, onGone, note }: Readonly<{ doc: Doc; space:
   return (
     <div className="ws-dochead">
       <div className="row">
-        <input aria-label="Title" className="grow" value={title} maxLength={LIMITS.titleChars} disabled={doc.kind === "page" && !mine} onChange={(e) => setTitle(e.target.value)} />
+        <input aria-label="Title" className="grow" value={title} maxLength={LIMITS.titleChars} disabled={doc.kind === "page" && !doc.open && !mine} onChange={(e) => setTitle(e.target.value)} />
         {mine && (
           <button className="small-btn danger" onClick={() => void remove()}>
             Delete
@@ -124,158 +125,150 @@ function DocHead({ doc, space, snap, onGone, note }: Readonly<{ doc: Doc; space:
   );
 }
 
-/** A page is its author's HTML, shown beside the editor in a frame with every permission off. */
+/** Typing in `text` merges with everyone else's typing (collab.ts); this keeps the caret where it was when other people's changes land around it. */
+function SharedText({ id, space, snap, cap, className, label, placeholder, onText }: Readonly<{ id: string; space: Space; snap: Snapshot; cap: number; className: string; label: string; placeholder?: string; onText?: (t: string) => void }>) {
+  const [text, setText] = useState(() => space.docText(id));
+  const [ready, setReady] = useState(false);
+  const ta = useRef<HTMLTextAreaElement>(null);
+  const caret = useRef<[number, number] | null>(null);
+  const [, tick] = useState(0);
+  const sink = useRef(onText);
+  sink.current = onText;
+  const engine = useRef<Collab | null>(null);
+  useEffect(() => {
+    let off = () => {};
+    let gone = false;
+    void space.loadCollab().then((c) => {
+      if (gone) return;
+      engine.current = c;
+      const now = c.text(id);
+      setText(now);
+      sink.current?.(now);
+      setReady(true);
+      off = c.watch(id, (delta, local) => {
+        const next = c.text(id);
+        if (!local && ta.current) {
+          const shift = (i: number) => {
+            let at = 0;
+            let out = i;
+            for (const op of delta) {
+              if (op.retain) at += op.retain;
+              else if (typeof op.insert === "string") {
+                if (at <= i) out += op.insert.length; // text arriving at the caret pushes it right
+              } else if (op.delete) {
+                if (at < i) out -= Math.min(op.delete, i - at);
+                at += op.delete;
+              }
+            }
+            return Math.max(0, out);
+          };
+          const sel: [number, number] = [shift(ta.current.selectionStart), shift(ta.current.selectionEnd)];
+          // Written to the box right now, not after React renders: a key pressed in between must be measured against the merged text.
+          ta.current.value = next;
+          if (document.activeElement === ta.current) ta.current.setSelectionRange(sel[0], sel[1]);
+          caret.current = sel;
+        }
+        setText(next);
+        sink.current?.(next);
+      });
+    });
+    return () => {
+      gone = true;
+      off();
+    };
+  }, [id, space]);
+  useLayoutEffect(() => {
+    const c = caret.current;
+    if (c && ta.current && document.activeElement === ta.current) ta.current.setSelectionRange(c[0], c[1]);
+    caret.current = null;
+  }, [text]);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 1500); // lets "is typing" expire
+    return () => clearInterval(t);
+  }, []);
+  const typing = space.typingIn(id);
+  return (
+    <>
+      <textarea
+        ref={ta}
+        className={className}
+        aria-label={label}
+        placeholder={ready ? placeholder : "Loading..."}
+        spellCheck={false}
+        value={text}
+        maxLength={cap}
+        disabled={!ready}
+        onChange={(e) => {
+          setText(e.target.value);
+          sink.current?.(e.target.value);
+          engine.current?.set(id, e.target.value); // synchronous: it is diffed against exactly the text the person was looking at
+        }}
+      />
+      <p className="muted small ws-typing" aria-live="polite">
+        {typing.length ? `${typing.join(", ")} ${typing.length === 1 ? "is" : "are"} typing` : `${text.length.toLocaleString()} of ${cap.toLocaleString()} characters`}
+        {snap.state.tools.docs.get(id) ? "" : ""}
+      </p>
+    </>
+  );
+}
+
+/** A page is HTML shown beside the editor in a frame with every permission off. Closed: only its author edits. Open: everyone edits it live. */
 function PageEditor({ doc, space, snap, onGone }: Readonly<{ doc: Doc; space: Space; snap: Snapshot; onGone: () => void }>) {
-  const canEdit = doc.owner === snap.me || snap.state.hostId === snap.me;
+  const mine = doc.owner === snap.me || snap.state.hostId === snap.me;
+  const canEdit = mine || doc.open;
   const [body, setBody] = useState(doc.body);
   const saved = useRef(doc.body);
   useEffect(() => {
-    if (canEdit && body === saved.current) setBody(doc.body); // someone else changed it (the host) while we were not typing
-    saved.current = canEdit && body !== saved.current ? saved.current : doc.body;
-  }, [doc.rev]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!mine || doc.open) return;
+    if (body === saved.current) setBody(doc.body); // someone else changed it (the host) while we were not typing
+    saved.current = body !== saved.current ? saved.current : doc.body;
+  }, [doc.rev, doc.open]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (!canEdit || body === saved.current) return;
+    if (!mine || doc.open || body === saved.current) return;
     const t = setTimeout(() => {
-      const err = space.saveDoc(doc.id, "page", doc.title, body);
+      const err = space.saveDoc(doc.id, "page", doc.title, body, false);
       if (err) notify(err, "error");
       else saved.current = body;
     }, 700);
     return () => clearTimeout(t);
-  }, [body, canEdit, space, doc.id, doc.title]);
+  }, [body, mine, doc.open, space, doc.id, doc.title]);
+  const [live, setLive] = useState("");
+  const note = doc.open ? `A page by ${nameOf(snap, doc.owner)} that everyone can edit.` : `A page by ${nameOf(snap, doc.owner)}${mine ? "" : ". Only they can change it."}`;
   return (
     <div className="ws-col">
-      <DocHead doc={doc} space={space} snap={snap} onGone={onGone} note={`A page by ${nameOf(snap, doc.owner)}${canEdit ? "" : ". Only they can change it."}`} />
+      <DocHead doc={doc} space={space} snap={snap} onGone={onGone} note={note} />
+      {mine && (
+        <label className="ws-open">
+          <input
+            type="checkbox"
+            checked={doc.open}
+            onChange={(e) => void space.setPageOpen(doc.id, doc.title, doc.open ? live : body, e.target.checked).then((err) => err && notify(err, "error"))}
+          />
+          Let anyone in the room edit this page
+        </label>
+      )}
       <div className="page-split">
-        {canEdit && <textarea className="doc-text" aria-label="Page HTML" spellCheck={false} value={body} maxLength={LIMITS.pageChars} onChange={(e) => setBody(e.target.value)} />}
-        <iframe className="page-frame" title={doc.title} sandbox="" referrerPolicy="no-referrer" srcDoc={pageDocument(canEdit ? body : doc.body)} />
+        {doc.open ? (
+          <div className="ws-col">
+            <SharedText key={doc.id} id={doc.id} space={space} snap={snap} cap={LIMITS.pageChars} className="doc-text" label="Page HTML" onText={setLive} />
+          </div>
+        ) : (
+          canEdit && <textarea className="doc-text" aria-label="Page HTML" spellCheck={false} value={body} maxLength={LIMITS.pageChars} onChange={(e) => setBody(e.target.value)} />
+        )}
+        <iframe className="page-frame" title={doc.title} sandbox="" referrerPolicy="no-referrer" srcDoc={pageDocument(doc.open ? live : mine ? body : doc.body)} />
       </div>
-      {canEdit && <p className="muted small">{body.length.toLocaleString()} of {LIMITS.pageChars.toLocaleString()} characters</p>}
+      {mine && !doc.open && <p className="muted small">{body.length.toLocaleString()} of {LIMITS.pageChars.toLocaleString()} characters</p>}
     </div>
   );
 }
 
-type Local = { key: string; text: string; dirty: boolean; until: number };
-
-/**
- * A note is a list of paragraphs, each saved on its own. Two people typing in different paragraphs never overwrite each other, and
- * new paragraphs from both sides slot in by their order keys. Only if two people change the very same paragraph at the same moment
- * does the later save win (the other sees their paragraph change, nothing else is lost).
- */
+/** A note is one shared text: everyone types in it at once, in any place, and nothing anyone writes is lost. */
 function NoteEditor({ doc, space, snap, onGone }: Readonly<{ doc: Doc; space: Space; snap: Snapshot; onGone: () => void }>) {
-  const remote = noteBlocks(doc);
-  // What the room holds for this note, as one string: it changes whenever any paragraph does, even one that arrives out of order.
-  const signature = remote.map((b) => `${b.id}:${b.key}:${b.ts}:${b.text}`).join("\u0001");
-  const [local, setLocal] = useState<Map<string, Local>>(() => new Map());
-  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-  const focusNext = useRef<{ id: string; pos: number } | null>(null);
-  const area = useRef(new Map<string, HTMLTextAreaElement>());
-  const blank = useRef({ id: space.newToolId(), key: between() }); // the first paragraph of an empty note, until someone types in it
-
-  // Follow other people's changes, except in paragraphs this person has unsaved edits in.
-  useEffect(() => {
-    setLocal((cur) => {
-      const next = new Map(cur);
-      const seen = new Set<string>();
-      for (const b of remote) {
-        seen.add(b.id);
-        const l = next.get(b.id);
-        if (!l || !l.dirty) next.set(b.id, { key: b.key, text: b.text, dirty: false, until: 0 });
-      }
-      for (const [id, l] of next) if (!seen.has(id) && !l.dirty && l.until < Date.now()) next.delete(id); // removed by someone else
-      return next;
-    });
-  }, [signature]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const rows = (() => {
-    const list = [...local].map(([id, l]) => ({ id, key: l.key, text: l.text }));
-    if (!list.length) list.push({ id: blank.current.id, key: blank.current.key, text: "" });
-    return list.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.id < b.id ? -1 : 1));
-  })();
-
-  const save = (id: string, key: string, text: string) => {
-    clearTimeout(timers.current.get(id));
-    timers.current.delete(id);
-    space.setBlock(doc.id, id, key, text);
-    setLocal((cur) => new Map(cur).set(id, { key, text, dirty: false, until: Date.now() + 4000 }));
-  };
-  const edit = (id: string, key: string, text: string) => {
-    setLocal((cur) => new Map(cur).set(id, { key, text, dirty: true, until: Date.now() + 4000 }));
-    clearTimeout(timers.current.get(id));
-    timers.current.set(id, setTimeout(() => save(id, key, text), 450));
-  };
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
-  useEffect(() => {
-    const f = focusNext.current;
-    const el = f && area.current.get(f.id);
-    if (f && el) {
-      el.focus();
-      el.setSelectionRange(f.pos, f.pos);
-      focusNext.current = null;
-    }
-  });
-
-  const keyDown = (i: number, e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const r = rows[i];
-    const el = e.currentTarget;
-    const at = el.selectionStart;
-    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-      e.preventDefault(); // a new paragraph, taking the text after the cursor with it
-      const id = space.newToolId();
-      const key = between(r.key, rows[i + 1]?.key);
-      save(r.id, r.key, r.text.slice(0, at));
-      setLocal((cur) => new Map(cur).set(id, { key, text: r.text.slice(at), dirty: true, until: Date.now() + 4000 }));
-      timers.current.set(id, setTimeout(() => save(id, key, r.text.slice(at)), 120));
-      focusNext.current = { id, pos: 0 };
-    } else if (e.key === "Backspace" && at === 0 && el.selectionEnd === 0 && i > 0) {
-      e.preventDefault(); // join with the paragraph above
-      const prev = rows[i - 1];
-      save(prev.id, prev.key, prev.text + r.text);
-      clearTimeout(timers.current.get(r.id));
-      space.deleteBlock(doc.id, r.id, r.key);
-      setLocal((cur) => {
-        const n = new Map(cur);
-        n.delete(r.id);
-        return n;
-      });
-      focusNext.current = { id: prev.id, pos: prev.text.length };
-    } else if (e.key === "ArrowUp" && !el.value.slice(0, at).includes("\n") && i > 0 && el.selectionStart === el.selectionEnd && at < (el.value.indexOf("\n") + 1 || el.value.length + 1)) {
-      e.preventDefault();
-      area.current.get(rows[i - 1].id)?.focus();
-    } else if (e.key === "ArrowDown" && !el.value.slice(at).includes("\n") && i < rows.length - 1) {
-      e.preventDefault();
-      area.current.get(rows[i + 1].id)?.focus();
-    }
-  };
-
-  const recent = (id: string) => {
-    const b = doc.blocks.get(id);
-    return b && b.editor !== snap.me && Date.now() - b.ts < 4000 ? nameOf(snap, b.editor) : "";
-  };
   return (
     <div className="ws-col">
-      <DocHead doc={doc} space={space} snap={snap} onGone={onGone} note={`A note everyone edits together, paragraph by paragraph. Last change by ${nameOf(snap, doc.editor)}.`} />
-      <div className="note" aria-label="Note">
-        {rows.map((r, i) => (
-          <div key={r.id} className="para">
-            {recent(r.id) && <span className="para-who">{recent(r.id)}</span>}
-            <textarea
-              ref={(el) => {
-                if (el) {
-                  area.current.set(r.id, el);
-                  el.style.height = "auto";
-                  el.style.height = `${el.scrollHeight}px`;
-                } else area.current.delete(r.id);
-              }}
-              rows={1}
-              aria-label={`Paragraph ${i + 1}`}
-              value={r.text}
-              maxLength={LIMITS.blockChars}
-              placeholder={i === 0 && rows.length === 1 ? "Start writing. Enter starts a new paragraph." : ""}
-              onChange={(e) => edit(r.id, r.key, e.target.value)}
-              onKeyDown={(e) => keyDown(i, e)}
-            />
-          </div>
-        ))}
+      <DocHead doc={doc} space={space} snap={snap} onGone={onGone} note="A note everyone edits together, live. Two people typing at once both keep their words." />
+      <div className="note">
+        <SharedText id={doc.id} space={space} snap={snap} cap={LIMITS.noteChars} className="note-text" label="Note" placeholder="Start writing." />
       </div>
     </div>
   );

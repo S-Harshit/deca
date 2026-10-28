@@ -2,9 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { isBlankMessage } from "../message";
-import type { Snapshot } from "../space";
-import { noteText } from "../tools";
-import { openTool } from "../toolsDialog";
+import type { Snapshot, Space } from "../space";
+import { openSearch, openTool } from "../toolsDialog";
 
 const nameOf = (snap: Snapshot, id: string) => (id === snap.me ? "you" : (snap.state.members.get(id)?.name ?? "someone"));
 
@@ -19,7 +18,7 @@ function snippet(text: string, words: string[]) {
 }
 
 function jumpTo(id: string) {
-  openTool(null);
+  openSearch(false);
   setTimeout(() => {
     const el = document.querySelector(`[data-eid="${CSS.escape(id)}"]`);
     el?.scrollIntoView({ block: "center" });
@@ -28,7 +27,7 @@ function jumpTo(id: string) {
   }, 60);
 }
 
-export default function SearchPalette({ snap }: Readonly<{ snap: Snapshot }>) {
+export default function SearchPalette({ snap, space }: Readonly<{ snap: Snapshot; space: Space }>) {
   const [q, setQ] = useState("");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => input.current?.focus(), []);
@@ -48,19 +47,23 @@ export default function SearchPalette({ snap }: Readonly<{ snap: Snapshot }>) {
       }
     }
     for (const d of state.tools.docs.values()) {
-      const text = d.kind === "note" ? noteText(d) : d.body.replaceAll(/<[^>]*>/g, " ");
-      if (has(`${d.title} ${text}`)) out.push({ key: d.id, kind: d.kind === "page" ? "Page" : "Note", title: d.title, snippet: snippet(text, words), ts: d.ts, open: () => openTool("docs", d.id) });
+      const text = d.kind === "note" || d.open ? space.docText(d.id) : d.body.replaceAll(/<[^>]*>/g, " ");
+      if (has(`${d.title} ${text}`)) out.push({ key: d.id, kind: d.kind === "page" ? "Page" : "Note", title: d.title, snippet: snippet(text, words), ts: d.ts, open: () => { openSearch(false); openTool("docs", d.id); } });
     }
-    for (const p of state.tools.polls.values()) if (has(`${p.q} ${p.opts.join(" ")}`)) out.push({ key: p.id, kind: "Poll", title: p.q, snippet: p.opts.join(" · "), ts: 0, open: () => openTool("polls") });
+    for (const p of state.tools.polls.values()) if (has(`${p.q} ${p.opts.join(" ")}`)) out.push({ key: p.id, kind: "Poll", title: p.q, snippet: p.opts.join(" · "), ts: 0, open: () => { openSearch(false); openTool("polls"); } });
     return out.sort((a, b) => b.ts - a.ts).slice(0, 60);
-  }, [q, snap]);
+  }, [q, snap, space]);
   useEffect(() => {
-    const key = (e: KeyboardEvent) => e.key === "Escape" && openTool(null);
-    window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault(); // the workspace behind ignores an Escape that search already used
+      openSearch(false);
+    };
+    window.addEventListener("keydown", key, true);
+    return () => window.removeEventListener("keydown", key, true);
   }, []);
   return createPortal(
-    <div className="modal-scrim palette-scrim" onClick={() => openTool(null)}>
+    <div className="modal-scrim palette-scrim" onClick={() => openSearch(false)}>
     <div className="modal palette" role="dialog" aria-modal="true" aria-label="Search this room" onClick={(e) => e.stopPropagation()}>
       <input ref={input} aria-label="Search this room" placeholder="Search this room: messages, files, notes, pages, polls" value={q} onChange={(e) => setQ(e.target.value)} />
       {q.trim() && hits.length === 0 && <p className="muted">Nothing found.</p>}

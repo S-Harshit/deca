@@ -1,11 +1,11 @@
 import { lazy, Suspense } from "react";
-import { openTool, useTool } from "./toolsDialog";
+import { openSearch, openTool, useTool } from "./toolsDialog";
 import { markTransfer, isTransfer } from "./transfer";
 import { deviceName } from "./qr";
 import { QrDialog } from "./components/QrDialog";
 import { setQrDialog, useQrDialog } from "./qrDialog";
 import { playChime } from "./horn";
-import { EndsIn, RoomSummary } from "./components/RoomEnd";
+import { EndsIn, LeftNow, RoomSummary } from "./components/RoomEnd";
 import { onKonami } from "./konami";
 import { useScoresDialog, setScoresDialog } from "./scoresDialog";
 import { ScoresDialog } from "./components/ScoresDialog";
@@ -325,6 +325,7 @@ const ENDED = {
 
 const Workspace = lazy(() => import("./components/Workspace")); // loaded only when someone opens a tool
 const SearchPalette = lazy(() => import("./components/SearchPalette"));
+const BlackHole = lazy(() => import("./components/BlackHole")); // only for the Black hole theme
 
 function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space; onLeave: () => void; onRejoin: () => void; theme: React.ReactNode }>) {
   const snap = useSyncExternalStore(space.subscribe, space.getSnapshot);
@@ -344,7 +345,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
     const key = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        openTool("search");
+        openSearch();
       }
     };
     window.addEventListener("keydown", key);
@@ -411,6 +412,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
   }, [personal, isHost, snap.locked, otherDevices, space]);
 
   const hasStage = snap.tiles.length > 0;
+  const themeId = usePrefsValue().theme;
   const showGame = gameOpen && games.length > 0;
 
   // "Expand chat": while a call is on the chat is the narrow column; this gives it the whole area (the call keeps
@@ -524,7 +526,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
           <button aria-label="Invite people" title="Copy invite link" onClick={invite}>
             <Icon name={copied ? "check" : "link"} size={16} /> <span className="hide-md">{copied ? "Copied" : "Invite"}</span>
           </button>
-          <button className="icon-btn" aria-label="Search this room" title="Search this room (Ctrl+K)" onClick={() => openTool("search")}>
+          <button className="icon-btn" aria-label="Search this room" title="Search this room (Ctrl+K)" onClick={() => openSearch()}>
             <Icon name="search" size={16} />
           </button>
           <button className="icon-btn" aria-label="Show QR code" title="Open this room on another device" onClick={() => setQrDialog(true)}>
@@ -561,9 +563,14 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
         </aside>
         {prefsApi && <SidebarGrip width={sidebarW} onChange={(w) => prefsApi.update({ sidebarW: w })} />}
 
-        {tool.tab === "search" && (
+        {themeId === "blackhole" && (
           <Suspense fallback={null}>
-            <SearchPalette snap={snap} />
+            <BlackHole calm={hasStage} />
+          </Suspense>
+        )}
+        {tool.search && (
+          <Suspense fallback={null}>
+            <SearchPalette snap={snap} space={space} />
           </Suspense>
         )}
         {qrOpen && <QrDialog link={snap.manual?.invite ?? location.href} onClose={() => setQrDialog(false)} />}
@@ -586,7 +593,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
           )}
           <Chat space={space} snap={snap} isHost={isHost} inviteLink={snap.manual?.invite ?? location.href} onInvite={invite} callBar={canExpandChat ? <ChatCallBar snap={snap} expanded={chatExpanded} onToggle={() => setChatBig((v) => !v)} /> : null} />
         </main>
-        {tool.tab && tool.tab !== "search" && (
+        {tool.tab && (
           <Suspense fallback={null}>
             <Workspace space={space} snap={snap} tab={tool.tab} focus={tool.focus} />
           </Suspense>
@@ -683,7 +690,7 @@ registerWidget({
         <button className="small-btn" onClick={() => openTool("docs")}>Notes &amp; pages</button>
         <button className="small-btn" onClick={() => openTool("polls")}>Polls</button>
         <button className="small-btn" onClick={() => openTool("board")}>Board</button>
-        <button className="small-btn" onClick={() => openTool("search")}>Search</button>
+        <button className="small-btn" onClick={() => openSearch()}>Search</button>
       </div>
     </section>
   ),
@@ -702,40 +709,44 @@ function RoomOptionsControls({ space, snap }: Readonly<{ space: Space; snap: Sna
         <input type="checkbox" checked={options.endsAt > 0} onChange={(e) => space.setOptions({ endsAt: e.target.checked ? Date.now() + clamp(minutes) * 60000 : 0 })} />
         End this room after a set time
       </label>
-      {options.endsAt > 0 ? (
-        <div className="row small-row">
-          <button className="small-btn" onClick={() => space.setOptions({ endsAt: options.endsAt + 15 * 60000 })}>
-            Add 15 min
-          </button>
-        </div>
-      ) : (
-        <div className="row small-row">
-          <select
-            aria-label="How long the room lasts"
-            value={custom ? "custom" : minutes}
-            onChange={(e) => {
-              if (e.target.value === "custom") setCustom(true);
-              else {
-                setCustom(false);
-                setMinutes(Number(e.target.value));
-              }
-            }}
-          >
-            {[5, 15, 30, 45, 60, 90, 120].map((m) => (
-              <option key={m} value={m}>
-                {m} minutes
-              </option>
-            ))}
-            <option value="custom">Custom…</option>
-          </select>
-          {custom && (
-            <label className="row small-row">
-              <input type="number" aria-label="Custom length in minutes" min={1} max={1440} value={minutes} style={{ width: "5.5rem", flex: "none" }} onChange={(e) => setMinutes(Number(e.target.value))} onBlur={() => setMinutes(clamp(minutes))} />
-              <span className="muted small">minutes (1 to 1440)</span>
-            </label>
-          )}
-        </div>
-      )}
+      <div className="opt-sub">
+        {options.endsAt > 0 ? (
+          <>
+            <LeftNow endsAt={options.endsAt} />
+            <button className="small-btn" onClick={() => space.setOptions({ endsAt: options.endsAt + 15 * 60000 })}>
+              Add 15 min
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="muted small">Lasts</span>
+            <select
+              aria-label="How long the room lasts"
+              value={custom ? "custom" : minutes}
+              onChange={(e) => {
+                if (e.target.value === "custom") setCustom(true);
+                else {
+                  setCustom(false);
+                  setMinutes(Number(e.target.value));
+                }
+              }}
+            >
+              {[5, 15, 30, 45, 60, 90, 120].map((m) => (
+                <option key={m} value={m}>
+                  {m} minutes
+                </option>
+              ))}
+              <option value="custom">Custom…</option>
+            </select>
+            {custom && (
+              <>
+                <input type="number" aria-label="Custom length in minutes" min={1} max={1440} value={minutes} style={{ width: "5.5rem", flex: "none" }} onChange={(e) => setMinutes(Number(e.target.value))} onBlur={() => setMinutes(clamp(minutes))} />
+                <span className="muted small">minutes (1 to 1440)</span>
+              </>
+            )}
+          </>
+        )}
+      </div>
       <label className="toggle" title="When the room ends, everyone sees who was here, what was shared, and the highlights.">
         <input type="checkbox" checked={options.summary} onChange={(e) => space.setOptions({ summary: e.target.checked })} />
         Show a summary when the room ends

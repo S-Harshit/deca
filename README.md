@@ -43,10 +43,10 @@ Open Deca, create a space, send the link, and you are in a private room. It runs
 |---|---|
 | **Talk** | chat with code blocks and inline image previews, video, audio and screen share (with sound where the browser allows), files up to 50 MB |
 | **Your own devices** | a private "move files between my devices" room with a QR code: send files, pictures and text from your computer to your phone and back, no cable, app or account |
-| **Make things** | a workspace beside the chat: notes several people can edit at once (paragraph by paragraph, so nobody overwrites anybody), small HTML pages only their author edits (shown in a locked frame), polls you vote on in the chat, a drawing board, and search across the room (Ctrl+K) |
+| **Make things** | a workspace beside the chat: notes several people type in at the same moment without anyone overwriting anyone (a CRDT, like a shared document), small HTML pages (author-only, or opened for everyone to edit, shown in a locked frame), polls you vote on in the chat, a drawing board, and search across the room (Ctrl+K) |
 | **Together** | music everyone hears in sync (YouTube links), games panel (Snake, Pixel Hop, Freedoom), coin flip, rock-paper-scissors, a random "blame someone" button |
 | **Host tools** | mute chat or files, lock the room, wake everyone up, optional end time and end-of-room summary |
-| **Yours** | thirteen looks, including a shadcn-style "Zinc" and six that are places, not palettes: Early web, Paper, Terminal, Newspaper, Cyberpunk and Black hole, personal wallpaper that can tint the accent, export and import of a room as a signed zip |
+| **Yours** | thirteen looks, including a shadcn-style "Zinc" and six that are places, not palettes: Early web, Paper, Terminal, Newspaper, Cyberpunk and Black hole (a live, rotating, lensed black hole drawn by a shader), personal wallpaper that can tint the accent, export and import of a room as a signed zip |
 | **Resilient** | automatic reconnect, host succession, ICE restart, and a no-server mode for when nothing else works |
 
 Want to build a panel (a poll, a whiteboard, a game)? See the [plugin spec](docs/PLUGINS.md). [docs/SPEC.md](docs/SPEC.md) is the full design: concepts, sync model, protocol, security and limits.

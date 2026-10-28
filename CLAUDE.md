@@ -28,9 +28,10 @@ A room can run with no signaling server: `localSignal.ts` is an in-browser stand
 
 ## Rules that are easy to break
 - **Events are signed and verified.** Never add an event path that skips `verifyEvent`, and never trust `author`/`by` fields from the wire. New event types go in `EventType`, the `TYPES` set in `log.ts`, and a validity rule in `derive()`.
-- **Non-event control messages** (`music`, `media`, `links`, ...) are not signed: validate and sanitise them on receipt (`music.ts` `sanitize`).
+- **Non-event control messages** (`music`, `media`, `links`, `yup`/`ysv` note text, ...) are not signed: validate and sanitise them on receipt (`music.ts` `sanitize`, `collab.ts` `onMsg`). Note and open-page text is a Yjs document in memory (`collab.ts`, lazy chunk), not in the log; apply a local edit synchronously against the text the person was looking at.
 - **Server limits are deliberate** (`MAX_PAYLOAD`, `MAX_PER_IP`, `JOINS_PER_MIN`, token bucket, `MAX_PEERS`...). Do not loosen them to make a test pass. Every socket needs an `error` listener or an oversize frame crashes the process.
 - **Live-only effects** (coin, rock-paper-scissors, air horn) fire only for events that arrive live (`fresh` in `space.ts`); history sync must never replay a sound or animation.
+- **Floating things need a stacking order.** `backdrop-filter`, `clip-path`, `transform` make a stacking context: `.topbar` has an explicit z-index so its popovers are never painted under the chat. `tests/browser/ui-floating.cjs` checks the Appearance popover in every theme; extend it when adding a theme or a popover.
 - **Theme CSS is scoped.** Prefer new class names; a clash once put a 420 px circle in the header (`.ring`). After any layout CSS change, check the header and a running call.
 - **Video waits for the data channel** (`syncTracks` only attaches tracks to open links), and tiles show only for connected peers.
 - **Games** are static folders in `dema-server/games/<id>/`. Only `snake`, `platformer`, and `freedoom` (without its `.wad`) are tracked; everything else there is git-ignored on purpose. Never commit or fetch copyrighted game assets (the FullScreenMario remake is under a DMCA takedown).

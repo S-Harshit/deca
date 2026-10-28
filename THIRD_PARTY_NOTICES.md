@@ -8,6 +8,7 @@ Deca itself is MIT licensed (see [LICENSE](LICENSE)). It uses and refers to the 
 |---|---|---|
 | [React](https://react.dev) and react-dom | MIT | the web app's interface |
 | [highlight.js](https://highlightjs.org) | BSD-3-Clause | colouring code blocks in chat |
+| [Yjs](https://github.com/yjs/yjs) (and its small helper lib0) | MIT | merging what people type together in notes and open pages |
 | [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) | MIT | the QR code of the invite link (made on the device) |
 | [ws](https://github.com/websockets/ws) | MIT | the signaling server's WebSocket support |
 

@@ -6,6 +6,7 @@ import { isBlankMessage, safeWebUrl } from "./message";
 import type { ExportFile, ExportInput } from "./roomExport";
 import type { Highlights } from "./summary";
 import { LIMITS } from "./tools";
+import type { Collab } from "./collab";
 import { derive, EventLog, HANDS, isEvent, MAX_ARCHIVES, MAX_FILE, MAX_SCORE, rid, type ArchiveRef, type EventType, type SpaceEvent, type SpaceState } from "./log";
 import { openArchive, sha256Hex, type ArchiveData } from "./archive";
 import type { ParsedImport } from "./roomImport";
@@ -236,6 +237,7 @@ export class Space {
         this.mesh.sendTo(id, { t: "links", ids: this.peers.filter((p) => p.state === "open").map((p) => p.peerId).sort() });
         if (this.camera || this.screen) this.mesh.sendTo(id, this.mediaMsg());
         if (this.music) this.mesh.sendTo(id, { t: "music", s: { ...this.music, pos: positionNow(this.music, this.musicAt) } });
+        this.collab?.hello(id);
         this.autoFetch();
       },
       onPeerGone: (id) => this.linkGone(id),
@@ -298,8 +300,46 @@ export class Space {
     const state = derive(this.log.all(), this.initialHost);
     this.enforce(state);
     this.snapshot = this.build(state);
+    if (this.collab || state.tools.docs.size) void this.loadCollab().then((c) => c.ensure(this.sharedDocs(state)));
     for (const fn of this.listeners) fn();
     this.fetchArchives(state.archives);
+  }
+
+  private sharedDocs(state: SpaceState) {
+    return [...state.tools.docs.values()].filter((d) => d.kind === "note" || d.open).map((d) => d.id);
+  }
+  private collab: Collab | null = null;
+  private collabLoad: Promise<Collab> | null = null;
+  /** The live-text engine (Yjs) is a separate chunk, fetched the first time a room has a note or an open page. */
+  loadCollab() {
+    this.collabLoad ??= import("./collab").then(({ Collab }) => {
+      this.collab = new Collab({
+        sendTo: (p, m) => void this.mesh.sendTo(p, m),
+        broadcast: (m) => this.mesh.broadcast(m),
+        relay: (m, from) => this.relay(m, from, from),
+        can: (peer) => {
+          const { members, hostId, perms } = this.snapshot.state;
+          const who = [...members].find(([, x]) => x.peerId === peer)?.[0];
+          return !!who && (who === hostId || perms.chat);
+        },
+        cap: (id) => {
+          const d = this.snapshot.state.tools.docs.get(id);
+          return !d ? 0 : d.kind === "note" ? LIMITS.noteChars : d.open ? LIMITS.pageChars : 0;
+        },
+        changed: () => this.refreshSoon(),
+      });
+      return this.collab;
+    });
+    return this.collabLoad;
+  }
+  /** The current text of a note or open page (empty until the engine has loaded). */
+  docText(id: string) {
+    return this.collab?.text(id) ?? "";
+  }
+  /** Names of members who changed this document in the last few seconds. */
+  typingIn(id: string) {
+    const peers = new Set(this.collab?.typing(id) ?? []);
+    return [...this.snapshot.state.members.values()].filter((m) => peers.has(m.peerId)).map((m) => m.name);
   }
 
   private refreshSoon() {
@@ -456,6 +496,10 @@ export class Space {
       case "sync":
         if (Array.isArray(msg.ids)) this.mesh.sendTo(from, { t: "events", events: this.log.missing(msg.ids) });
         break;
+      case "ysv":
+      case "yup":
+        void this.loadCollab().then((c) => c.onMsg(from, msg));
+        break;
       case "events":
         if (Array.isArray(msg.events)) {
           void this.accept(msg.events).then(() => {
@@ -554,13 +598,23 @@ export class Space {
   newToolId() {
     return rid().slice(0, 12);
   }
-  /** Create or change a page (only its author) or a note (anyone). Returns an error message, or "". */
-  saveDoc(id: string, kind: "page" | "note", title: string, body: string) {
+  /** Create or change a page (a closed one only by its author) or a note (anyone). Returns an error message, or "". */
+  saveDoc(id: string, kind: "page" | "note", title: string, body: string, open = false) {
     const err = this.toolsError();
     if (err) return err;
-    if (body.length > (kind === "page" ? LIMITS.pageChars : LIMITS.noteChars)) return kind === "page" ? "That page is too long" : "That note is too long";
-    this.author("doc_set", { id, kind, title: title.slice(0, LIMITS.titleChars), body });
+    if (body.length > LIMITS.pageChars) return "That page is too long";
+    this.author("doc_set", { id, kind, title: title.slice(0, LIMITS.titleChars), body, open });
     return "";
+  }
+  /** Let anyone edit a page (its text is then shared live like a note) or take it back to author-only. */
+  async setPageOpen(id: string, title: string, body: string, open: boolean) {
+    const c = await this.loadCollab();
+    if (open) {
+      c.ensure([...this.sharedDocs(this.snapshot.state), id]);
+      c.set(id, body, LIMITS.pageChars); // seed with the author's HTML: the event carries it no more
+      return this.saveDoc(id, "page", title, "", true);
+    }
+    return this.saveDoc(id, "page", title, c.text(id), false);
   }
   deleteDoc(id: string) {
     this.author("doc_del", { id });
@@ -588,14 +642,6 @@ export class Space {
   clearBoard() {
     if (!this.toolsError()) this.author("draw_clear", {});
   }
-  /** One paragraph of a note: set its text (and place, by `key`), or remove it. Different people's paragraphs never overwrite each other. */
-  setBlock(doc: string, id: string, key: string, text: string) {
-    if (!this.toolsError()) this.author("blk_set", { doc, id, key, text });
-  }
-  deleteBlock(doc: string, id: string, key: string) {
-    if (!this.toolsError()) this.author("blk_set", { doc, id, key, del: true });
-  }
-
   private lastScore = 0;
   /** A game in the games panel finished with this score: add it to the room's leaderboard. */
   recordScore(game: string, value: number) {

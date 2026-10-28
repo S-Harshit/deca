@@ -52,7 +52,7 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   ok("Cyberpunk: no sideways scroll", (await overflow(cyber)) <= 0);
   await cyber.screenshot({ path: "theme-cyberpunk.png" });
   const hole = await room("blackhole");
-  ok("Black hole: the sky and the hole are drawn (no image file), the interface is frosted glass", (await hole.evaluate(() => getComputedStyle(document.documentElement, "::after").backgroundImage)).includes("radial-gradient") && /blur/.test((await css(hole, ".panel", "backdropFilter")) ?? ""));
+  ok("Black hole: the sky is a live canvas (no image file), the interface is frosted glass", (await hole.locator("canvas.bh-canvas").count()) === 1 && /blur/.test((await css(hole, ".panel", "backdropFilter")) ?? ""));
   ok("Black hole: no image or video was loaded for the background", (await hole.evaluate(() => performance.getEntriesByType("resource").filter((r) => /\.(gif|png|jpe?g|webp|mp4|webm|avif)(\?|$)/i.test(r.name)).length)) === 0);
   ok("Black hole: no sideways scroll", (await overflow(hole)) <= 0);
   await hole.screenshot({ path: "theme-blackhole.png" });

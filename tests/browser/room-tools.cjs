@@ -1,4 +1,4 @@
-// The workspace (notes with paragraph-level merging, pages, polls, a board), the cards and commands that bring it into the chat,
+// The workspace (notes everyone types in at once, pages, polls, a board), the cards and commands that bring it into the chat,
 // and search, between two people in a room.
 const { chromium } = require("../lib/browser.cjs");
 let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; console.log(c ? "PASS" : "FAIL", n, c ? "" : x); };
@@ -12,7 +12,8 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   await A.waitForFunction(() => /\b2 \/ /.test(document.querySelector(".members")?.closest("section")?.querySelector("h3")?.innerText || ""), null, { timeout: 30000 });
   const say = async (p, t) => { await p.locator(".composer textarea").fill(t); await p.locator(".composer textarea").press("Enter"); await p.waitForTimeout(300); };
   const ws = (p) => p.getByRole("complementary", { name: "Workspace" });
-  const paras = (p) => p.locator('textarea[aria-label^="Paragraph"]').evaluateAll((els) => els.map((e) => e.value));
+  const note = (p) => p.locator('textarea[aria-label="Note"]');
+  const text = (p) => note(p).inputValue();
 
   // ---- polls, from the chat
   await say(A, "/poll Pizza or tacos? | Pizza | Tacos");
@@ -37,36 +38,32 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   ok("/note makes a note and opens the workspace NEXT to the chat", (await ws(A).count()) === 1 && (await A.locator(".composer textarea").isVisible()));
   const wb = await ws(A).boundingBox(); const cb = await A.locator(".chat").boundingBox();
   ok("the chat and the workspace sit side by side", cb.x + cb.width <= wb.x + 2 && wb.width > 300, JSON.stringify([cb, wb]));
-  await A.locator('textarea[aria-label="Paragraph 1"]').fill("Shopping list"); await A.keyboard.press("Enter"); await A.keyboard.type("milk"); await A.keyboard.press("Enter"); await A.keyboard.type("eggs"); await A.waitForTimeout(1200);
-  ok("Enter starts a new paragraph", JSON.stringify(await paras(A)) === JSON.stringify(["Shopping list", "milk", "eggs"]), JSON.stringify(await paras(A)));
+  await note(A).fill("Shopping list\nmilk\neggs");
   await B.locator(".doc-card", { hasText: "Untitled note" }).getByRole("button", { name: "Open" }).click();
-  await B.waitForFunction(() => document.querySelectorAll('textarea[aria-label^="Paragraph"]').length === 3, null, { timeout: 10000 });
-  ok("the note card in the chat opens it for the other person, paragraphs and all", JSON.stringify(await paras(B)) === JSON.stringify(["Shopping list", "milk", "eggs"]), JSON.stringify(await paras(B)));
+  await B.waitForFunction(() => document.querySelector('textarea[aria-label="Note"]')?.value.includes("eggs"), null, { timeout: 10000 });
+  ok("the note card in the chat opens it for the other person, text and all", (await text(B)) === "Shopping list\nmilk\neggs", await text(B));
   ok("it is open beside their chat too", (await ws(B).count()) === 1 && (await B.locator(".composer textarea").isVisible()));
 
   // ---- two people editing at the same moment
-  await Promise.all([A.locator('textarea[aria-label="Paragraph 2"]').fill("milk (2 litres)"), B.locator('textarea[aria-label="Paragraph 3"]').fill("eggs (a dozen)")]);
+  const type = async (p, where, s) => { await note(p).evaluate((el, w) => { el.focus(); const i = w === "start" ? 0 : el.value.length; el.setSelectionRange(i, i); }, where); await p.keyboard.type(s, { delay: 20 }); };
+  await Promise.all([type(A, "start", "[Ann] "), type(B, "end", " [Ben]")]);
+  await A.waitForTimeout(1500);
+  ok("typing at the start and at the end at the same moment: both survive, and both screens agree", (await text(A)) === (await text(B)) && (await text(A)) === "[Ann] Shopping list\nmilk\neggs [Ben]", JSON.stringify([await text(A), await text(B)]));
+  // both type in the very same place, at the same time
+  await Promise.all([type(A, "start", "AAAA"), type(B, "start", "BBBB")]);
   await A.waitForTimeout(1800);
-  const same = async () => JSON.stringify(await paras(A)) === JSON.stringify(await paras(B));
-  ok("edits in DIFFERENT paragraphs at the same time both survive, on both screens", (await same()) && (await paras(A))[1] === "milk (2 litres)" && (await paras(A))[2] === "eggs (a dozen)", JSON.stringify([await paras(A), await paras(B)]));
-  // both add a new paragraph at the end at the same moment
-  await Promise.all([
-    (async () => { const t = A.locator('textarea[aria-label="Paragraph 3"]'); await t.click(); await A.keyboard.press("End"); await A.keyboard.press("Enter"); await A.keyboard.type("bread from Ann"); })(),
-    (async () => { const t = B.locator('textarea[aria-label="Paragraph 3"]'); await t.click(); await B.keyboard.press("End"); await B.keyboard.press("Enter"); await B.keyboard.type("jam from Ben"); })(),
-  ]);
+  const both = await text(A);
+  const count = (s, ch) => s.split(ch).length - 1;
+  ok("two people typing in the SAME spot keep every character, and end with identical text", both === (await text(B)) && count(both, "A") >= 4 + 1 && count(both, "B") >= 4 + 1 && both.includes("Shopping list") && both.endsWith("[Ben]"), JSON.stringify([both, await text(B)]));
+  // a long burst from both sides at once
+  const na = count(await text(A), "a"), nb = count(await text(A), "b");
+  await Promise.all([type(A, "end", "a".repeat(60)), type(B, "end", "b".repeat(60))]);
   await A.waitForTimeout(2200);
-  const final = await paras(A);
-  ok("two paragraphs added at once both appear, in the same order for both people", (await same()) && final.some((p) => p === "bread from Ann") && final.some((p) => p === "jam from Ben"), JSON.stringify([final, await paras(B)]));
-  // the very same paragraph at the same time: one wins, both end identical, nothing else is touched
-  await Promise.all([A.locator('textarea[aria-label="Paragraph 1"]').fill("Groceries (Ann)"), B.locator('textarea[aria-label="Paragraph 1"]').fill("Groceries (Ben)")]);
-  await A.waitForTimeout(2200);
-  const conflict = await paras(A);
-  ok("the SAME paragraph edited at once: one version wins and both screens agree", (await same()) && /^Groceries \((Ann|Ben)\)$/.test(conflict[0]), JSON.stringify([conflict, await paras(B)]));
-  ok("and nothing else in the note was disturbed", conflict.includes("milk (2 litres)") && conflict.includes("eggs (a dozen)") && conflict.includes("jam from Ben"));
-  // backspace joins paragraphs
-  const before = (await paras(A)).length;
-  const last = A.locator(`textarea[aria-label="Paragraph ${before}"]`); await last.click(); await A.keyboard.press("Home"); await A.keyboard.press("Backspace"); await A.waitForTimeout(1500);
-  ok("Backspace at the start of a paragraph joins it to the one above, for everyone", (await paras(A)).length === before - 1 && (await same()), JSON.stringify([await paras(A), await paras(B)]));
+  const burst = await text(A);
+  ok("a burst from both people at once converges with nothing lost", burst === (await text(B)) && count(burst, "a") === na + 60 && count(burst, "b") === nb + 60, [count(burst, "a") - na, count(burst, "b") - nb].join("/"));
+  await A.evaluate(() => { const el = document.querySelector('textarea[aria-label="Note"]'); el.focus(); el.setSelectionRange(8, 8); });
+  await type(B, "start", "XYZ"); await A.waitForTimeout(1200);
+  ok("when someone types before your caret, it moves with the text instead of jumping", (await A.evaluate(() => document.querySelector('textarea[aria-label="Note"]').selectionStart)) === 11);
 
   // ---- a page is its author's, shown in a locked box
   await A.getByRole("button", { name: "+ Page" }).click();
@@ -76,6 +73,15 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   ok("it is shown in a frame with every permission off and a policy forbidding scripts and outside loads", (await B.locator("iframe.page-frame").getAttribute("sandbox")) === "" && /default-src 'none'/.test((await B.locator("iframe.page-frame").getAttribute("srcdoc")) ?? ""));
   const frame = await (await B.locator("iframe.page-frame").elementHandle()).contentFrame();
   ok("the page renders, and its script did not run", (await frame.locator("h1").innerText()) === "Hello page" && !/pwned/.test(await B.title()) && !/pwned/.test(await A.title()));
+
+  // an author can open a page so everyone edits it live
+  await A.getByLabel("Let anyone in the room edit this page").check(); await A.waitForTimeout(1200);
+  await B.getByLabel("Page HTML").waitFor({ timeout: 10000 });
+  ok("opening a page gives everyone its editor, with the author's HTML kept", (await B.getByLabel("Page HTML").inputValue()).includes("Hello page"));
+  await Promise.all([B.getByLabel("Page HTML").fill("<h1>Edited by Ben</h1>")]); await A.waitForTimeout(1500);
+  ok("a member's edit to an open page shows for the author, in the locked frame", (await A.getByLabel("Page HTML").inputValue()).includes("Edited by Ben") && (await (await (await A.locator("iframe.page-frame").elementHandle()).contentFrame()).locator("h1").innerText()) === "Edited by Ben");
+  await A.getByLabel("Let anyone in the room edit this page").uncheck(); await A.waitForTimeout(1200);
+  ok("closing it takes it back: the text is kept and only the author edits", (await B.getByLabel("Page HTML").count()) === 0 && (await A.getByLabel("Page HTML").inputValue()).includes("Edited by Ben"));
 
   // ---- the board
   await A.getByRole("tab", { name: "Board" }).click(); await B.getByRole("tab", { name: "Board" }).click();
@@ -105,8 +111,8 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   ok("Ctrl+K opens search, and a message is found", (await pal.locator(".hit").count()) === 1);
   await pal.locator(".hit").first().click(); await B.waitForTimeout(400);
   ok("choosing it jumps to the message and highlights it", (await B.locator(".line.flash").count()) === 1 && (await pal.count()) === 0);
-  await B.keyboard.press("Control+k"); await pal.getByLabel("Search this room").fill("jam");
-  ok("notes are searched paragraph by paragraph", /Note/.test(await pal.locator(".hit").first().innerText()));
+  await B.keyboard.press("Control+k"); await pal.getByLabel("Search this room").fill("Shopping");
+  ok("notes are searched by their live text", /Note/.test(await pal.locator(".hit").first().innerText()));
   await pal.getByLabel("Search this room").fill("tacos"); ok("and polls", /Poll/.test(await pal.locator(".hit").first().innerText()));
   await pal.getByLabel("Search this room").fill("zzzz-not-there"); ok("nothing found says so", (await pal.getByText("Nothing found.").count()) === 1);
   const sb = await pal.getByLabel("Search this room").evaluate((e) => getComputedStyle(e).textAlign); ok("the search text is left-aligned", sb === "left" || sb === "start", sb);

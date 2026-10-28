@@ -14,6 +14,20 @@ const mmss = (ms: number) => {
   return `${h ? `${h}:${String(m).padStart(2, "0")}` : m}:${String(s % 60).padStart(2, "0")}`;
 };
 
+/** The live "12:03 left" next to the host's end-time switch, so turning it on is answered right where the switch is. */
+export function LeftNow({ endsAt }: Readonly<{ endsAt: number }>) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <strong className="ends-left" role="status">
+      Ends in {mmss(endsAt - now)}
+    </strong>
+  );
+}
+
 /** "Ends in 12:03", shown to everyone while the host has set an end time. Warns at 5 minutes and 1 minute. */
 export function EndsIn({ options }: Readonly<{ options: RoomOptions }>) {
   const [now, setNow] = useState(() => Date.now());

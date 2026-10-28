@@ -1,5 +1,5 @@
 import { PollCard, DocCard } from "./FeedCards";
-import { openTool } from "../toolsDialog";
+import { openSearch, openTool } from "../toolsDialog";
 import { setQrDialog } from "../qrDialog";
 import {
   useCallback,
@@ -869,7 +869,7 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
     // The room's tools, from the keyboard: /note /page /board /search and  /poll Question | option | option
     if (command === "/note" || command === "/page" || command === "/board" || command === "/search" || command.startsWith("/poll ") || command === "/poll") {
       if (command === "/board") openTool("board");
-      else if (command === "/search") openTool("search");
+      else if (command === "/search") openSearch();
       else if (command === "/note" || command === "/page") {
         const id = space.newToolId();
         const err = space.saveDoc(id, command === "/page" ? "page" : "note", command === "/page" ? "My page" : "Untitled note", command === "/page" ? "<h1>My page</h1>\n" : "");
@@ -971,7 +971,7 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
             <button role="menuitem" onClick={() => { setToolsMenu(false); openTool("board"); }}>
               Whiteboard <span className="muted small">/board</span>
             </button>
-            <button role="menuitem" onClick={() => { setToolsMenu(false); openTool("search"); }}>
+            <button role="menuitem" onClick={() => { setToolsMenu(false); openSearch(); }}>
               Search the room <span className="muted small">Ctrl K</span>
             </button>
           </div>
