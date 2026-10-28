@@ -25,7 +25,7 @@ const URL = "http://localhost:8080/";
   await openDialog(A); await dialog(A).getByLabel("Paste a code").fill("this is not a code"); await dialog(A).getByRole("button", { name: "Connect" }).click();
   ok("garbage gets a plain message, nothing happens", /does not look like a Deca code/.test(await dialog(A).getByRole("alert").innerText())); await A.keyboard.press("Escape");
   // ---- file over a code-made connection
-  await A.locator('.composer input[type=file]').setInputFiles("b1m.bin"); await B.getByRole("button", { name: /Get|Download/ }).first().waitFor({ timeout: 10000 }); await B.getByRole("button", { name: /Get|Download/ }).first().click();
+  await A.locator('.composer input[aria-label="Attach files"]').setInputFiles("b1m.bin"); await B.getByRole("button", { name: /Get|Download/ }).first().waitFor({ timeout: 10000 }); await B.getByRole("button", { name: /Get|Download/ }).first().click();
   await B.waitForFunction(() => !!document.querySelector("a[download]"), null, { timeout: 30000 }); ok("a 1 MB file transfers over a connection made by codes", true);
   // ---- the link drops (browser keeps running, connection torn down)
   await B.evaluate(() => window.__pcs.forEach((pc) => pc.close()));

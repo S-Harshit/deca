@@ -30,7 +30,7 @@ console.log("OK leave dialog: alone warning; Stay, Esc and backdrop all cancel; 
 // ---- host with others, sharing files, in a call ----
 const b = await mk("Bob", hash); await b.getByText(/Join space/).click();
 await a.getByText("Bob joined").waitFor();
-await a.locator("input[type=file]").setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hello") });
+await a.locator('input[aria-label="Attach files"]').setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hello") });
 await b.getByText("notes.txt").waitFor();
 await a.getByRole("button", { name: /Start call/ }).click();
 await a.getByRole("timer").waitFor({ timeout: 15000 });

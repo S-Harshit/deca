@@ -539,6 +539,21 @@ export class Space {
         }
         break;
       }
+      case "gnet": {
+        // A game played together: small unsigned messages between the players' game frames (positions, who took a coin). Judged on
+        // arrival: a member sends it, it is small, and one peer cannot flood us. The game itself must still treat the data as untrusted.
+        const who = [...this.snapshot.state.members.values()].find((m) => m.peerId === from);
+        if (!who || typeof msg.g !== "string" || msg.g.length > 40 || !this.netAllowed(from)) break;
+        let size = 0;
+        try {
+          size = JSON.stringify(msg.d)?.length ?? 0;
+        } catch {
+          break;
+        }
+        if (size === 0 || size > 1200) break;
+        for (const fn of this.netListeners) fn(from, who.name, msg.g, msg.d);
+        break;
+      }
       case "media":
         if (Array.isArray(msg.streams)) {
           const entries = msg.streams
@@ -637,6 +652,37 @@ export class Space {
     if (Date.now() - this.lastScore < 1500) return; // a game that reports twice for one ending, or a loop
     this.lastScore = Date.now();
     this.author("score", { game, value });
+  }
+
+  private netListeners = new Set<(from: string, name: string, game: string, data: unknown) => void>();
+  private netBucket = new Map<string, { n: number; t: number }>();
+  /** At most about 60 game messages a second from any one peer (a token bucket), whatever they send. */
+  private netAllowed(from: string) {
+    const now = Date.now();
+    const b = this.netBucket.get(from) ?? { n: 60, t: now };
+    b.n = Math.min(60, b.n + ((now - b.t) / 1000) * 60);
+    b.t = now;
+    this.netBucket.set(from, b);
+    if (b.n < 1) return false;
+    b.n -= 1;
+    return true;
+  }
+  /** Send a small message from this game to the same game in everyone else's frame. */
+  gameNet(game: string, data: unknown) {
+    if (!/^[a-z0-9_-]{1,40}$/i.test(game)) return;
+    try {
+      if ((JSON.stringify(data)?.length ?? 0) > 1200) return;
+    } catch {
+      return;
+    }
+    this.mesh.broadcast({ t: "gnet", g: game, d: data });
+  }
+  onGameNet(fn: (from: string, name: string, game: string, data: unknown) => void) {
+    this.netListeners.add(fn);
+    return () => void this.netListeners.delete(fn);
+  }
+  get myPeerId() {
+    return this.peerId;
   }
 
   private lastShare = 0;

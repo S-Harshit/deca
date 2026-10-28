@@ -8,16 +8,18 @@ function hash(s: string) {
 
 /**
  * Decorative equaliser. YouTube's player lives in a cross-origin iframe, so its audio cannot be
- * analysed; these bars follow the play state and give each track its own tempo and pattern.
+ * analysed; these bars follow the play state and give each track its own tempo, shape and beat: quick attack, slow release,
+ * falling peak caps, a reflection, and a harder low end on the beat.
  */
 export function Visualizer({
   playing,
   seed,
-  bars = 28,
+  bars = 40,
   className = "",
 }: Readonly<{ playing: boolean; seed: string; bars?: number; className?: string }>) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const heights = useRef<number[]>([]);
+  const peaks = useRef<number[]>([]);
 
   useEffect(() => {
     const cv = canvas.current;
@@ -27,7 +29,11 @@ export function Visualizer({
     const h = hash(seed);
     const bpm = 84 + (h % 60);
     const phase = (h >>> 8) % 100;
-    if (heights.current.length !== bars) heights.current = new Array(bars).fill(0.05);
+    const style = h % 3; // each track gets its own shape: a mirrored spread, a bass-heavy slope, or a rolling wave
+    if (heights.current.length !== bars) {
+      heights.current = new Array(bars).fill(0.04);
+      peaks.current = new Array(bars).fill(0.04);
+    }
     let raf = 0;
     let lastDraw = 0;
     let frame = 0;
@@ -51,24 +57,43 @@ export function Visualizer({
       ctx.clearRect(0, 0, w, H);
       if (frame++ % 30 === 0) color = getComputedStyle(cv).color; // style reads are costly: refresh occasionally
       ctx.fillStyle = color;
-      ctx.beginPath();
 
       const t = ms / 1000;
-      const beat = Math.pow(Math.max(0, Math.sin((t * Math.PI * bpm) / 60)), 4); // a pulse on the beat
-      const gap = 2;
+      const beatPhase = (t * bpm) / 60;
+      const beat = Math.pow(Math.max(0, Math.sin(beatPhase * Math.PI)), 6); // a sharp pulse on every beat
+      const bar = Math.pow(Math.max(0, Math.sin((beatPhase / 4) * Math.PI)), 3); // and a bigger swell every fourth
+      const gap = Math.max(1, Math.min(3, w / bars / 6));
       const bw = Math.max(0, (w - gap * (bars - 1)) / bars); // 0 while the canvas is hidden or folded away
+      const mid = H * 0.62; // the bars rise from here; their reflection falls below
       let settled = true;
       for (let i = 0; i < bars; i++) {
-        const wobble =
-          Math.abs(Math.sin(t * 1.7 + i * 0.55 + phase)) * 0.55 + Math.abs(Math.sin(t * 3.1 + i * 1.3 + phase * 2)) * 0.45;
-        const bass = 1 - (i / bars) * 0.45; // low bars hit harder
-        const target = playing && !reduce ? Math.min(1, (0.18 + wobble * 0.62 + beat * 0.25) * bass) : 0.05;
-        heights.current[i] += (target - heights.current[i]) * 0.2;
+        const x = i / (bars - 1);
+        const wobble = Math.abs(Math.sin(t * 1.7 + i * 0.55 + phase)) * 0.5 + Math.abs(Math.sin(t * 3.1 + i * 1.3 + phase * 2)) * 0.5;
+        const shape = style === 0 ? 1 - Math.abs(x - 0.5) * 0.9 : style === 1 ? 1 - x * 0.55 : 0.55 + Math.sin(x * Math.PI * 2 + t * 1.4) * 0.35;
+        const kick = beat * (x < 0.3 ? 0.4 : 0.15) + bar * 0.12; // the low end takes the hit on the beat
+        const target = playing && !reduce ? Math.min(1, (0.14 + wobble * 0.55) * shape + kick) : 0.04;
+        const cur = heights.current[i];
+        heights.current[i] = cur + (target - cur) * (target > cur ? 0.42 : 0.13); // quick attack, slow release
         if (Math.abs(target - heights.current[i]) > 0.01) settled = false;
-        const bh = Math.max(2, heights.current[i] * H);
-        ctx.roundRect(i * (bw + gap), H - bh, bw, bh, Math.max(0, Math.min(2, bw / 2)));
+        peaks.current[i] = Math.max(heights.current[i], peaks.current[i] - 0.012); // the cap falls under gravity
+        const up = Math.max(2, heights.current[i] * mid);
+        const left = i * (bw + gap);
+        const r = Math.max(0, Math.min(2.5, bw / 2));
+        ctx.globalAlpha = 0.95;
+        ctx.beginPath();
+        ctx.roundRect(left, mid - up, bw, up, r);
+        ctx.fill();
+        ctx.globalAlpha = 0.28; // the reflection
+        ctx.beginPath();
+        ctx.roundRect(left, mid + 2, bw, Math.min(H - mid - 2, up * 0.45), r);
+        ctx.fill();
+        if (playing && peaks.current[i] - heights.current[i] > 0.02) {
+          ctx.globalAlpha = 0.85; // the falling cap
+          ctx.fillRect(left, mid - peaks.current[i] * mid - 3, bw, 2);
+        }
+        if (peaks.current[i] - heights.current[i] > 0.01) settled = false;
       }
-      ctx.fill(); // one fill for all the bars
+      ctx.globalAlpha = 1;
       if (playing || !settled) raf = requestAnimationFrame(draw); // stop the loop once paused and at rest
     };
     raf = requestAnimationFrame(draw);

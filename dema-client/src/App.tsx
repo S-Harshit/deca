@@ -4,6 +4,8 @@ import { markTransfer, isTransfer } from "./transfer";
 import { deviceName } from "./qr";
 import { QrDialog } from "./components/QrDialog";
 import { setQrDialog, useQrDialog } from "./qrDialog";
+import { setDropsDialog, useDropsDialog } from "./dropsDialog";
+import { inAppBrowser } from "./inApp";
 import { playChime } from "./horn";
 import { EndsIn, LeftNow, RoomSummary } from "./components/RoomEnd";
 import { onKonami } from "./konami";
@@ -37,6 +39,7 @@ import { ThemePanel } from "./components/ThemePanel";
 import "./App.css";
 
 const spaceFromHash = () => /^#\/s\/(.+)$/.exec(location.hash)?.[1] ?? null;
+const dropFromHash = () => /^#\/d\/([A-Za-z0-9]{8,40})$/.exec(location.hash)?.[1] ?? null;
 const manualFromHash = () => (location.hash.startsWith("#/m/") ? parseManual(location.hash) : null);
 /** Accepts a full invite link or a bare code. */
 const parseCode = (v: string) => /#\/s\/([^\s/]+)/.exec(v)?.[1] ?? v.trim().replaceAll(/[^a-z0-9]/gi, "");
@@ -46,6 +49,7 @@ function App() {
   useWallpaperImage(prefs.wallpaper, prefs.wallRev, useCallback(() => update({ wallpaper: false }), [update]));
   const [spaceId, setSpaceId] = useState(spaceFromHash());
   const [route, setRoute] = useState<ManualRoute | null>(manualFromHash());
+  const [dropToken, setDropToken] = useState(dropFromHash());
   const [name, setName] = useState(sessionStorage.getItem("name") ?? "");
   const [space, setSpace] = useState<Space | null>(null);
   // The identity is a signing key made on first visit; creating it takes a moment (and needs HTTPS and a recent browser).
@@ -59,6 +63,7 @@ function App() {
     const onHash = () => {
       setSpaceId(spaceFromHash());
       setRoute(manualFromHash());
+      setDropToken(dropFromHash());
     };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
@@ -111,7 +116,11 @@ function App() {
 
   return (
     <PrefsContext.Provider value={api}>
-      {space ? (
+      {dropToken ? (
+        <Suspense fallback={null}>
+          <DropPage token={dropToken} />
+        </Suspense>
+      ) : space ? (
         <SpaceView
           space={space}
           theme={theme}
@@ -289,6 +298,11 @@ function Landing({
   return (
     <div className="landing dotted">
       <div className="corner">{theme}</div>
+      {inAppBrowser() && (
+        <p className="inapp-note" role="note">
+          This page opened inside another app, which often cannot reach your photos or save files. Tap the menu (⋯ or the share icon) and choose <strong>Open in Safari</strong> or <strong>Open in Chrome</strong>.
+        </p>
+      )}
       <form className="card hero simple ticket" onSubmit={submit}>
         <div className="ticket-head">
           <span>{invited ? "INVITATION" : "ROOM TICKET"}</span>
@@ -325,6 +339,8 @@ const ENDED = {
 
 const Workspace = lazy(() => import("./components/Workspace")); // loaded only when someone opens a tool
 const SearchPalette = lazy(() => import("./components/SearchPalette"));
+const DropsDialog = lazy(() => import("./components/DropsDialog").then((m) => ({ default: m.DropsDialog })));
+const DropPage = lazy(() => import("./components/DropPage")); // only for someone who opened a file link
 const BlackHole = lazy(() => import("./components/BlackHole")); // only for the Black hole theme
 
 function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space; onLeave: () => void; onRejoin: () => void; theme: React.ReactNode }>) {
@@ -339,6 +355,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
   const [gameOpen, setGameOpen] = useState(false);
   const scoresOpen = useScoresDialog();
   const qrOpen = useQrDialog();
+  const dropsOpen = useDropsDialog();
   const tool = useTool();
   useEffect(() => {
     // Ctrl+K / Cmd+K: search this room
@@ -573,6 +590,11 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
             <SearchPalette snap={snap} space={space} />
           </Suspense>
         )}
+        {dropsOpen && (
+          <Suspense fallback={null}>
+            <DropsDialog space={space} onClose={() => setDropsDialog(false)} />
+          </Suspense>
+        )}
         {qrOpen && <QrDialog link={snap.manual?.invite ?? location.href} onClose={() => setQrDialog(false)} />}
         {scoresOpen && <ScoresDialog snap={snap} games={games} onClose={() => setScoresDialog(false)} />}
         <main className={`main ${hasStage || showGame ? "has-stage" : ""} ${chatExpanded ? "chat-big" : ""}`}>
@@ -580,7 +602,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
             // The wrapper only exists while a game is open, so the normal call layout is untouched.
             <div className="media-col">
               {hasStage && <CallStage snap={snap} />}
-              <GamesPanel games={games} onScore={space.recordScore.bind(space)} onClose={() => setGameOpen(false)} />
+              <GamesPanel games={games} space={space} onClose={() => setGameOpen(false)} />
             </div>
           ) : runner ? (
             // The hidden /run strip: under the video when there is one, otherwise above the chat. Only while no game is open.

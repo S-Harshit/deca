@@ -12,7 +12,7 @@ const py = (code) => execFileSync("python3", ["-c", code]).toString();
   // ===== Room 1: the history to be exported
   const ann = await mk("Ann"); const r1 = ann.url(); const bob = await mk("Bob", r1); await ann.getByText("Bob joined").waitFor({ timeout: 20000 });
   await say(bob, '<img src=x onerror="window.__pwned=1"> & "quotes"'); await say(ann, "hello from the old room"); await say(ann, "/flip");
-  await ann.locator('.composer input[type=file]').setInputFiles(["imp/pic.png", "imp/notes.txt"]); await bob.waitForTimeout(2500);
+  await ann.locator('.composer input[aria-label="Attach files"]').setInputFiles(["imp/pic.png", "imp/notes.txt"]); await bob.waitForTimeout(2500);
   await say(bob, "/blame"); await ann.getByLabel("Members can chat").uncheck(); await ann.getByLabel("Members can chat").check(); await ann.waitForTimeout(2500);
   await exportZip(ann, "imp/r1.zip", true);
 

@@ -1,6 +1,8 @@
 import { PollCard, DocCard } from "./FeedCards";
 import { openSearch, openTool } from "../toolsDialog";
 import { setQrDialog } from "../qrDialog";
+import { setDropsDialog } from "../dropsDialog";
+import { DROP_MAX, getDrops, startDrop, subscribeDrops } from "../drop";
 import {
   useCallback,
   useEffect,
@@ -9,6 +11,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ClipboardEvent,
   type DragEvent,
   type KeyboardEvent,
@@ -842,6 +845,8 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
   const menuBox = useRef<HTMLDivElement>(null);
   const [toolsMenu, setToolsMenu] = useState(false);
   const [cmdAt, setCmdAt] = useState(0);
+  const dropInput = useRef<HTMLInputElement>(null);
+  const drops = useSyncExternalStore(subscribeDrops, getDrops);
   const [hideCmds, setHideCmds] = useState(false);
   const toolsBox = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -965,6 +970,22 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
 
   return (
     <div className="composer">
+      {/* On a phone or tablet: a button that opens the photo library itself (the generic file picker often cannot see it) */}
+      <label className={`icon-btn photos-btn ${canFile ? "" : "disabled"}`} title="Photos and videos from your gallery">
+        <Icon name="image" />
+        <input
+          type="file"
+          hidden
+          multiple
+          accept="image/*,video/*"
+          disabled={!canFile}
+          aria-label="Photos and videos"
+          onChange={(e) => {
+            shareFiles(space, Array.from(e.target.files ?? []));
+            e.target.value = "";
+          }}
+        />
+      </label>
       <label className={`icon-btn ${canFile ? "" : "disabled"}`} title={`Attach files (up to ${mb(MAX_FILE)}). You can also drop or paste.`}>
         <Icon name="paperclip" />
         <input
@@ -997,6 +1018,20 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
           </div>
         )}
       </div>
+      <input
+        ref={dropInput}
+        type="file"
+        hidden
+        data-drop-input
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (!f) return;
+          if (f.size > DROP_MAX) return notify(`That file is too large to share as a link (up to ${Math.round(DROP_MAX / 1048576)} MB)`, "error");
+          startDrop(f);
+          setDropsDialog(true);
+        }}
+      />
       <div className="decider-wrap" ref={toolsBox}>
         <button className="icon-btn" type="button" aria-label="Add to the room" aria-haspopup="menu" aria-expanded={toolsMenu} title="Notes, polls, a whiteboard, search" disabled={!canChat} onClick={() => setToolsMenu((m) => !m)}>
           <Icon name="plus" />
@@ -1015,6 +1050,16 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
             <button role="menuitem" onClick={() => { setToolsMenu(false); openSearch(); }}>
               Search the room <span className="muted small">Ctrl K</span>
             </button>
+            {!import.meta.env.VITE_STATIC && (
+              <button role="menuitem" onClick={() => { setToolsMenu(false); dropInput.current?.click(); }}>
+                Share a file as a link <span className="muted small">anyone can download</span>
+              </button>
+            )}
+            {drops.length > 0 && (
+              <button role="menuitem" onClick={() => { setToolsMenu(false); setDropsDialog(true); }}>
+                Links being shared <span className="muted small">{drops.length}</span>
+              </button>
+            )}
           </div>
         )}
       </div>

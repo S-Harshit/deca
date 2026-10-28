@@ -10,7 +10,7 @@ const ok = (n, c, x = "") => { c ? pass++ : fail++; console.log(c ? "PASS" : "FA
   await say(bob, '<img src=x onerror="window.__pwned=1"><script>window.__pwned=1</script> & "quotes"');
   await say(bob, "```js\nconst a = 1 < 2 && 3 > 2;\n```");
   await say(a, "multi\nline  spaced   text");
-  await a.locator('.composer input[type=file]').setInputFiles(["dl/pic.png", "dl/..notes <b>evil:name?.txt"]);
+  await a.locator('.composer input[aria-label="Attach files"]').setInputFiles(["dl/pic.png", "dl/..notes <b>evil:name?.txt"]);
   await bob.waitForTimeout(3500);
   const dlg = async (p, withFiles) => { await p.getByRole("button", { name: "Export", exact: true }).click(); await p.getByRole("dialog").waitFor(); if (withFiles) await p.getByLabel(/Include the/).check(); const [d] = await Promise.all([p.waitForEvent("download"), p.getByRole("dialog").getByRole("button", { name: "Export", exact: true }).click()]); return d; };
   const d1 = await dlg(a, true); await d1.saveAs("dl/alice.zip");

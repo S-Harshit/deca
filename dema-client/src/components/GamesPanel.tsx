@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
+import type { Space } from "../space";
 import { Icon } from "./Icons";
 
 export type Game = { id: string; title: string; heavy?: boolean; note?: string; controls?: string[] };
 
 /**
  * EXPERIMENTAL. Plays any static web game from dema-server/games/<id>/ in a frame under the video.
- * Everyone who opens it plays their own copy; nothing about the game is shared or synced.
+ * Everyone who opens it plays their own copy. A game that wants to be played together can send small messages to the same game in the other
+ * players' frames (parent.postMessage({ deca: "net", data }) out, { deca: "net", from, name, data } in): this panel only carries them.
  * Games run on this site's origin, so only add games you trust.
  */
-export function GamesPanel({ games, onScore, onClose }: Readonly<{ games: Game[]; onScore: (game: string, value: number) => void; onClose: () => void }>) {
+export function GamesPanel({ games, space, onClose }: Readonly<{ games: Game[]; space: Space; onClose: () => void }>) {
   // Never open on a heavy game: start with the first light one (or the first game if all are heavy).
   const [id, setId] = useState((games.find((g) => !g.heavy) ?? games[0]).id);
   const [started, setStarted] = useState<string[]>([]); // heavy games the user chose to start
@@ -18,17 +20,24 @@ export function GamesPanel({ games, onScore, onClose }: Readonly<{ games: Game[]
   const game = games.find((g) => g.id === id) ?? games[0];
 
   // A game reports a finished run with  parent.postMessage({ deca: "score", value: 123 }, "*").  Only this panel's own frame is listened to.
-  const report = useRef(onScore);
-  report.current = onScore;
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow || e.origin !== location.origin) return;
-      const d = e.data as { deca?: unknown; value?: unknown } | null;
-      if (d?.deca === "score" && typeof d.value === "number" && Number.isFinite(d.value)) report.current(game.id, Math.floor(d.value));
+      const d = e.data as { deca?: unknown; value?: unknown; data?: unknown } | null;
+      if (d?.deca === "score" && typeof d.value === "number" && Number.isFinite(d.value)) space.recordScore(game.id, Math.floor(d.value));
+      else if (d?.deca === "net") space.gameNet(game.id, d.data);
+      else if (d?.deca === "hello") frame.current?.contentWindow?.postMessage({ deca: "room", me: space.myPeerId }, location.origin);
     };
     window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, [game.id]);
+    // what the other players' copies of this game send arrives here and is handed to the frame
+    const off = space.onGameNet((from, name, g, data) => {
+      if (g === game.id) frame.current?.contentWindow?.postMessage({ deca: "net", from, name, data }, location.origin);
+    });
+    return () => {
+      window.removeEventListener("message", onMsg);
+      off();
+    };
+  }, [game.id, space]);
 
   const waiting = !!game.heavy && !started.includes(game.id);
   const controls = game.controls ?? [];

@@ -38,7 +38,7 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
 
   // a file crosses from the computer to the phone, byte for byte
   fs.writeFileSync("device-file.bin", require("node:crypto").randomBytes(150_000));
-  await A.locator('.composer input[type=file]').setInputFiles("device-file.bin");
+  await A.locator('.composer input[aria-label="Attach files"]').setInputFiles("device-file.bin");
   await P.getByText("device-file.bin").first().waitFor({ timeout: 20000 });
   ok("the file shows up on the phone", true);
   await P.getByText("Download").first().click();

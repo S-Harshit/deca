@@ -17,7 +17,7 @@ const same = (x, y) => ["x", "y", "width", "height"].every((k) => Math.abs(x[k] 
   // --- the typing-jumps complaint, in exactly this narrow layout
   const ta = a.locator(".composer textarea"); const tab0 = await ta.boundingBox();
   ok("narrow chat: the message box is wide enough (was 143px)", tab0.width >= 250, tab0.width);
-  const tools = await a.locator(".composer > :not(textarea):not(.send)").evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { y: Math.round(r.y), r: Math.round(r.right) }; }));
+  const tools = await a.locator(".composer > :not(textarea):not(.send)").evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().width > 0).map((e) => { const r = e.getBoundingClientRect(); return { y: Math.round(r.y), r: Math.round(r.right) }; })); // only what is on screen: the Photos button and the file inputs are hidden on a computer
   const cb = await box(a, ".composer");
   ok("the tool buttons sit on a row below the box and inside the chat", tools.length === 4 && tools.every((t) => t.y > tab0.y + tab0.height - 2 && t.r <= chat0.x + chat0.width + 1), JSON.stringify(tools));
   const sendB = await box(a, ".composer .send"); ok("send button stays beside the box, bottom-aligned with it", Math.abs(sendB.y + sendB.height - (tab0.y + tab0.height)) < 2, JSON.stringify([sendB, tab0]));

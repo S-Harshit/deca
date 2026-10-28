@@ -63,7 +63,7 @@ await a.getByRole("link", { name: "https://example.com" }).waitFor();
 console.log("OK chat (Enter/Send) + links are clickable");
 
 // ---- images: auto-fetched inline, lightbox viewer ----
-await a.locator("input[type=file]").setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: PNG });
+await a.locator('input[aria-label="Attach files"]').setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: PNG });
 for (const p of [b, c]) {
   await p.locator(".image img").waitFor({ timeout: 15000 });
   assert.ok(await p.locator(".image img").evaluate((i) => i.complete && i.naturalWidth > 0), "image decoded");
@@ -76,7 +76,7 @@ console.log("OK shared image previews inline for receivers (no click) and opens 
 
 // ---- other files still download ----
 const BIG = "big.bin";
-await a.locator("input[type=file]").setInputFiles(BIG);
+await a.locator('input[aria-label="Attach files"]').setInputFiles(BIG);
 await until(b, "big.bin");
 const dl = b.waitForEvent("download", { timeout: 20000 });
 await b.getByRole("button", { name: /Download/ }).click();

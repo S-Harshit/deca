@@ -85,7 +85,7 @@ const b64 = await a.evaluate(async () => {
   const u = new Uint8Array(await new Blob(chunks, { type: "video/webm" }).arrayBuffer()); let s = ""; for (const v of u) s += String.fromCharCode(v); return btoa(s);
 });
 const clip = Buffer.from(b64, "base64"); assert.ok(clip.length > 1000, "recorded a webm");
-await a.locator("input[type=file]").setInputFiles({ name: "demo.webm", mimeType: "video/webm", buffer: clip });
+await a.locator('input[aria-label="Attach files"]').setInputFiles({ name: "demo.webm", mimeType: "video/webm", buffer: clip });
 await a.locator("video.chat-video").waitFor({ timeout: 10000 });
 await b.getByText("demo.webm").waitFor(); await b.waitForTimeout(1500);
 assert.equal(await b.locator("video.chat-video").count(), 0, "receiver did NOT auto-download the video");

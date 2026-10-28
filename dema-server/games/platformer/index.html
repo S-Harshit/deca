@@ -98,7 +98,27 @@ function resetWorld(full) {
   slimes.forEach((s) => { if (s.x < cp + 90 && s.x > cp - 40) s.alive = false; }); // never spawn one on top of you
   popups = []; bumps = [];
 }
-function nextLevel() { level++; build(level); got = 0; cp = 40; state = "play"; resetWorld(false); }
+function nextLevel() { level++; build(level); got = 0; cp = 40; state = "play"; if (lives < 1) lives = 1; resetWorld(false); }
+// ---------- playing together: other people's copies of this game show up as coloured robots, share coins, can be stood on, and wait for each other at the flag ----------
+const mates = new Map(); // peer id -> { name, x, y, f, lv, done, out, seen }
+const MATE_COLORS = ["#ef5350", "#ab47bc", "#ffa726", "#66bb6a", "#ec407a", "#8d6e63", "#26c6da"];
+const num = (v, lo, hi) => (typeof v === "number" && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : null);
+const net = (data) => { if (window.parent !== window) parent.postMessage({ deca: "net", data }, "*"); };
+const activeMates = () => { const now = performance.now(); return [...mates.values()].filter((m) => now - m.seen < 2500 && m.lv === level); };
+let clearT = 0;
+// Everything from other players is untrusted: numbers are clamped, anything odd is dropped.
+function onNet(from, name, d) {
+  if (!d || typeof d !== "object" || typeof from !== "string") return;
+  if (d.k === "p") {
+    const x = num(d.x, 0, COLS * T), y = num(d.y, -200, H + 200), lv = Number.isInteger(d.lv) && d.lv >= 0 && d.lv < LEVELS.length ? d.lv : null;
+    if (x === null || y === null || lv === null) return;
+    mates.set(from, { id: from, name: String(name ?? "").slice(0, 16), x, y, f: d.f === -1 ? -1 : 1, lv, done: d.d === 1, out: d.o === 1, seen: performance.now() });
+    if (lv > level && state !== "over") { level = lv - 1; nextLevel(); } // someone who arrives late catches up with the team
+  } else if (d.k === "c" && d.lv === level && Number.isInteger(d.i) && coins[d.i] && !coins[d.i].got) { coins[d.i].got = true; got++; sfx.coin(); }
+}
+addEventListener("message", (e) => { if (e.source !== window.parent || e.origin !== location.origin) return; const d = e.data; if (d && d.deca === "net") onNet(d.from, d.name, d.data); });
+if (window.parent !== window) parent.postMessage({ deca: "hello" }, "*");
+
 const solid = (tx, ty) => tx < 0 || tx >= COLS || (ty >= 0 && ty < ROWS && grid[ty][tx] >= SOLID && grid[ty][tx] <= USED);
 function move(b, bumpHeads) {
   b.x += b.vx;
@@ -118,7 +138,7 @@ function bump(tx, ty) {
 function hurt() {
   if (p.inv > 0 || state !== "play") return;
   sfx.hurt(); lives--;
-  if (lives <= 0) { state = "over"; report(); return; }
+  if (lives <= 0) { if (activeMates().some((m) => !m.out)) state = "spectate"; else { state = "over"; report(); } return; }
   p.x = cp; p.y = (GROUND - 1) * T - 4; p.vx = p.vy = 0; p.inv = 120;
 }
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -127,6 +147,16 @@ function update() {
   frame++;
   if (BOT && state === "clear") { nextLevel(); return; } // the autopilot goes straight on to the next level
   if (BOT) botThink();
+  if (!BOT && frame % 4 === 0) net({ k: "p", lv: level, x: Math.round(p.x), y: Math.round(p.y), f: p.face, d: state === "wait" || state === "clear" || state === "win" ? 1 : 0, o: state === "spectate" || state === "over" ? 1 : 0 });
+  if (state === "wait") { // at the flag: the level is cleared when everyone still playing has got here too
+    if (!activeMates().some((m) => !m.done && !m.out)) { if (level < LEVELS.length - 1) { state = "clear"; clearT = activeMates().length ? 150 : 0; } else { state = "win"; report(); } }
+  }
+  if (state === "clear" && clearT > 0 && --clearT === 0) { nextLevel(); return; } // together, the next level starts by itself
+  if (state === "spectate") { // out of lives: watch a teammate until the level is cleared (or everyone is out)
+    const left = activeMates().filter((m) => !m.out);
+    if (!left.length) { state = "over"; report(); } else cam = Math.max(0, Math.min(COLS * T - W, left[0].x + 6 - W / 2));
+    return;
+  }
   if (state !== "play") return;
   const left = keys.ArrowLeft || keys.a, right = keys.ArrowRight || keys.d, run = keys.Shift;
   const max = run ? 2.4 : 1.6, acc = run ? 0.16 : 0.12;
@@ -140,6 +170,10 @@ function update() {
   if (!wantJump && p.vy < -2) p.vy += 0.5; // let go early = shorter hop
   p.vy = Math.min(p.vy + 0.3, 6);
   move(p, true);
+  for (const m of activeMates()) { // a teammate is something to stand on: a boost to the high coins
+    const feet = p.y + p.h;
+    if (!m.out && p.vy >= 0 && p.x + p.w > m.x + 2 && p.x < m.x + 10 && feet >= m.y - 1 && feet - p.vy <= m.y + 2) { p.y = m.y - p.h; p.vy = 0; p.on = true; }
+  }
   if (p.inv > 0) p.inv--;
   if (p.y > H + 40) hurt();
   for (const k of checkpoints) if (p.x > k && cp < k) cp = k;
@@ -148,7 +182,7 @@ function update() {
   // the hit area is a little narrower than the drawn spike: near-misses are forgiven
   for (let tx = tx0; tx <= tx1; tx++) if (grid[ty]?.[tx] === SPIKE && p.y + p.h > ty * T + 8 && p.x + p.w > tx * T + 4 && p.x < tx * T + T - 4) hurt();
   // coins
-  for (const k of coins) if (!k.got && overlap(p, { x: k.x, y: k.y, w: 8, h: 12 })) { k.got = true; got++; score += 50; sfx.coin(); }
+  for (let i = 0; i < coins.length; i++) { const k = coins[i]; if (!k.got && overlap(p, { x: k.x, y: k.y, w: 8, h: 12 })) { k.got = true; got++; score += 50; sfx.coin(); net({ k: "c", i, lv: level }); } }
   // slimes
   for (const s of slimes) {
     if (!s.alive) continue;
@@ -160,7 +194,7 @@ function update() {
       else if (!BOT) hurt();
     }
   }
-  if (p.x + p.w > FLAG_COL * T + 4) { score += 500; sfx.win(); if (level < LEVELS.length - 1) state = "clear"; else { state = "win"; report(); } }
+  if (p.x + p.w > FLAG_COL * T + 4) { score += 500; sfx.win(); state = "wait"; }
   cam = Math.max(0, Math.min(COLS * T - W, p.x + p.w / 2 - W / 2));
   popups.forEach((o) => o.t++); popups = popups.filter((o) => o.t < 30); bumps.forEach((b) => b.t++); bumps = bumps.filter((b) => b.t < 8);
 }
@@ -200,6 +234,15 @@ function draw() {
   for (const k of coins) if (!k.got) { const w = Math.abs(Math.cos((frame + k.x) / 14)) * 7 + 1; g.fillStyle = "#ffd23f"; g.fillRect(Math.round(k.x - cam + 4 - w / 2), k.y, Math.round(w), 12); g.fillStyle = "#fff3a0"; g.fillRect(Math.round(k.x - cam + 4 - w / 2), k.y, 1, 12); }
   // slimes
   for (const s of slimes) if (s.alive) { const sq = s.dead ? 0.4 : 1 + Math.sin(frame / 8) * 0.08; const h = Math.round(s.h * sq); g.fillStyle = "#43c463"; g.fillRect(Math.round(s.x - cam), Math.round(s.y + s.h - h), s.w, h); g.fillStyle = "#2e9b4a"; g.fillRect(Math.round(s.x - cam), Math.round(s.y + s.h - 2), s.w, 2); if (!s.dead) { g.fillStyle = "#fff"; g.fillRect(Math.round(s.x - cam + 3), Math.round(s.y + 3), 3, 4); g.fillRect(Math.round(s.x - cam + 8), Math.round(s.y + 3), 3, 4); g.fillStyle = "#111"; g.fillRect(Math.round(s.x - cam + 4 + (s.vx > 0 ? 1 : 0)), Math.round(s.y + 5), 2, 2); g.fillRect(Math.round(s.x - cam + 9 + (s.vx > 0 ? 1 : 0)), Math.round(s.y + 5), 2, 2); } }
+  // teammates: the same robot in their own colour, with a name above
+  for (const m of activeMates()) {
+    const col = MATE_COLORS[[...m.id].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7) % MATE_COLORS.length];
+    const mx = Math.round(m.x - cam), my = Math.round(m.y);
+    g.globalAlpha = m.out ? 0.3 : 0.9;
+    g.fillStyle = "#37474f"; g.fillRect(mx + 1, my + 13, 4, 3); g.fillRect(mx + 7, my + 13, 4, 3);
+    g.fillStyle = col; g.fillRect(mx, my + 4, 12, 10); g.fillStyle = "#eceff1"; g.fillRect(mx + 1, my, 10, 6); g.fillStyle = "#111"; g.fillRect(mx + (m.f > 0 ? 6 : 2), my + 2, 3, 3);
+    g.globalAlpha = 1; g.font = "bold 7px monospace"; g.textAlign = "center"; g.fillStyle = "#fff"; g.fillText((m.done ? "✓ " : "") + m.name, mx + 6, my - 4); g.textAlign = "left";
+  }
   // player: a little robot
   if (!(p.inv > 0 && frame % 6 < 3)) {
     const px = Math.round(p.x - cam), py = Math.round(p.y), step = p.on && Math.abs(p.vx) > 0.3 ? Math.floor(frame / 5) % 2 : 0;
@@ -210,10 +253,12 @@ function draw() {
   popups.forEach((o) => { g.fillStyle = "#ffd23f"; g.fillRect(Math.round(o.x - cam), Math.round(o.y - o.t * 0.8), 6, 10); });
   // HUD
   g.font = "bold 9px monospace"; g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(0, 0, W, 14); g.fillStyle = "#fff";
-  g.fillText("LV " + (level + 1) + "/" + LEVELS.length + "  COINS " + String(got).padStart(2, "0") + "  SCORE " + String(score).padStart(5, "0") + "   LIVES " + "♥".repeat(Math.max(0, lives)), 6, 10);
+  g.fillText("LV " + (level + 1) + "/" + LEVELS.length + "  COINS " + String(got).padStart(2, "0") + "  SCORE " + String(score).padStart(5, "0") + "   LIVES " + "♥".repeat(Math.max(0, lives)) + (activeMates().length ? "   TEAM " + (activeMates().length + 1) : ""), 6, 10);
   if (muted) g.fillText("MUTED", W - 40, 10);
   const say = (a, b) => { g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(40, 66, W - 80, 56); g.fillStyle = "#fff"; g.font = "bold 14px monospace"; g.textAlign = "center"; g.fillText(a, W / 2, 90); g.font = "9px monospace"; g.fillText(b, W / 2, 108); g.textAlign = "left"; };
-  if (state === "clear") say("LEVEL " + (level + 1) + " CLEAR!", "Next: " + LEVELS[level + 1].name + "  ·  Space to go on");
+  if (state === "wait") say("YOU MADE IT!", "Waiting for " + activeMates().filter((m) => !m.done && !m.out).length + " teammate(s)...");
+  if (state === "spectate") say("YOU ARE OUT", "Watching until the team clears the level");
+  if (state === "clear") say("LEVEL " + (level + 1) + " CLEAR!", "Next: " + LEVELS[level + 1].name + (clearT > 0 ? "  ·  starting..." : "  ·  Space to go on"));
   if (state === "win") say("YOU BEAT THE EDGE!", "Final score " + score + "  ·  Space to play again");
   if (state === "over") say("GAME OVER", "Space to try again");
   if (!document.hasFocus() && !BOT) say("PAUSED", "Click the game to play");
@@ -231,7 +276,7 @@ addEventListener("keydown", (e) => {
   if ([" ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
   keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = true;
   if ((e.key === " " || e.key === "Enter") && state === "clear") nextLevel();
-  else if ((e.key === " " || e.key === "Enter") && state !== "play") resetWorld(true);
+  else if ((e.key === " " || e.key === "Enter") && (state === "over" || state === "win")) resetWorld(true);
   if (e.key.toLowerCase() === "r") resetWorld(true);
   if (e.key.toLowerCase() === "m") muted = !muted;
 });
@@ -239,7 +284,7 @@ addEventListener("keyup", (e) => { keys[e.key.length === 1 ? e.key.toLowerCase()
 addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
 cv.addEventListener("pointerdown", () => cv.focus());
 frame = 0; cam = 0; resetWorld(true); cv.focus(); requestAnimationFrame(loop);
-window.__pixelHop = { get p() { return p; }, get state() { return state; }, get score() { return score; }, get lives() { return lives; }, get cols() { return COLS; }, get level() { return level; }, get coins() { return coins; }, get grid() { return grid; }, get levels() { return LEVELS.length; }, nextLevel() { nextLevel(); },  get coinsLeft() { return coins.filter((k) => !k.got).length; }, step(n = 1) { for (let i = 0; i < n; i++) update(); } };
+window.__pixelHop = { get p() { return p; }, get state() { return state; }, get score() { return score; }, get lives() { return lives; }, get cols() { return COLS; }, get level() { return level; }, get coins() { return coins; }, get mates() { return activeMates(); }, teleport(x, y) { p.x = x; p.y = y; p.vy = 0; }, get grid() { return grid; }, get levels() { return LEVELS.length; }, nextLevel() { nextLevel(); },  get coinsLeft() { return coins.filter((k) => !k.got).length; }, step(n = 1) { for (let i = 0; i < n; i++) update(); } };
 </script>
 </body>
 </html>

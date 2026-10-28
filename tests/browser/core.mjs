@@ -38,7 +38,7 @@ await until(d, "hello from bob"); await until(d, "Ann joined");
 console.log("OK late joiner received history");
 
 // file
-await a.locator('input[type=file]').setInputFiles("big.bin");
+await a.locator('input[aria-label="Attach files"]').setInputFiles("big.bin");
 await until(b, "big.bin");
 const dl = b.waitForEvent("download", { timeout: 20000 });
 await b.getByText("Download").click();
