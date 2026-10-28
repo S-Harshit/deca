@@ -1,3 +1,4 @@
+import { sha256 } from "./softcrypto";
 import type { SpaceEvent } from "./log";
 import { MAX_ARCHIVE_EVENTS } from "./log";
 import { verifyEvent } from "./signing";
@@ -22,7 +23,7 @@ export type ArchiveData = {
 export const IMPORTABLE = new Set(["chat", "file_offer", "coin", "rps", "blame", "horn"]);
 
 export const sha256Hex = async (data: BufferSource) =>
-  [...new Uint8Array(await crypto.subtle.digest("SHA-256", data))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  [...(await sha256(data))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
 

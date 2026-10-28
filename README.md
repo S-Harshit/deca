@@ -83,7 +83,7 @@ Want to build a panel (a poll, a whiteboard, a game)? See the [plugin spec](docs
 
 It sets itself up on first run, starts Deca, downloads the free Cloudflare tunnel program if you do not have it (a plain public download from github.com: no GitHub account or login), prints the public link, copies it to your clipboard and opens it. Closing its window stops everything. If the public link cannot be made it says so and keeps working on this computer. A brand-new link can take up to a minute to resolve on some networks; reload if it says "not found". The link changes on every start.
 
-Why not your local network address? Browsers only allow the camera and the signing keys Deca uses on `https://` or `localhost`, so a plain `http://192.168...` link will not work for other people. Use the tunnel, or put the server behind your own HTTPS. No computer to leave on? Host it instead (see [Hosting](#hosting)): the included `render.yaml` deploys it to Render's free plan in a few clicks, and the link is then permanent.
+Why a public link, not your local network address? Browsers only allow the camera on `https://` or `localhost`, so on a plain `http://192.168...` address people can chat, share files, listen to music and play, but not make calls. That is exactly what the **Open on another device** QR code gives a phone on the same Wi-Fi (the page then signs in plain JavaScript); for calls with friends elsewhere use the tunnel, or put the server behind your own HTTPS. No computer to leave on? Host it instead (see [Hosting](#hosting)): the included `render.yaml` deploys it to Render's free plan in a few clicks, and the link is then permanent.
 </details>
 
 <details>

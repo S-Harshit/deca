@@ -1,3 +1,4 @@
+import { sha256 } from "./softcrypto";
 import type { SpaceEvent } from "./log";
 import { verifyEvent } from "./signing";
 import { makeZip, type ZipEntry } from "./zip";
@@ -144,7 +145,7 @@ export async function buildExport(input: ExportInput, includeFiles: boolean): Pr
       const path = `files/${safeName(f.fileId, 24)}-${safeName(f.name)}`;
       entries.push({ name: path, data });
       hrefs.set(f.fileId, path);
-      fileMeta.push({ fileId: f.fileId, name: f.name, type: f.type, size: data.length, sha256: hex(await crypto.subtle.digest("SHA-256", data as BufferSource)), path });
+      fileMeta.push({ fileId: f.fileId, name: f.name, type: f.type, size: data.length, sha256: hex(await sha256(data as BufferSource)), path });
     }
   }
   const events = input.events;

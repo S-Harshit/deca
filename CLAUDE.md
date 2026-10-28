@@ -41,5 +41,5 @@ Tests live in `tests/` (see `tests/README.md`): unit tests in `unit/`, Playwrigh
 
 ## Conventions
 - Keep comments to the *why*; no emojis in code. TypeScript is strict (`noUnusedLocals`, `erasableSyntaxOnly`: no constructor parameter properties).
-- The page needs a secure context (https or localhost) for camera and for signing keys.
+- Camera needs a secure context (https or localhost). Signing keys do not: on a plain http address (a phone on the local network) `softcrypto.ts` falls back to plain-JS Ed25519/SHA-256, so use `softcrypto` helpers, never `crypto.subtle` directly.
 - Prefer small, scoped changes; this app has had visual regressions from broad CSS edits.

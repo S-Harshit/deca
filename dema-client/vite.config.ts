@@ -14,6 +14,7 @@ export default defineConfig({
     proxy: {
       '/ws': { target: 'ws://localhost:8080', ws: true },
       '/ice': 'http://localhost:8080',
+      '/lan': 'http://localhost:8080',
       '/games.json': 'http://localhost:8080',
       '/games': 'http://localhost:8080',
     },

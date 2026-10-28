@@ -1,6 +1,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 const { WebSocketServer } = require("ws");
 
 // Signaling only: room membership + relaying offer/answer/ICE. Never sees chat or file data.
@@ -151,6 +152,22 @@ const server = http.createServer((req, res) => {
     }
     res.setHeader("Content-Type", MIME[path.extname(file).toLowerCase()] || "application/octet-stream");
     return fs.createReadStream(file).pipe(res);
+  }
+  // This computer's address on the local network, for "open this on your phone". Only answered to a request from this same computer
+  // (the loopback address): a stranger on the internet must not be told what is behind the router.
+  if (req.url === "/lan") {
+    const local = ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress ?? "");
+    const addresses = [];
+    if (local) {
+      for (const list of Object.values(os.networkInterfaces())) {
+        for (const a of list ?? []) {
+          if (a.family === "IPv4" && !a.internal && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(a.address)) addresses.push(a.address);
+        }
+      }
+    }
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Cache-Control", "no-store");
+    return res.end(JSON.stringify({ port: server.address()?.port ?? PORT, addresses }));
   }
   if (req.url === "/ice") {
     res.setHeader("Content-Type", "application/json");

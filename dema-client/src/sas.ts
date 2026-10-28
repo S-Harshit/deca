@@ -1,3 +1,4 @@
+import { sha256 } from "./softcrypto";
 /**
  * Check words: a short phrase both people can read out to each other to be sure that the connection between them is really
  * between them and nobody sits in the middle. It is computed from both sides' connection fingerprints and ids, so if anyone
@@ -43,6 +44,6 @@ export const WORD_COUNT = WORDS.length;
 /** The same words on both screens for the same inputs, whichever order they are given in. */
 export async function checkWords(parts: string[]): Promise<string> {
   const text = [...parts].map((p) => p.toLowerCase().replaceAll(":", "")).sort().join("|");
-  const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
+  const hash = await sha256(new TextEncoder().encode(text));
   return Array.from(hash.slice(0, 6), (b) => WORDS[b]).join(" ");
 }

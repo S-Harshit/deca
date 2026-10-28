@@ -22,7 +22,9 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   // decode the QR from a screenshot, like a phone camera would
   const shot = await dlg(A).locator(".qr-box").screenshot();
   const png = PNG.sync.read(shot); const q = jsQR(new Uint8ClampedArray(png.data), png.width, png.height);
-  ok("scanning the QR code gives the invite link", !!q && q.data === link, q?.data + " vs " + link);
+  const hasLan = Object.values(require("node:os").networkInterfaces()).flat().some((a) => a && a.family === "IPv4" && !a.internal && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(a.address)); // a machine with no Wi-Fi address keeps "localhost"
+  const tail = (u) => String(u).replace(/^https?:\/\/[^/]+/, ""); // on localhost the QR carries this computer's Wi-Fi address instead of "localhost"
+  ok("scanning the QR code gives the invite link (on this computer's Wi-Fi address when the room runs on localhost)", !!q && tail(q.data) === tail(link) && (!hasLan || !/localhost|127\./.test(q.data)), q?.data + " vs " + link);
   await A.keyboard.press("Escape"); ok("Escape closes it", (await dlg(A).count()) === 0);
 
   // the phone opens that link

@@ -9,9 +9,9 @@ const src = join(here, "..", "..", "dema-client", "src");
 const out = join(here, "..", ".build");
 mkdirSync(out, { recursive: true });
 
-const FILES = ["signing", "identity", "roomExport", "zip", "log", "archive", "unzip", "roomImport", "wallpaper", "runnerSim", "message", "music", "sas", "localSignal", "localNetwork", "scores", "summary", "tools", "collab", "yt"];
+const FILES = ["signing", "identity", "roomExport", "zip", "log", "archive", "unzip", "roomImport", "wallpaper", "runnerSim", "message", "music", "sas", "localSignal", "localNetwork", "scores", "summary", "tools", "collab", "yt", "softcrypto", "softEd"];
 for (const name of FILES) {
-  let text = readFileSync(join(src, `${name}.ts`), "utf8").replace(/from "\.\/([a-zA-Z]+)"/g, 'from "./$1.ts"');
+  let text = readFileSync(join(src, `${name}.ts`), "utf8").replace(/from "\.\/([a-zA-Z]+)"/g, 'from "./$1.ts"').replace(/import\("\.\/([a-zA-Z]+)"\)/g, 'import("./$1.ts")');
   if (name === "wallpaper") {
     // the colour maths is pure; the React hook at the end needs a browser
     text = text.replace(/^import \{ useEffect \} from "react";\n/m, "").replace(/\/\*\* Keeps the page[\s\S]*$/, "");
