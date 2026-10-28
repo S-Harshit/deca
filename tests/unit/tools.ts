@@ -11,31 +11,23 @@ const base = [join(HOST, "Host"), join(BEN, "Ben"), join(CAT, "Cat")];
 const run = (...more: SpaceEvent[]) => derive([...base, ...more], HOST);
 const id = (c: string) => c.repeat(12);
 
-// ---- pages and notes
+// ---- notes
 {
-  const s = run(ev(BEN, "doc_set", { id: id("1"), kind: "page", title: "Plan", body: "<h1>Plan</h1>" }), ev(CAT, "doc_set", { id: id("1"), kind: "page", title: "Hijack", body: "x" }));
-  assert.equal(s.tools.docs.get(id("1"))!.title, "Plan", "only a page's author can change it");
-  const h = run(ev(BEN, "doc_set", { id: id("1"), kind: "page", title: "Plan", body: "a" }), ev(HOST, "doc_set", { id: id("1"), kind: "page", title: "Edited by host", body: "b" }));
-  assert.equal(h.tools.docs.get(id("1"))!.title, "Edited by host", "the host can");
-  const note = run(ev(BEN, "doc_set", { id: id("2"), kind: "note", title: "Notes", body: "" }), ev(CAT, "doc_set", { id: id("2"), kind: "note", title: "Cat's title", body: "" }));
+  const note = run(ev(BEN, "doc_set", { id: id("2"), kind: "note", title: "Notes" }), ev(CAT, "doc_set", { id: id("2"), kind: "note", title: "Cat's title" }));
   assert.equal(note.tools.docs.get(id("2"))!.title, "Cat's title", "anyone can retitle a note");
-  const open = run(ev(BEN, "doc_set", { id: id("9"), kind: "page", title: "P", body: "<p>x</p>" }), ev(BEN, "doc_set", { id: id("9"), kind: "page", title: "P", body: "", open: true }), ev(CAT, "doc_set", { id: id("9"), kind: "page", title: "Cat's title", body: "<p>hacked</p>", open: false }));
-  const pg = open.tools.docs.get(id("9"))!;
-  assert.ok(pg.open && pg.body === "" && pg.title === "Cat's title", "an author can open a page: anyone then changes its title, but only the author can close it or set its HTML");
-  const closedAgain = run(ev(BEN, "doc_set", { id: id("9"), kind: "page", title: "P", body: "", open: true }), ev(BEN, "doc_set", { id: id("9"), kind: "page", title: "P", body: "<p>kept</p>", open: false }));
-  assert.ok(!closedAgain.tools.docs.get(id("9"))!.open && closedAgain.tools.docs.get(id("9"))!.body === "<p>kept</p>", "and take it back");
-  const kind = run(ev(BEN, "doc_set", { id: id("2"), kind: "note", title: "N", body: "" }), ev(BEN, "doc_set", { id: id("2"), kind: "page", title: "N", body: "<b>x</b>" }));
+  const old = run(ev(BEN, "doc_set", { id: id("1"), kind: "page", title: "Plan", body: "<h1>Plan</h1>" }));
+  assert.equal(old.tools.docs.size, 0, "a page from a room made before pages were removed is ignored, not an error");
+  const kind = run(ev(BEN, "doc_set", { id: id("2"), kind: "note", title: "N" }), ev(BEN, "doc_set", { id: id("2"), kind: "page", title: "N", body: "<b>x</b>" }));
   assert.equal(kind.tools.docs.get(id("2"))!.kind, "note", "the kind never changes");
-  const del = run(ev(BEN, "doc_set", { id: id("3"), kind: "note", title: "N", body: "" }), ev(CAT, "doc_del", { id: id("3") }));
+  const del = run(ev(BEN, "doc_set", { id: id("3"), kind: "note", title: "N" }), ev(CAT, "doc_del", { id: id("3") }));
   assert.ok(del.tools.docs.has(id("3")), "a stranger cannot delete");
-  assert.ok(!run(ev(BEN, "doc_set", { id: id("3"), kind: "note", title: "N", body: "" }), ev(BEN, "doc_del", { id: id("3") })).tools.docs.has(id("3")), "the author can");
-  const feed = run(ev(BEN, "doc_set", { id: id("4"), kind: "note", title: "N", body: "" }), ev(BEN, "doc_set", { id: id("4"), kind: "note", title: "N2", body: "" }));
+  assert.ok(!run(ev(BEN, "doc_set", { id: id("3"), kind: "note", title: "N" }), ev(BEN, "doc_del", { id: id("3") })).tools.docs.has(id("3")), "the author can");
+  const feed = run(ev(BEN, "doc_set", { id: id("4"), kind: "note", title: "N" }), ev(BEN, "doc_set", { id: id("4"), kind: "note", title: "N2" }));
   assert.equal(feed.visible.filter((e) => e.type === "doc_set").length, 1, "only the creation reaches the feed, not every edit");
-  console.log("ok: pages are their author's, notes are everyone's, kinds never change, edits stay out of the feed");
+  console.log("ok: notes are everyone's, old page events are ignored, kinds never change, edits stay out of the feed");
 }
 // ---- limits and shapes
 {
-  assert.equal(run(ev(BEN, "doc_set", { id: id("5"), kind: "page", title: "T", body: "x".repeat(LIMITS.pageChars + 1) })).tools.docs.size, 0, "an over-long page is refused");
   assert.equal(run(ev(BEN, "doc_set", { id: "nothex", kind: "note", title: "T", body: "x" })).tools.docs.size, 0, "a bad id");
   assert.equal(run(ev(BEN, "doc_set", { id: id("5"), kind: "script", title: "T", body: "x" })).tools.docs.size, 0, "a bad kind");
   assert.equal(run(ev(OUT, "doc_set", { id: id("5"), kind: "note", title: "T", body: "x" })).tools.docs.size, 0, "someone who never joined cannot add anything");

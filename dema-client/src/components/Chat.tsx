@@ -323,7 +323,7 @@ const ChatLine = memo(function ChatLine({
       <span className="who" style={{ color: nameColor(e.author) }} title={name}>
         {grouped ? "" : mine ? "you" : name}
       </span>
-      <div className="what">
+      <div className="what" data-long={String(e.payload.text ?? "").length > 110 ? "" : undefined}>
         <MessageBody text={e.payload.text} onMedia={onMedia} />
       </div>
     </div>
@@ -792,6 +792,17 @@ function Lightbox({
   );
 }
 
+/** The commands typing "/" offers. (/run is a hidden extra and is not listed.) */
+const COMMANDS = [
+  { cmd: "/note", hint: "Start a shared note", args: false },
+  { cmd: "/poll", hint: "Question | option | option", args: true },
+  { cmd: "/board", hint: "Open the whiteboard", args: false },
+  { cmd: "/search", hint: "Search the room", args: false },
+  { cmd: "/flip", hint: "Flip a coin", args: false },
+  { cmd: "/rps", hint: "Rock paper scissors", args: false },
+  { cmd: "/blame", hint: "Blame someone", args: false },
+];
+
 function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapshot; isHost: boolean }>) {
   const [text, setText] = useState("");
   const box = useRef<HTMLTextAreaElement>(null);
@@ -830,6 +841,8 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
   const [menu, setMenu] = useState(false);
   const menuBox = useRef<HTMLDivElement>(null);
   const [toolsMenu, setToolsMenu] = useState(false);
+  const [cmdAt, setCmdAt] = useState(0);
+  const [hideCmds, setHideCmds] = useState(false);
   const toolsBox = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!toolsMenu) return;
@@ -866,13 +879,13 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
       setText("");
       return;
     }
-    // The room's tools, from the keyboard: /note /page /board /search and  /poll Question | option | option
-    if (command === "/note" || command === "/page" || command === "/board" || command === "/search" || command.startsWith("/poll ") || command === "/poll") {
+    // The room's tools, from the keyboard: /note /board /search and  /poll Question | option | option
+    if (command === "/note" || command === "/board" || command === "/search" || command.startsWith("/poll ") || command === "/poll") {
       if (command === "/board") openTool("board");
       else if (command === "/search") openSearch();
-      else if (command === "/note" || command === "/page") {
+      else if (command === "/note") {
         const id = space.newToolId();
-        const err = space.saveDoc(id, command === "/page" ? "page" : "note", command === "/page" ? "My page" : "Untitled note", command === "/page" ? "<h1>My page</h1>\n" : "");
+        const err = space.saveDoc(id, "Untitled note");
         if (err) notify(err, "error");
         else openTool("docs", id);
       } else {
@@ -905,7 +918,38 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
     setText(`${text.slice(0, from)}\`\`\`\n${picked}\n\`\`\`${text.slice(to)}`);
   };
 
+  // Typing "/" lists the commands that fit what has been typed so far; Up/Down choose, Enter or a click runs it, Tab completes it, Esc closes the list.
+  const matches = canChat && !hideCmds && /^\/[a-z]*$/i.test(text) ? COMMANDS.filter((c) => c.cmd.startsWith(text.toLowerCase())) : [];
+  const pick = (c: (typeof COMMANDS)[number]) => {
+    if (c.args) {
+      setText(`${c.cmd} `);
+      box.current?.focus();
+    } else send(c.cmd);
+  };
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (matches.length && !e.nativeEvent.isComposing) {
+      const at = Math.min(cmdAt, matches.length - 1);
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setCmdAt((at + (e.key === "ArrowDown" ? 1 : matches.length - 1)) % matches.length);
+        return;
+      }
+      if (e.key === "Tab" && !e.shiftKey) {
+        e.preventDefault();
+        setText(matches[at].cmd + (matches[at].args ? " " : ""));
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setHideCmds(true);
+        return;
+      }
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        pick(matches[at]);
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       send();
@@ -954,16 +998,13 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
         )}
       </div>
       <div className="decider-wrap" ref={toolsBox}>
-        <button className="icon-btn" type="button" aria-label="Add to the room" aria-haspopup="menu" aria-expanded={toolsMenu} title="Notes, pages, polls, a whiteboard, search" disabled={!canChat} onClick={() => setToolsMenu((m) => !m)}>
+        <button className="icon-btn" type="button" aria-label="Add to the room" aria-haspopup="menu" aria-expanded={toolsMenu} title="Notes, polls, a whiteboard, search" disabled={!canChat} onClick={() => setToolsMenu((m) => !m)}>
           <Icon name="plus" />
         </button>
         {toolsMenu && (
           <div className="menu" role="menu" aria-label="Add to the room">
             <button role="menuitem" onClick={() => { setToolsMenu(false); send("/note"); }}>
               New note <span className="muted small">/note</span>
-            </button>
-            <button role="menuitem" onClick={() => { setToolsMenu(false); send("/page"); }}>
-              New page <span className="muted small">/page</span>
             </button>
             <button role="menuitem" onClick={() => { setToolsMenu(false); openTool("polls"); }}>
               Poll <span className="muted small">/poll</span>
@@ -980,6 +1021,16 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
       <button className="icon-btn" type="button" aria-label="Insert code block" title="Code block (```). Shift+Enter adds a new line." disabled={!canChat} onClick={insertFence}>
         <Icon name="code" />
       </button>
+      {matches.length > 0 && (
+        <div className="menu cmd-menu" role="listbox" aria-label="Commands">
+          {matches.map((m, i) => (
+            <button key={m.cmd} role="option" aria-selected={i === Math.min(cmdAt, matches.length - 1)} className={i === Math.min(cmdAt, matches.length - 1) ? "on" : ""} onMouseDown={(e) => e.preventDefault()} onMouseEnter={() => setCmdAt(i)} onClick={() => pick(m)}>
+              <strong>{m.cmd}</strong> <span className="muted small">{m.hint}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {/^\/poll /i.test(text) && <div className="cmd-hint muted small">/poll Question | option | option (two to eight options)</div>}
       <textarea
         ref={box}
         rows={1}
@@ -987,7 +1038,11 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
         disabled={!canChat}
         placeholder={canChat ? "Write a message…" : "Chat disabled by host"}
         aria-label="Message"
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value);
+          setCmdAt(0);
+          setHideCmds(false);
+        }}
         onKeyDown={onKeyDown}
         onPaste={onPaste}
       />

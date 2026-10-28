@@ -1,4 +1,4 @@
-// What a room can hold besides chat: pages and notes, polls, and a drawing board. Each is made of small signed
+// What a room can hold besides chat: notes, polls, and a drawing board. Each is made of small signed
 // events; this file folds them into state (derive() in log.ts calls applyTool) and holds every limit, so a hostile member cannot make
 // the room heavy. Nothing here is stored anywhere: it lives and ends with the room's log.
 import type { SpaceEvent } from "./log";
@@ -9,7 +9,6 @@ export const isToolType = (t: string) => SET.has(t);
 
 export const LIMITS = {
   docs: 40,
-  pageChars: 40_000,
   noteChars: 20_000,
   titleChars: 80,
   polls: 20,
@@ -23,8 +22,8 @@ export const LIMITS = {
 /** Drawing colours, by index (so an event can never carry arbitrary CSS). The last one paints the paper colour: the eraser. */
 export const PALETTE = ["#111111", "#d92d20", "#1d4ed8", "#15803d", "#ea8a0c", "#7e22ce", "#6b7280", "#ffffff"];
 
-/** A note's text, and an open page's, is shared live (collab.ts) and is not in the log; a closed page's HTML is `body`. */
-export type Doc = { id: string; kind: "page" | "note"; title: string; body: string; /** a page anyone may edit */ open: boolean; owner: string; editor: string; ts: number; rev: number };
+/** A note's text is shared live (collab.ts) and is not in the log: only its creation and its title are events. */
+export type Doc = { id: string; kind: "note"; title: string; owner: string; editor: string; ts: number; rev: number };
 export type Poll = { id: string; q: string; opts: string[]; author: string; ended: boolean; votes: Map<string, number> };
 export type Stroke = { id: string; author: string; c: number; w: number; pts: number[] };
 export type RoomTools = { docs: Map<string, Doc>; polls: Map<string, Poll>; strokes: Stroke[] };
@@ -42,23 +41,16 @@ export function applyTool(t: RoomTools, e: SpaceEvent, ok: boolean, isHost: bool
   const p = e.payload;
   switch (e.type) {
     case "doc_set": {
-      if (!ID.test(String(p.id)) || (p.kind !== "page" && p.kind !== "note")) return false;
-      // A note's text is shared live; a page carries its HTML here only while it is closed (author-only).
-      const open = p.kind === "page" && p.open === true;
-      const body = p.kind === "page" && !open && typeof p.body === "string" ? p.body : "";
-      if (body.length > LIMITS.pageChars || typeof p.title !== "string") return false;
+      // Only notes exist now. (Rooms made while "pages" existed carry page events: they are ignored, not an error.)
+      if (!ID.test(String(p.id)) || p.kind !== "note" || typeof p.title !== "string") return false;
       const title = p.title.slice(0, LIMITS.titleChars) || "Untitled";
       const had = t.docs.get(p.id);
       if (!had) {
         if (t.docs.size >= LIMITS.docs) return false;
-        t.docs.set(p.id, { id: p.id, kind: p.kind, title, body, open, owner: e.author, editor: e.author, ts: e.ts, rev: 1 });
+        t.docs.set(p.id, { id: p.id, kind: "note", title, owner: e.author, editor: e.author, ts: e.ts, rev: 1 });
         return true;
       }
-      // A closed page can only be changed by its author (or the host); an open page's title and a note by anyone in the room.
-      // Only the author (or host) can open or close a page. The kind never changes.
-      const owner = had.owner === e.author || isHost;
-      if (had.kind !== p.kind || (had.kind === "page" && !owner && !had.open)) return false;
-      Object.assign(had, { title, editor: e.author, ts: e.ts, rev: had.rev + 1 }, had.kind === "page" && owner ? { body, open } : {});
+      Object.assign(had, { title, editor: e.author, ts: e.ts, rev: had.rev + 1 }); // anyone in the room may retitle a note
       return false;
     }
     case "doc_del": {
@@ -104,9 +96,4 @@ export function tally(poll: Poll): { counts: number[]; total: number } {
   const counts = poll.opts.map(() => 0);
   for (const o of poll.votes.values()) counts[o]++;
   return { counts, total: poll.votes.size };
-}
-
-/** A page is untrusted code from another member: it runs in a frame with no scripts, no network and no way out. */
-export function pageDocument(html: string) {
-  return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:"><meta name="viewport" content="width=device-width,initial-scale=1"><base target="_blank">${html}`;
 }

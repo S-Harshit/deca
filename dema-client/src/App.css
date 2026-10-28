@@ -654,14 +654,15 @@ html[data-wall="on"] .topbar { position: relative; z-index: 60; }
 .note { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .note-text { flex: 1; min-height: 16rem; width: 100%; resize: none; line-height: 1.55; }
 .ws-typing { margin: 0.3rem 0 0; min-height: 1.2em; }
-.ws-open { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
 .opt-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: -0.15rem 0 0.2rem 1.6rem; }
 .opt-sub select { flex: 1 1 8rem; min-width: 0; }
 .ends-left { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent); }
-.tool-launch { display: flex; flex-wrap: wrap; gap: 0.55rem; }
-.doc-text { width: 100%; min-height: 220px; flex: 1; resize: vertical; max-height: none; font-family: var(--font-mono); font-size: 0.82rem; }
-.page-split { display: flex; flex-direction: column; gap: 0.6rem; flex: 1; min-height: 0; }
-.page-frame { width: 100%; flex: 1; min-height: 260px; border: 1px solid var(--border); background: #fff; border-radius: var(--radius); }
+.tool-launch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+.tool-tile { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0.15rem; padding: 0.6rem 0.7rem; height: auto; text-align: left; white-space: normal; line-height: 1.2; }
+.tool-tile svg { color: var(--accent); margin-bottom: 0.15rem; }
+.tool-tile strong { font-size: 0.78rem; font-weight: 600; }
+.tool-tile .muted { font-size: 0.68rem; }
+.cam-wrap > .icon-btn { min-height: var(--control-h); }
 .poll { padding: 0.7rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel-2); display: flex; flex-direction: column; gap: 0.35rem; }
 .poll h4 { margin: 0; }
 .poll-opt { position: relative; justify-content: space-between; overflow: hidden; width: 100%; text-align: left; padding: 0.5em 0.75em; }
@@ -681,8 +682,8 @@ html[data-wall="on"] .topbar { position: relative; z-index: 60; }
 .doc-card { flex-direction: row; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 @media (max-width: 860px) { .feed-card { margin-left: 0; max-width: none; } }
 /* centered, and a fixed height so the box does not jump as results come and go */
-.palette { width: min(560px, 100%); height: min(440px, 70vh); padding: 0.7rem; display: flex; flex-direction: column; gap: 0.5rem; }
-.palette input { width: 100%; text-align: left; font-size: 1rem; }
+.palette { width: min(520px, 100%); height: min(380px, 70vh); padding: 0.7rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.palette.modal input:not([hidden]):not([type="checkbox"]) { flex: none; width: 100%; height: var(--control-h); text-align: left; font-size: 0.95rem; }
 .palette .hits { overflow: auto; flex: 1; min-height: 0; }
 .hits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
 .hit { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0.1rem; width: 100%; text-align: left; white-space: normal; padding: 0.45rem 0.65rem; background: transparent; border-color: transparent; }
@@ -713,3 +714,13 @@ html[data-theme] .board-bar .dot { width: 22px; height: 22px; min-width: 22px; m
 .workspace.ws-max .ws-grip { display: none; }
 .main:has(+ .workspace.ws-max) { display: none; }
 @media (max-width: 860px) { .ws-grip, .ws-maxbtn { display: none; } }
+.cmd-menu { left: 3.2rem; min-width: 270px; }
+.cmd-menu button { display: flex; justify-content: space-between; gap: 1rem; width: 100%; text-align: left; }
+.cmd-menu button.on { background: var(--panel-2); border-color: var(--border); }
+.cmd-hint { position: absolute; bottom: calc(100% + 4px); left: 3.2rem; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.25rem 0.6rem; }
+/* "your camera is off", shown at the camera button when a call starts */
+.cam-wrap { position: relative; display: inline-flex; }
+.cam-hint { position: absolute; top: calc(100% + 10px); right: -6px; z-index: 70; width: max-content; max-width: 14rem; padding: 0.4rem 0.65rem; font-size: 0.78rem; line-height: 1.3; background: var(--text); color: var(--bg); border-radius: var(--radius); box-shadow: var(--shadow); animation: fade 0.2s ease-out; pointer-events: none; }
+.cam-hint::before { content: ""; position: absolute; top: -5px; right: 18px; width: 10px; height: 10px; background: inherit; transform: rotate(45deg); }
+html[data-theme="web95"] .cam-hint { top: auto; bottom: calc(100% + 10px); }
+html[data-theme="web95"] .cam-hint::before { top: auto; bottom: -5px; }

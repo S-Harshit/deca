@@ -25,7 +25,7 @@ const themes = process.argv.slice(2).length ? process.argv.slice(2) : ["graphite
       return out;
     });
     const found = new Set(await scan());
-    await p.getByRole("button", { name: "Notes & pages" }).click().catch(() => {}); await p.waitForTimeout(400); for (const f of await scan()) found.add(f);
+    await p.locator(".tool-tile", { has: p.locator("strong", { hasText: /^Notes$/ }) }).click().catch(() => {}); await p.waitForTimeout(400); for (const f of await scan()) found.add(f);
     await p.keyboard.press("Escape");
     for (const f of found) console.log(`${theme}: ${f}`);
     bad += found.size; await p.context().close();

@@ -17,10 +17,11 @@ vec3 stars(vec2 p){vec3 c=vec3(0.);for(int l=0;l<3;l++){float sc=34.+float(l)*52
 vec3 disk(float r,float phi,float rin,float rout){
  float t=clamp((rout-r)/(rout-rin),0.,1.);
  float w=pow(max(r,rin)/rin,-1.5);
- float a=phi-uT*.55*w;
+ float a=phi-uT*1.5*w;   /* clearly turning, the inner edge fastest */
  vec2 ca=vec2(cos(a),sin(a));   /* the angle goes round a circle in noise space, so there is no seam where it wraps */
  float n=fbm(vec2(r*22.,0.)+ca*2.6)*.9+fbm(vec2(r*60.,3.)+ca*6.)*.35;
- float inten=pow(t,1.5)*(.3+1.25*n);
+ float clump=smoothstep(.45,.8,fbm(vec2(r*9.,0.)+ca*1.7+3.));   /* hot lumps carried round by the flow: they are what the eye follows */
+ float inten=pow(t,1.5)*(.22+1.1*n+1.3*clump*n);
  float dop=1.-.6*cos(phi);   /* the left side turns towards us */
  return ramp(t*.9+.1*n)*inten*dop*dop*2.1;}
 void main(){
@@ -87,14 +88,25 @@ export default function BlackHole({ calm }: Readonly<{ calm: boolean }>) {
     let raf = 0;
     let last = 0;
     let lost = false;
+    let quality = 1;
+    let slow = 0;
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw);
-      if (document.hidden || lost || now - last < (calmRef.current ? 83 : 33)) return; // 30 frames a second, 12 during a call
+      const want = calmRef.current ? 24 : 60; // smooth motion normally, gentler during a call
+      if (document.hidden || lost || now - last < 1000 / want - 3) return;
+      // If the graphics card cannot keep up, draw fewer pixels (motion matters more than the last bit of sharpness) rather than stutter.
+      if (last) {
+        slow = now - last > (1000 / want) * 1.6 ? slow + 1 : Math.max(0, slow - 1);
+        if (slow > 40 && quality > 0.5) {
+          quality *= 0.82;
+          slow = 0;
+        }
+      }
       last = now;
       // Sharp, but with a pixel budget so a 4K screen does not pay four times for a slow glow.
       const w = cv.clientWidth;
       const h = cv.clientHeight;
-      const scale = Math.min(window.devicePixelRatio || 1, Math.sqrt(2.1e6 / Math.max(1, w * h)));
+      const scale = Math.min(window.devicePixelRatio || 1, Math.sqrt(2.1e6 / Math.max(1, w * h))) * quality;
       const pw = Math.max(1, Math.round(w * scale));
       const ph = Math.max(1, Math.round(h * scale));
       if (cv.width !== pw || cv.height !== ph) {

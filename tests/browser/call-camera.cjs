@@ -14,12 +14,17 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   const asked = await A.evaluate(() => window.__gum);
   ok("starting a call asks only for the microphone", asked.length === 1 && /"audio"/.test(asked[0]) && !/"video"/.test(asked[0]), asked.join(" | "));
   ok("the camera button shows the camera is off", (await A.getByRole("button", { name: "Turn on camera" }).count()) === 1);
+  const hint = A.locator(".cam-hint");
+  ok("and a note says so right at the button when the call starts", (await hint.count()) === 1 && /camera is off/i.test(await hint.innerText()));
+  const hb = await hint.boundingBox(), cb = await A.getByRole("button", { name: "Turn on camera" }).boundingBox();
+  ok("the note sits next to the camera button, fully on screen", Math.abs(hb.x + hb.width / 2 - (cb.x + cb.width / 2)) < 200 && hb.x >= 0 && hb.x + hb.width <= 1300 && hb.y >= 0 && hb.y + hb.height <= 850, JSON.stringify([hb, cb]));
   ok("no camera is running on this device", !(await live(A)));
   await B.getByLabel("Start call").click(); await B.waitForTimeout(1500);
   ok("both are in the call (mic only): each sees the other's tile", (await A.locator(".tile").count()) >= 2 && (await B.locator(".tile").count()) >= 2);
 
   await A.getByRole("button", { name: "Turn on camera" }).click(); await A.waitForTimeout(2000);
   ok("turning the camera on asks for it then", (await A.evaluate(() => window.__gum)).some((g, i) => i > 0 && /"video"/.test(g)));
+  ok("the note is gone once the camera is on", (await A.locator(".cam-hint").count()) === 0);
   ok("the camera runs, and the button now offers to turn it off", (await live(A)) && (await A.getByRole("button", { name: "Turn off camera" }).count()) === 1);
   await B.waitForFunction(() => [...document.querySelectorAll("video")].some((v) => v.srcObject && v.srcObject.getVideoTracks().some((t) => t.readyState === "live")), null, { timeout: 15000 }).catch(() => {});
   ok("the other person now receives Ann's video", await live(B));

@@ -46,8 +46,8 @@ const THEMES = ["midnight", "light", "graphite", "forest", "rose", "sunset", "sh
   await toggle.check(); await A.waitForTimeout(400);
   const left = hostSection.getByRole("status");
   ok("turning it on shows the live countdown right there", /Ends in \d+:\d\d/.test(await left.innerText()));
-  const lb = await left.boundingBox();
-  ok("and it is next to the switch (not only in the top bar)", Math.abs(lb.y - tb.y) < 70);
+  const lb = await left.boundingBox(), tb2 = await toggle.boundingBox(); // measured again: switching it on may have scrolled the sidebar
+  ok("and it is next to the switch (not only in the top bar)", Math.abs(lb.y - tb2.y) < 70, JSON.stringify([lb, tb2]));
   ok("the top bar shows it too", (await A.locator(".ends-in").count()) === 1);
   await toggle.uncheck();
 
@@ -78,7 +78,7 @@ const THEMES = ["midnight", "light", "graphite", "forest", "rose", "sunset", "sh
   await A.getByRole("button", { name: "Restore workspace size" }).click(); await A.waitForTimeout(200);
   ok("restore brings the chat back at the size it had", (await A.locator(".composer textarea").isVisible()) && Math.abs((await ws.boundingBox()).width - w1) < 3);
   await A.keyboard.press("Escape"); await ws.waitFor({ state: "detached" });
-  await A.getByRole("button", { name: "Notes & pages" }).click(); await ws.waitFor();
+  await A.locator(".tool-tile", { has: A.locator("strong", { hasText: /^Notes$/ }) }).click(); await ws.waitFor();
   ok("the size is remembered on this device", Math.abs((await ws.boundingBox()).width - w1) < 3);
   await A.getByRole("separator", { name: "Resize workspace" }).dblclick(); await A.waitForTimeout(200);
   ok("double-clicking the edge resets it", Math.abs((await ws.boundingBox()).width - w0) < 3);
@@ -86,6 +86,25 @@ const THEMES = ["midnight", "light", "graphite", "forest", "rose", "sunset", "sh
   ok("a second Escape closes the workspace", (await ws.count()) === 0);
   await A.keyboard.press("Control+k"); await A.locator(".palette").waitFor();
   ok("Ctrl+K opens search with no workspace", (await ws.count()) === 0);
+  // ---- typing "/" lists the commands
+  const box = A.locator(".composer textarea"); const list = A.getByRole("listbox", { name: "Commands" });
+  await box.fill("/");
+  ok("typing / lists the available commands, each with what it does", (await list.getByRole("option").count()) === 7 && /note.*poll.*board.*search.*flip.*rps.*blame/s.test(await list.innerText()) && /Question \| option \| option/.test(await list.innerText()));
+  ok("and /run, which is hidden on purpose, is not listed", !/\/run/.test(await list.innerText()));
+  await box.fill("/b"); ok("the list narrows as you type", (await list.getByRole("option").allInnerTexts()).map((t) => t.split(/\s/)[0]).join() === "/board,/blame");
+  await box.press("ArrowDown"); ok("arrow keys move the highlight", (await list.getByRole("option", { name: /blame/ }).getAttribute("aria-selected")) === "true");
+  await box.press("Tab"); ok("Tab completes the command", (await box.inputValue()) === "/blame");
+  await box.fill("/poll "); ok("/poll shows how to write one", (await A.getByText("(two to eight options)").count()) === 1 && (await list.count()) === 0);
+  await box.fill("/fl"); await box.press("Escape"); ok("Escape closes the list and leaves the text alone", (await list.count()) === 0 && (await box.inputValue()) === "/fl");
+  await box.fill("/"); await list.getByRole("option", { name: /board/ }).click(); await A.getByRole("complementary", { name: "Workspace" }).waitFor({ timeout: 5000 });
+  ok("clicking a command runs it", (await A.getByRole("tab", { name: "Board", selected: true }).count()) === 1 && (await box.inputValue()) === "");
+  await box.fill("/nosuchthing"); ok("an unknown /word is just a message: no list", (await list.count()) === 0);
+  await box.fill("");
+  // ---- the search box is a normal-height field
+  await A.keyboard.press("Control+k"); const field = A.locator(".palette input"); await field.waitFor();
+  const fb = await field.boundingBox();
+  ok("the search field is a normal control height, not a big box", fb.height <= 44 && fb.height >= 30, String(fb.height));
+  await A.keyboard.press("Escape");
   await A.context().close();
 
   // ---- Black hole: a live canvas that actually draws

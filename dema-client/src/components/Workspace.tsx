@@ -1,15 +1,15 @@
-// The workspace: a pane docked beside the chat (a sheet on a phone) with the room's shared things: notes and pages, polls and a
+// The workspace: a pane docked beside the chat (a sheet on a phone) with the room's shared things: notes, polls and a
 // drawing board. The chat stays visible and usable next to it. Loaded only when opened (React.lazy in App.tsx).
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import type { Snapshot, Space } from "../space";
 import { notify } from "../toast";
-import { LIMITS, PALETTE, pageDocument, tally, type Doc } from "../tools";
+import { LIMITS, PALETTE, tally, type Doc } from "../tools";
 import type { Collab } from "../collab";
 import { openTool, type ToolTab } from "../toolsDialog";
 import { ask } from "../confirm";
 
 const TABS: { id: ToolTab; label: string }[] = [
-  { id: "docs", label: "Notes & pages" },
+  { id: "docs", label: "Notes" },
   { id: "polls", label: "Polls" },
   { id: "board", label: "Board" },
 ];
@@ -93,9 +93,7 @@ export default function Workspace({ space, snap, tab, focus }: Readonly<{ space:
 
 const nameOf = (snap: Snapshot, id: string) => (id === snap.me ? "you" : (snap.state.members.get(id)?.name ?? "someone"));
 
-// -------------------------------------------------------------------------------------------------- notes and pages
-
-const PAGE_START = `<h1>My page</h1>\n<p>Write HTML here. Everyone in the room sees it, in a locked frame: no scripts and nothing loaded from outside.</p>\n<style>body{font-family:sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5}</style>\n`;
+// ------------------------------------------------------------------------------------------------------------- notes
 
 function DocsTab({ space, snap, focus }: Readonly<{ space: Space; snap: Snapshot; focus: string | null }>) {
   const docs = [...snap.state.tools.docs.values()].sort((a, b) => b.ts - a.ts);
@@ -104,9 +102,9 @@ function DocsTab({ space, snap, focus }: Readonly<{ space: Space; snap: Snapshot
     if (focus) setSel(focus);
   }, [focus]);
   const doc = snap.state.tools.docs.get(sel ?? "") ?? null;
-  const create = (kind: "page" | "note") => {
+  const create = () => {
     const id = space.newToolId();
-    const err = space.saveDoc(id, kind, kind === "page" ? "My page" : "Untitled note", kind === "page" ? PAGE_START : "");
+    const err = space.saveDoc(id, "Untitled note");
     if (err) notify(err, "error");
     else setSel(id);
   };
@@ -114,11 +112,8 @@ function DocsTab({ space, snap, focus }: Readonly<{ space: Space; snap: Snapshot
     <div className="ws-docs">
       <div className="ws-list">
         <div className="ws-actions">
-          <button className="small-btn primary" onClick={() => create("note")}>
+          <button className="small-btn primary" onClick={create}>
             + Note
-          </button>
-          <button className="small-btn" onClick={() => create("page")}>
-            + Page
           </button>
         </div>
         <ul className="ws-items">
@@ -126,16 +121,14 @@ function DocsTab({ space, snap, focus }: Readonly<{ space: Space; snap: Snapshot
             <li key={d.id}>
               <button className={`ws-item ${d.id === sel ? "on" : ""}`} onClick={() => setSel(d.id)}>
                 <strong>{d.title}</strong>
-                <span className="muted small">
-                  {d.kind === "page" ? "Page" : "Note"} · {nameOf(snap, d.owner)}
-                </span>
+                <span className="muted small">by {nameOf(snap, d.owner)}</span>
               </button>
             </li>
           ))}
         </ul>
-        {docs.length === 0 && <p className="muted small">A note is written by everyone together, live. A page is HTML its author controls, and can open for everyone to edit. Both end with the room.</p>}
+        {docs.length === 0 && <p className="muted small">A note is written by everyone together, live: two people typing at once both keep their words. It ends with the room.</p>}
       </div>
-      <div className="ws-main">{doc ? (doc.kind === "note" ? <NoteEditor key={doc.id} doc={doc} space={space} snap={snap} onGone={() => setSel(null)} /> : <PageEditor key={doc.id} doc={doc} space={space} snap={snap} onGone={() => setSel(null)} />) : <p className="muted ws-empty">Pick a note or page, or make a new one.</p>}</div>
+      <div className="ws-main">{doc ? <NoteEditor key={doc.id} doc={doc} space={space} snap={snap} onGone={() => setSel(null)} /> : <p className="muted ws-empty">Pick a note or page, or make a new one.</p>}</div>
     </div>
   );
 }
@@ -148,10 +141,10 @@ function DocHead({ doc, space, snap, onGone, note }: Readonly<{ doc: Doc; space:
     if (title === saved.current) return;
     const t = setTimeout(() => {
       saved.current = title;
-      space.saveDoc(doc.id, doc.kind, title, doc.body, doc.open);
+      space.saveDoc(doc.id, title);
     }, 600);
     return () => clearTimeout(t);
-  }, [title, doc.id, doc.kind, doc.body, doc.open, space]);
+  }, [title, doc.id, space]);
   const remove = async () => {
     if (await ask({ title: `Delete "${doc.title}"?`, lines: ["It is removed for everyone in the room."], confirm: "Delete", danger: true })) {
       space.deleteDoc(doc.id);
@@ -161,7 +154,7 @@ function DocHead({ doc, space, snap, onGone, note }: Readonly<{ doc: Doc; space:
   return (
     <div className="ws-dochead">
       <div className="row">
-        <input aria-label="Title" className="grow" value={title} maxLength={LIMITS.titleChars} disabled={doc.kind === "page" && !doc.open && !mine} onChange={(e) => setTitle(e.target.value)} />
+        <input aria-label="Title" className="grow" value={title} maxLength={LIMITS.titleChars} onChange={(e) => setTitle(e.target.value)} />
         {mine && (
           <button className="small-btn danger" onClick={() => void remove()}>
             Delete
@@ -173,15 +166,12 @@ function DocHead({ doc, space, snap, onGone, note }: Readonly<{ doc: Doc; space:
   );
 }
 
-/** Typing in `text` merges with everyone else's typing (collab.ts); this keeps the caret where it was when other people's changes land around it. */
-function SharedText({ id, space, snap, cap, className, label, placeholder, onText }: Readonly<{ id: string; space: Space; snap: Snapshot; cap: number; className: string; label: string; placeholder?: string; onText?: (t: string) => void }>) {
+/** Typing here merges with everyone else's typing (collab.ts); this keeps the caret where it was when other people's changes land around it. */
+function SharedText({ id, space, cap, className, label, placeholder }: Readonly<{ id: string; space: Space; cap: number; className: string; label: string; placeholder?: string }>) {
   const [text, setText] = useState(() => space.docText(id));
   const [ready, setReady] = useState(false);
   const ta = useRef<HTMLTextAreaElement>(null);
-  const caret = useRef<[number, number] | null>(null);
   const [, tick] = useState(0);
-  const sink = useRef(onText);
-  sink.current = onText;
   const engine = useRef<Collab | null>(null);
   useEffect(() => {
     let off = () => {};
@@ -191,7 +181,6 @@ function SharedText({ id, space, snap, cap, className, label, placeholder, onTex
       engine.current = c;
       const now = c.text(id);
       setText(now);
-      sink.current?.(now);
       setReady(true);
       off = c.watch(id, (delta, local) => {
         const next = c.text(id);
@@ -214,10 +203,8 @@ function SharedText({ id, space, snap, cap, className, label, placeholder, onTex
           // Written to the box right now, not after React renders: a key pressed in between must be measured against the merged text.
           ta.current.value = next;
           if (document.activeElement === ta.current) ta.current.setSelectionRange(sel[0], sel[1]);
-          caret.current = sel;
         }
         setText(next);
-        sink.current?.(next);
       });
     });
     return () => {
@@ -225,11 +212,6 @@ function SharedText({ id, space, snap, cap, className, label, placeholder, onTex
       off();
     };
   }, [id, space]);
-  useLayoutEffect(() => {
-    const c = caret.current;
-    if (c && ta.current && document.activeElement === ta.current) ta.current.setSelectionRange(c[0], c[1]);
-    caret.current = null;
-  }, [text]);
   useEffect(() => {
     const t = setInterval(() => tick((n) => n + 1), 1500); // lets "is typing" expire
     return () => clearInterval(t);
@@ -248,65 +230,13 @@ function SharedText({ id, space, snap, cap, className, label, placeholder, onTex
         disabled={!ready}
         onChange={(e) => {
           setText(e.target.value);
-          sink.current?.(e.target.value);
           engine.current?.set(id, e.target.value); // synchronous: it is diffed against exactly the text the person was looking at
         }}
       />
       <p className="muted small ws-typing" aria-live="polite">
         {typing.length ? `${typing.join(", ")} ${typing.length === 1 ? "is" : "are"} typing` : `${text.length.toLocaleString()} of ${cap.toLocaleString()} characters`}
-        {snap.state.tools.docs.get(id) ? "" : ""}
       </p>
     </>
-  );
-}
-
-/** A page is HTML shown beside the editor in a frame with every permission off. Closed: only its author edits. Open: everyone edits it live. */
-function PageEditor({ doc, space, snap, onGone }: Readonly<{ doc: Doc; space: Space; snap: Snapshot; onGone: () => void }>) {
-  const mine = doc.owner === snap.me || snap.state.hostId === snap.me;
-  const canEdit = mine || doc.open;
-  const [body, setBody] = useState(doc.body);
-  const saved = useRef(doc.body);
-  useEffect(() => {
-    if (!mine || doc.open) return;
-    if (body === saved.current) setBody(doc.body); // someone else changed it (the host) while we were not typing
-    saved.current = body !== saved.current ? saved.current : doc.body;
-  }, [doc.rev, doc.open]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!mine || doc.open || body === saved.current) return;
-    const t = setTimeout(() => {
-      const err = space.saveDoc(doc.id, "page", doc.title, body, false);
-      if (err) notify(err, "error");
-      else saved.current = body;
-    }, 700);
-    return () => clearTimeout(t);
-  }, [body, mine, doc.open, space, doc.id, doc.title]);
-  const [live, setLive] = useState("");
-  const note = doc.open ? `A page by ${nameOf(snap, doc.owner)} that everyone can edit.` : `A page by ${nameOf(snap, doc.owner)}${mine ? "" : ". Only they can change it."}`;
-  return (
-    <div className="ws-col">
-      <DocHead doc={doc} space={space} snap={snap} onGone={onGone} note={note} />
-      {mine && (
-        <label className="ws-open">
-          <input
-            type="checkbox"
-            checked={doc.open}
-            onChange={(e) => void space.setPageOpen(doc.id, doc.title, doc.open ? live : body, e.target.checked).then((err) => err && notify(err, "error"))}
-          />
-          Let anyone in the room edit this page
-        </label>
-      )}
-      <div className="page-split">
-        {doc.open ? (
-          <div className="ws-col">
-            <SharedText key={doc.id} id={doc.id} space={space} snap={snap} cap={LIMITS.pageChars} className="doc-text" label="Page HTML" onText={setLive} />
-          </div>
-        ) : (
-          canEdit && <textarea className="doc-text" aria-label="Page HTML" spellCheck={false} value={body} maxLength={LIMITS.pageChars} onChange={(e) => setBody(e.target.value)} />
-        )}
-        <iframe className="page-frame" title={doc.title} sandbox="" referrerPolicy="no-referrer" srcDoc={pageDocument(doc.open ? live : mine ? body : doc.body)} />
-      </div>
-      {mine && !doc.open && <p className="muted small">{body.length.toLocaleString()} of {LIMITS.pageChars.toLocaleString()} characters</p>}
-    </div>
   );
 }
 
@@ -316,7 +246,7 @@ function NoteEditor({ doc, space, snap, onGone }: Readonly<{ doc: Doc; space: Sp
     <div className="ws-col">
       <DocHead doc={doc} space={space} snap={snap} onGone={onGone} note="A note everyone edits together, live. Two people typing at once both keep their words." />
       <div className="note">
-        <SharedText id={doc.id} space={space} snap={snap} cap={LIMITS.noteChars} className="note-text" label="Note" placeholder="Start writing." />
+        <SharedText id={doc.id} space={space} cap={LIMITS.noteChars} className="note-text" label="Note" placeholder="Start writing." />
       </div>
     </div>
   );

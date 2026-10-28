@@ -1,5 +1,5 @@
 // Things the room's tools put straight into the chat: a poll you can vote in without leaving the conversation, and a card for a new
-// note or page that opens the workspace beside the chat.
+// note that opens the workspace beside the chat.
 import type { SpaceEvent } from "../log";
 import type { Snapshot, Space } from "../space";
 import { tally } from "../tools";
@@ -35,11 +35,10 @@ export function PollCard({ e, space, snap, mine, who }: Readonly<{ e: SpaceEvent
 
 export function DocCard({ e, snap, who }: Readonly<{ e: SpaceEvent; snap: Snapshot; who: string }>) {
   const d = snap.state.tools.docs.get(String(e.payload.id));
-  const kind = e.payload.kind === "page" ? "page" : "note";
   return (
     <div className="feed-card doc-card" data-eid={e.id}>
       <span className="muted small">
-        {who} made a {kind}
+        {who} made a note
       </span>
       <strong>{d?.title ?? String(e.payload.title ?? "Untitled")}</strong>
       {d ? (

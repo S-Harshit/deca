@@ -47,7 +47,7 @@ const measure = (el) => {
     await audit("room");
     await p.getByLabel("Appearance").click(); await audit("appearance"); await p.keyboard.press("Escape"); await p.getByLabel("Appearance").click().catch(() => {});
     await p.locator(".composer .icon-btn").nth(1).click().catch(() => {}); await audit("composer menu"); await p.keyboard.press("Escape");
-    await p.keyboard.press("Escape"); await p.getByRole("button", { name: "Notes & pages" }).click().catch(() => {}); await p.waitForTimeout(500); await audit("workspace");
+    await p.keyboard.press("Escape"); await p.locator(".tool-tile", { has: p.locator("strong", { hasText: /^Notes$/ }) }).click().catch(() => {}); await p.waitForTimeout(500); await audit("workspace");
     for (const f of found) console.log(f);
     problems += found.length; await ctx.close();
   }

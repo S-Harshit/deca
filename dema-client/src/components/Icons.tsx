@@ -28,6 +28,8 @@ const PATHS = {
   menu: "M3 12h18 M3 6h18 M3 18h18",
   file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6",
   check: "M20 6L9 17l-5-5",
+  poll: "M18 20V10 M12 20V4 M6 20v-6 M3 20h18",
+  pen: "M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
   crown: "M2 19h20 M3 7l4.5 5L12 4l4.5 8L21 7l-2 10H5z",
   chevronLeft: "M15 18l-6-6 6-6",
   chevronRight: "M9 18l6-6-6-6",

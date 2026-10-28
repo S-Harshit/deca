@@ -306,11 +306,11 @@ export class Space {
   }
 
   private sharedDocs(state: SpaceState) {
-    return [...state.tools.docs.values()].filter((d) => d.kind === "note" || d.open).map((d) => d.id);
+    return [...state.tools.docs.keys()];
   }
   private collab: Collab | null = null;
   private collabLoad: Promise<Collab> | null = null;
-  /** The live-text engine (Yjs) is a separate chunk, fetched the first time a room has a note or an open page. */
+  /** The live-text engine (Yjs) is a separate chunk, fetched the first time a room has a note. */
   loadCollab() {
     this.collabLoad ??= import("./collab").then(({ Collab }) => {
       this.collab = new Collab({
@@ -323,8 +323,7 @@ export class Space {
           return !!who && (who === hostId || perms.chat);
         },
         cap: (id) => {
-          const d = this.snapshot.state.tools.docs.get(id);
-          return !d ? 0 : d.kind === "note" ? LIMITS.noteChars : d.open ? LIMITS.pageChars : 0;
+          return this.snapshot.state.tools.docs.has(id) ? LIMITS.noteChars : 0;
         },
         changed: () => this.refreshSoon(),
       });
@@ -332,7 +331,7 @@ export class Space {
     });
     return this.collabLoad;
   }
-  /** The current text of a note or open page (empty until the engine has loaded). */
+  /** The current text of a note (empty until the engine has loaded). */
   docText(id: string) {
     return this.collab?.text(id) ?? "";
   }
@@ -590,31 +589,20 @@ export class Space {
     return "";
   }
 
-  // --- pages and notes, polls, the drawing board, doors (see tools.ts for the rules and limits) ---
+  // --- notes, polls, the drawing board (see tools.ts for the rules and limits) ---
   private toolsError() {
     return this.canSpeak("chat") ? "" : "The host has turned chat off";
   }
-  /** A fresh id for a page, note, poll or door. */
+  /** A fresh id for a note or poll. */
   newToolId() {
     return rid().slice(0, 12);
   }
-  /** Create or change a page (a closed one only by its author) or a note (anyone). Returns an error message, or "". */
-  saveDoc(id: string, kind: "page" | "note", title: string, body: string, open = false) {
+  /** Create a note or retitle it (anyone may). Returns an error message, or "". */
+  saveDoc(id: string, title: string) {
     const err = this.toolsError();
     if (err) return err;
-    if (body.length > LIMITS.pageChars) return "That page is too long";
-    this.author("doc_set", { id, kind, title: title.slice(0, LIMITS.titleChars), body, open });
+    this.author("doc_set", { id, kind: "note", title: title.slice(0, LIMITS.titleChars) });
     return "";
-  }
-  /** Let anyone edit a page (its text is then shared live like a note) or take it back to author-only. */
-  async setPageOpen(id: string, title: string, body: string, open: boolean) {
-    const c = await this.loadCollab();
-    if (open) {
-      c.ensure([...this.sharedDocs(this.snapshot.state), id]);
-      c.set(id, body, LIMITS.pageChars); // seed with the author's HTML: the event carries it no more
-      return this.saveDoc(id, "page", title, "", true);
-    }
-    return this.saveDoc(id, "page", title, c.text(id), false);
   }
   deleteDoc(id: string) {
     this.author("doc_del", { id });

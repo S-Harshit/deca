@@ -74,6 +74,8 @@ html[data-theme="web95"] *:not(.avatar):not(.dot):not(.swatch-art):not(.status):
 :where(html[data-theme="web95"]) body button:active { border-color: #404040 #fff #fff #404040; box-shadow: inset 1px 1px #808080; transform: none; }
 :where(html[data-theme="web95"]) body :is(.button, .icon-btn):active { border-color: #404040 #fff #fff #404040; box-shadow: inset 1px 1px #808080; transform: none; }
 html[data-theme="web95"] :is(button.primary, .button.primary) { background: #c0c0c0; color: #000; font-weight: 700; outline: 1px solid #000; outline-offset: -4px; }
+html[data-theme="web95"] .chat-expand { border-radius: 0; border: 2px solid; border-color: #fff #404040 #404040 #fff; background: #c0c0c0; color: #000; box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf; font: 400 11px/1 Tahoma, "MS Sans Serif", Verdana, sans-serif; }
+html[data-theme="web95"] .chat-expand.live { border-color: #404040 #fff #fff #404040; background: #d4d0c8; box-shadow: inset 1px 1px #808080; } /* pressed in, like a toggled Windows button */
 html[data-theme="web95"] button.ghost { background: transparent; border-color: transparent; box-shadow: none; }
 html[data-theme="web95"] button.ghost:hover { background: #d4d0c8; border-color: #fff #404040 #404040 #fff; }
 html[data-theme="web95"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: #fff; color: #000; border: 2px solid; border-color: #808080 #fff #fff #808080; box-shadow: inset 1px 1px #404040; }
@@ -85,7 +87,7 @@ html[data-theme="web95"] :is(.panel, .modal, .popover, .invite-card, .menu, .pal
 html[data-theme="web95"] .panel h3 { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; padding: 2px 4px 2px 6px; font-size: 0.78rem; text-transform: none; letter-spacing: 0; display: flex; align-items: center; gap: 0.35rem; }
 html[data-theme="web95"] .panel h3 * { color: #fff; }
 html[data-theme="web95"] .panel h3 .count { background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #404040 #404040 #fff; }
-html[data-theme="web95"] .panel h3::after { content: "x"; margin-left: auto; width: 16px; height: 14px; display: grid; place-items: center; background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #404040 #404040 #fff; font: 700 11px/1 "Courier New", monospace; }
+/* (the title-bar close boxes that used to sit here did nothing: the fold arrow on the left is the real control) */
 html[data-theme="web95"] .ws-head { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; }
 html[data-theme="web95"] .ws-tab { color: #fff; background: transparent; border-color: transparent; box-shadow: none; }
 html[data-theme="web95"] .ws-tab.on { background: #c0c0c0; color: #000; border-color: #fff #404040 #404040 #fff; }
@@ -255,6 +257,20 @@ html[data-theme="newspaper"] .tile::after { content: ""; position: absolute; ins
 html[data-theme="newspaper"] .tile-label { background: #f8f7f2; color: #111; transform: none; text-transform: none; font-style: italic; border: 1px solid #111; }
 html[data-theme="newspaper"] :is(.pill, .badge, .count) { background: transparent; border: 1px solid #111; color: #111; }
 html[data-theme="newspaper"] .composer { background: #f4f3ee; border-top: 3px double #111; }
+/* reads like a newspaper: serif throughout, a centred column of justified text at a comfortable width, a drop cap on longer pieces,
+   a small-caps lede, datelines for bylines, square corners everywhere */
+html[data-theme="newspaper"] :is(input, textarea, select, button) { font-family: inherit; }
+html[data-theme="newspaper"] *:not(.avatar):not(.dot):not(.swatch-art):not(.status) { border-radius: 0 !important; }
+html[data-theme="newspaper"] .timeline { padding-inline: max(1.25rem, calc((100% - 44rem) / 2)); }
+html[data-theme="newspaper"] .line .what { font-size: 1.1rem; line-height: 1.5; text-align: justify; hyphens: auto; }
+html[data-theme="newspaper"] .line:not(.grouped) .what::first-line { font-variant: small-caps; letter-spacing: 0.03em; }
+html[data-theme="newspaper"] .line:not(.grouped) .what[data-long]::first-letter { float: left; font-size: 3.1em; line-height: 0.82; padding: 0.06em 0.09em 0 0; font-weight: 700; }
+html[data-theme="newspaper"] .line .t { white-space: nowrap; font-size: 0.72rem; }
+html[data-theme="newspaper"] .line .who { font-size: 0.8rem; letter-spacing: 0.1em; }
+html[data-theme="newspaper"] .line .what code, html[data-theme="newspaper"] .line .what pre { font-family: "Courier New", monospace; text-align: left; }
+html[data-theme="newspaper"] .line { padding-block: 0.3rem; }
+html[data-theme="newspaper"] .panel { padding-bottom: 0.6rem; }
+html[data-theme="newspaper"] .panel p, html[data-theme="newspaper"] .panel .muted { line-height: 1.4; }
 
 /* =============================================== CYBERPUNK: a Night City HUD, yellow tags, cut corners, hazard stripes =============================================== */
 html[data-theme="cyberpunk"] { --font-display: "Bahnschrift", "Agency FB", "Arial Narrow", "Roboto Condensed", "Helvetica Neue Condensed", "Segoe UI", sans-serif; --cut: 12px; }

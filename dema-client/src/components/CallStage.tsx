@@ -17,6 +17,17 @@ async function popOut(space: Space) {
 export function CallControls({ space, snap }: Readonly<{ space: Space; snap: Snapshot }>) {
   const { inCall, sharing, micOn, camOn } = snap;
   const { startWithCamera } = usePrefsValue();
+  // A call starts with the camera off on purpose; say so where the button is, for a few seconds, so nobody wonders why they are not seen.
+  const [hint, setHint] = useState(false);
+  useEffect(() => {
+    if (!inCall) return setHint(false);
+    setHint(true);
+    const t = setTimeout(() => setHint(false), 8000);
+    return () => clearTimeout(t);
+  }, [inCall]);
+  useEffect(() => {
+    if (camOn) setHint(false);
+  }, [camOn]);
   return (
     <div className="row call-controls">
       {inCall ? (
@@ -30,15 +41,22 @@ export function CallControls({ space, snap }: Readonly<{ space: Space; snap: Sna
           >
             <Icon name={micOn ? "mic" : "micOff"} />
           </button>
-          <button
-            className={`icon-btn ${camOn ? "" : "off"}`}
-            aria-label={camOn ? "Turn off camera" : "Turn on camera"}
-            aria-pressed={!camOn}
-            title={camOn ? "Turn off camera" : "Turn on camera"}
-            onClick={() => void space.toggleCam()}
-          >
-            <Icon name={camOn ? "video" : "videoOff"} />
-          </button>
+          <span className="cam-wrap">
+            <button
+              className={`icon-btn ${camOn ? "" : "off"}`}
+              aria-label={camOn ? "Turn off camera" : "Turn on camera"}
+              aria-pressed={!camOn}
+              title={camOn ? "Turn off camera" : "Turn on camera"}
+              onClick={() => void space.toggleCam()}
+            >
+              <Icon name={camOn ? "video" : "videoOff"} />
+            </button>
+            {hint && !camOn && (
+              <span className="cam-hint" role="status">
+                Your camera is off. Click to turn it on.
+              </span>
+            )}
+          </span>
         </>
       ) : (
         <button className="primary" aria-label="Start call" title="Start call" onClick={() => void space.startCamera(startWithCamera)}>

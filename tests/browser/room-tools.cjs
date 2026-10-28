@@ -1,4 +1,4 @@
-// The workspace (notes everyone types in at once, pages, polls, a board), the cards and commands that bring it into the chat,
+// The workspace (notes everyone types in at once, polls, a board), the cards and commands that bring it into the chat,
 // and search, between two people in a room.
 const { chromium } = require("../lib/browser.cjs");
 let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; console.log(c ? "PASS" : "FAIL", n, c ? "" : x); };
@@ -65,24 +65,6 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   await type(B, "start", "XYZ"); await A.waitForTimeout(1200);
   ok("when someone types before your caret, it moves with the text instead of jumping", (await A.evaluate(() => document.querySelector('textarea[aria-label="Note"]').selectionStart)) === 11);
 
-  // ---- a page is its author's, shown in a locked box
-  await A.getByRole("button", { name: "+ Page" }).click();
-  await A.getByLabel("Page HTML").fill('<h1>Hello page</h1><script>parent.document.title="pwned"</script><img src="http://localhost:9/evil.png">'); await A.waitForTimeout(1300);
-  await B.getByRole("button", { name: /My page/ }).first().click({ timeout: 10000 }); await B.waitForTimeout(500);
-  ok("another member sees the page but cannot edit it", (await B.getByLabel("Page HTML").count()) === 0 && (await B.locator("iframe.page-frame").count()) === 1);
-  ok("it is shown in a frame with every permission off and a policy forbidding scripts and outside loads", (await B.locator("iframe.page-frame").getAttribute("sandbox")) === "" && /default-src 'none'/.test((await B.locator("iframe.page-frame").getAttribute("srcdoc")) ?? ""));
-  const frame = await (await B.locator("iframe.page-frame").elementHandle()).contentFrame();
-  ok("the page renders, and its script did not run", (await frame.locator("h1").innerText()) === "Hello page" && !/pwned/.test(await B.title()) && !/pwned/.test(await A.title()));
-
-  // an author can open a page so everyone edits it live
-  await A.getByLabel("Let anyone in the room edit this page").check(); await A.waitForTimeout(1200);
-  await B.getByLabel("Page HTML").waitFor({ timeout: 10000 });
-  ok("opening a page gives everyone its editor, with the author's HTML kept", (await B.getByLabel("Page HTML").inputValue()).includes("Hello page"));
-  await Promise.all([B.getByLabel("Page HTML").fill("<h1>Edited by Ben</h1>")]); await A.waitForTimeout(1500);
-  ok("a member's edit to an open page shows for the author, in the locked frame", (await A.getByLabel("Page HTML").inputValue()).includes("Edited by Ben") && (await (await (await A.locator("iframe.page-frame").elementHandle()).contentFrame()).locator("h1").innerText()) === "Edited by Ben");
-  await A.getByLabel("Let anyone in the room edit this page").uncheck(); await A.waitForTimeout(1200);
-  ok("closing it takes it back: the text is kept and only the author edits", (await B.getByLabel("Page HTML").count()) === 0 && (await A.getByLabel("Page HTML").inputValue()).includes("Edited by Ben"));
-
   // ---- the board
   await A.getByRole("tab", { name: "Board" }).click(); await B.getByRole("tab", { name: "Board" }).click();
   const cv = A.locator("canvas.board"); const box = await cv.boundingBox();
@@ -97,7 +79,7 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
 
   // ---- the + menu and the sidebar
   await A.getByRole("button", { name: "Add to the room" }).click();
-  ok("the + menu in the composer offers note, page, poll, whiteboard and search", (await A.getByRole("menuitem").allInnerTexts()).join("|").match(/note.*page.*poll.*whiteboard.*search/is) !== null);
+  ok("the + menu in the composer offers note, poll, whiteboard and search (and no page)", (await A.getByRole("menuitem").allInnerTexts()).join("|").match(/note.*poll.*whiteboard.*search/is) !== null && !/page/i.test((await A.getByRole("menuitem").allInnerTexts()).join("|")));
   await A.getByRole("menuitem", { name: /Whiteboard/ }).click();
   ok("choosing Whiteboard opens it beside the chat", (await ws(A).getByRole("tab", { name: "Board", selected: true }).count()) === 1);
   await A.keyboard.press("Escape");

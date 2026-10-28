@@ -47,8 +47,8 @@ export default function SearchPalette({ snap, space }: Readonly<{ snap: Snapshot
       }
     }
     for (const d of state.tools.docs.values()) {
-      const text = d.kind === "note" || d.open ? space.docText(d.id) : d.body.replaceAll(/<[^>]*>/g, " ");
-      if (has(`${d.title} ${text}`)) out.push({ key: d.id, kind: d.kind === "page" ? "Page" : "Note", title: d.title, snippet: snippet(text, words), ts: d.ts, open: () => { openSearch(false); openTool("docs", d.id); } });
+      const text = space.docText(d.id);
+      if (has(`${d.title} ${text}`)) out.push({ key: d.id, kind: "Note", title: d.title, snippet: snippet(text, words), ts: d.ts, open: () => { openSearch(false); openTool("docs", d.id); } });
     }
     for (const p of state.tools.polls.values()) if (has(`${p.q} ${p.opts.join(" ")}`)) out.push({ key: p.id, kind: "Poll", title: p.q, snippet: p.opts.join(" · "), ts: 0, open: () => { openSearch(false); openTool("polls"); } });
     return out.sort((a, b) => b.ts - a.ts).slice(0, 60);
@@ -65,7 +65,7 @@ export default function SearchPalette({ snap, space }: Readonly<{ snap: Snapshot
   return createPortal(
     <div className="modal-scrim palette-scrim" onClick={() => openSearch(false)}>
     <div className="modal palette" role="dialog" aria-modal="true" aria-label="Search this room" onClick={(e) => e.stopPropagation()}>
-      <input ref={input} aria-label="Search this room" placeholder="Search this room: messages, files, notes, pages, polls" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input ref={input} aria-label="Search this room" placeholder="Search this room: messages, files, notes, polls" value={q} onChange={(e) => setQ(e.target.value)} />
       {q.trim() && hits.length === 0 && <p className="muted">Nothing found.</p>}
       <ul className="hits">
         {hits.map((h) => (

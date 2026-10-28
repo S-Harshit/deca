@@ -681,19 +681,32 @@ registerWidget({
   id: "tools",
   title: "Workspace",
   order: 25,
-  render: () => (
-    <section className="panel" aria-label="Workspace">
-      <h3>
-        <SlotToggle /> Workspace
-      </h3>
-      <div className="tool-launch">
-        <button className="small-btn" onClick={() => openTool("docs")}>Notes &amp; pages</button>
-        <button className="small-btn" onClick={() => openTool("polls")}>Polls</button>
-        <button className="small-btn" onClick={() => openTool("board")}>Board</button>
-        <button className="small-btn" onClick={() => openSearch()}>Search</button>
-      </div>
-    </section>
-  ),
+  render: ({ snap }) => {
+    const { docs, polls, strokes } = snap.state.tools;
+    const open = [...polls.values()].filter((p) => !p.ended).length;
+    const tiles = [
+      { icon: "file", name: "Notes", hint: docs.size ? `${docs.size} in the room` : "Write together", go: () => openTool("docs") },
+      { icon: "poll", name: "Polls", hint: open ? `${open} open` : "Ask the room", go: () => openTool("polls") },
+      { icon: "pen", name: "Board", hint: strokes.length ? "Sketch in progress" : "Draw together", go: () => openTool("board") },
+      { icon: "search", name: "Search", hint: "Messages, files, notes", go: () => openSearch() },
+    ] as const;
+    return (
+      <section className="panel" aria-label="Workspace">
+        <h3>
+          <SlotToggle /> Workspace
+        </h3>
+        <div className="tool-launch">
+          {tiles.map((t) => (
+            <button key={t.name} className="tool-tile" onClick={t.go}>
+              <Icon name={t.icon} size={18} />
+              <strong>{t.name}</strong>
+              <span className="muted small">{t.hint}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    );
+  },
 });
 registerWidget({ id: "host", title: "Host controls", order: 30, hostOnly: true, render: ({ space, snap }) => <HostControls space={space} snap={snap} /> });
 
