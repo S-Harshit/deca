@@ -20,7 +20,7 @@ import { GamesPanel, type Game } from "./components/GamesPanel";
 import { ask } from "./confirm";
 import { Icon } from "./components/Icons";
 import { Logo } from "./components/Logo";
-import { loadIdentity, type Identity } from "./identity";
+import { identityForRoom, loadIdentity, type Identity } from "./identity";
 import { playHorn, unlockAudio } from "./horn";
 import { MusicPlayer, NowPlaying } from "./components/MusicPlayer";
 import { Members } from "./components/Members";
@@ -73,21 +73,25 @@ function App() {
     };
   }, [space]);
 
-  const enter = (id: string, opts?: { transfer?: boolean; asName?: string }) => {
+  const enter = async (id: string, opts?: { transfer?: boolean; asName?: string }) => {
     const nm = (opts?.asName ?? name).trim();
     if (!identity || !nm || !id) return;
     sessionStorage.setItem("name", nm);
     if (opts?.asName) setName(nm);
     if (opts?.transfer) markTransfer(id);
+    const who = await identityForRoom(id, identity); // the same person as last time in this room, on this browser
+    setIdentity(who);
     location.hash = `/s/${id}`;
-    setSpace(new Space(id, identity, nm));
+    setSpace(new Space(id, who, nm));
   };
 
   /** A room with no server: `route` is the invite followed, or null when making a new room (we are its host). */
   const enterManual = async (r: ManualRoute | null, reveal = true) => {
     if (!identity || !name.trim()) return;
-    const me = identity.peerId;
     const room = r?.room ?? rid().slice(0, 12);
+    const who = await identityForRoom(room, identity);
+    setIdentity(who);
+    const me = who.peerId;
     const hostId = r?.hostId ?? me;
     sessionStorage.setItem("name", name.trim());
     // Before any code is made: lets the browser put its real Wi-Fi address in it (asks for the microphone once; nothing is recorded).
@@ -95,7 +99,7 @@ function App() {
     // The address keeps the way in: the invite we followed (so a refresh can dial that person again), or our own link if we made the room.
     const entry = r ? r.seed : { id: me, name: name.trim() };
     location.hash = `/m/${room}/${entry.id}/${hostId}/${encodeURIComponent(entry.name)}`;
-    const created = new Space(room, identity, name.trim(), { hostId, seed: r ? r.seed : null });
+    const created = new Space(room, who, name.trim(), { hostId, seed: r ? r.seed : null });
     created.holdMic(mic);
     setSpace(created);
   };
@@ -151,7 +155,7 @@ function Landing({
   spaceId: string | null;
   manualRoute: ManualRoute | null;
   enterManual: (r: ManualRoute | null, reveal: boolean) => void;
-  enter: (id: string, opts?: { transfer?: boolean; asName?: string }) => void;
+  enter: (id: string, opts?: { transfer?: boolean; asName?: string }) => void | Promise<void>;
   theme: React.ReactNode;
   identityReady: boolean;
   identityFailed: boolean;
@@ -642,10 +646,12 @@ registerWidget({ id: "host", title: "Host controls", order: 30, hostOnly: true, 
 function RoomOptionsControls({ space, snap }: Readonly<{ space: Space; snap: Snapshot }>) {
   const { options } = snap.state;
   const [minutes, setMinutes] = useState(60);
+  const [custom, setCustom] = useState(false);
+  const clamp = (n: number) => Math.min(1440, Math.max(1, Math.round(n) || 60)); // a minute to a day (the most a room may be set ahead)
   return (
     <>
       <label className="toggle" title="The room closes for everyone when the time is up. Everyone sees a countdown.">
-        <input type="checkbox" checked={options.endsAt > 0} onChange={(e) => space.setOptions({ endsAt: e.target.checked ? Date.now() + minutes * 60000 : 0 })} />
+        <input type="checkbox" checked={options.endsAt > 0} onChange={(e) => space.setOptions({ endsAt: e.target.checked ? Date.now() + clamp(minutes) * 60000 : 0 })} />
         End this room after a set time
       </label>
       {options.endsAt > 0 ? (
@@ -655,13 +661,32 @@ function RoomOptionsControls({ space, snap }: Readonly<{ space: Space; snap: Sna
           </button>
         </div>
       ) : (
-        <select aria-label="How long the room lasts" value={minutes} onChange={(e) => setMinutes(Number(e.target.value))}>
-          {[5, 15, 30, 45, 60, 90, 120].map((m) => (
-            <option key={m} value={m}>
-              {m} minutes
-            </option>
-          ))}
-        </select>
+        <div className="row small-row">
+          <select
+            aria-label="How long the room lasts"
+            value={custom ? "custom" : minutes}
+            onChange={(e) => {
+              if (e.target.value === "custom") setCustom(true);
+              else {
+                setCustom(false);
+                setMinutes(Number(e.target.value));
+              }
+            }}
+          >
+            {[5, 15, 30, 45, 60, 90, 120].map((m) => (
+              <option key={m} value={m}>
+                {m} minutes
+              </option>
+            ))}
+            <option value="custom">Custom…</option>
+          </select>
+          {custom && (
+            <label className="row small-row">
+              <input type="number" aria-label="Custom length in minutes" min={1} max={1440} value={minutes} style={{ width: "5.5rem", flex: "none" }} onChange={(e) => setMinutes(Number(e.target.value))} onBlur={() => setMinutes(clamp(minutes))} />
+              <span className="muted small">minutes (1 to 1440)</span>
+            </label>
+          )}
+        </div>
       )}
       <label className="toggle" title="When the room ends, everyone sees who was here, what was shared, and the highlights.">
         <input type="checkbox" checked={options.summary} onChange={(e) => space.setOptions({ summary: e.target.checked })} />

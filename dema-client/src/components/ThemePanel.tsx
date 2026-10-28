@@ -108,6 +108,10 @@ export function ThemePanel({ prefs, update, reset }: Props) {
             <input type="checkbox" checked={prefs.titleBadge} onChange={(e) => update({ titleBadge: e.target.checked })} />
             Unread count in the tab title
           </label>
+          <label className="toggle" title="When off, starting a call turns on only your microphone; the camera starts when you press its button">
+            <input type="checkbox" checked={prefs.startWithCamera} onChange={(e) => update({ startWithCamera: e.target.checked })} />
+            Turn the camera on when I start a call
+          </label>
           <label className="toggle" title="A soft chime, and the tab title says who arrived while you are in another tab">
             <input type="checkbox" checked={prefs.joinAlert} onChange={(e) => update({ joinAlert: e.target.checked })} />
             Chime when someone joins

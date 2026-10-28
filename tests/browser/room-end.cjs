@@ -21,6 +21,15 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   await A.getByRole("button", { name: "Add 15 min" }).click(); await A.waitForTimeout(500);
   const pill2 = await B.getByRole("timer", { name: "Time left in this room" }).innerText();
   ok("adding time extends it for everyone (about 20 minutes)", /ends in (19:[45]\d|20:0\d)/.test(pill2), pill2);
+  // a custom length
+  await timerBox.uncheck(); await B.waitForFunction(() => !document.querySelector('[aria-label="Time left in this room"]'), null, { timeout: 5000 });
+  await A.locator('select[aria-label="How long the room lasts"]').selectOption("custom");
+  await A.getByLabel("Custom length in minutes").fill("7"); await timerBox.check();
+  const pillC = await B.getByRole("timer", { name: "Time left in this room" }).innerText();
+  ok("a custom length works (7 minutes)", /ends in (6:[45]\d|7:0\d)/.test(pillC), pillC);
+  await timerBox.uncheck(); await B.waitForFunction(() => !document.querySelector('[aria-label="Time left in this room"]'), null, { timeout: 5000 });
+  await A.getByLabel("Custom length in minutes").fill("99999"); await A.getByLabel("Custom length in minutes").blur();
+  ok("an absurd custom length is brought down to a day", (await A.getByLabel("Custom length in minutes").inputValue()) === "1440");
   // turn it off then on again, then jump to the end
   await timerBox.uncheck(); await B.waitForFunction(() => !document.querySelector('[aria-label="Time left in this room"]'), null, { timeout: 5000 });
   ok("turning it off removes the countdown", true);

@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { Space, Snapshot, Tile } from "../space";
+import { usePrefsValue } from "../theme";
 import { Avatar } from "./Avatar";
 import { Icon } from "./Icons";
 
 /** Call buttons for the top bar: start/leave call, mic, camera, screen share. */
 export function CallControls({ space, snap }: Readonly<{ space: Space; snap: Snapshot }>) {
   const { inCall, sharing, micOn, camOn } = snap;
+  const { startWithCamera } = usePrefsValue();
   return (
     <div className="row call-controls">
       {inCall ? (
@@ -24,13 +26,13 @@ export function CallControls({ space, snap }: Readonly<{ space: Space; snap: Sna
             aria-label={camOn ? "Turn off camera" : "Turn on camera"}
             aria-pressed={!camOn}
             title={camOn ? "Turn off camera" : "Turn on camera"}
-            onClick={() => space.toggleCam()}
+            onClick={() => void space.toggleCam()}
           >
             <Icon name={camOn ? "video" : "videoOff"} />
           </button>
         </>
       ) : (
-        <button className="primary" aria-label="Start call" title="Start call" onClick={() => void space.startCamera()}>
+        <button className="primary" aria-label="Start call" title="Start call" onClick={() => void space.startCamera(startWithCamera)}>
           <Icon name="video" /> <span className="hide-md">Start call</span>
         </button>
       )}

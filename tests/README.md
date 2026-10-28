@@ -23,6 +23,7 @@ A failing suite is retried once (`RETRIES=0` to turn that off) because a few are
 
 ## Notes
 
+- **Camera:** the app starts calls with the camera off. `lib/browser.cjs` turns the "start with camera" setting on for every suite so the many video tests keep working; a suite about the real default launches with `{ realDefaults: true }` (see `call-camera.cjs`).
 - The tests are written against `http://localhost:8080/`. `DECA_URL` points navigation at an app running elsewhere, but a few suites also check text that contains the address, so use port 8080 when you can.
 - **Needs internet:** `music-*` play a real YouTube video. `static-build` builds `dist-static` first if missing (which downloads Freedoom's data file when it can).
 - **Slow:** `code-mode-slow` waits on purpose (30 s per code, to prove a slow human is not reported as a failure). It takes a couple of minutes.

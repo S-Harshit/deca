@@ -18,14 +18,38 @@ function aimContext(ctx) {
   return ctx;
 }
 
+// Calls start with the camera OFF by default (the app's own default), but most tests are about video, so they turn the "start with
+// camera" preference on before the page loads. A test about the real default passes launch({ realDefaults: true }).
+const CAMERA_ON = () => {
+  try {
+    const k = "deca.prefs";
+    const v = JSON.parse(localStorage.getItem(k) || "{}");
+    if (v.startWithCamera === undefined) {
+      v.theme ||= "graphite"; // the app ignores saved preferences that name no known theme
+      v.startWithCamera = true;
+      localStorage.setItem(k, JSON.stringify(v));
+    }
+  } catch {
+    // no storage: the app default applies
+  }
+};
+
 const chromium = {
   launch: async (opts = {}) => {
-    const { executablePath: _ignored, ...rest } = opts; // tests never pick a binary themselves
+    const { executablePath: _ignored, realDefaults, ...rest } = opts; // tests never pick a binary themselves
     const b = await pw.chromium.launch({ ...rest, ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}) });
     const newContext = b.newContext.bind(b);
-    b.newContext = async (o) => aimContext(await newContext(o));
+    b.newContext = async (o) => {
+      const c = aimContext(await newContext(o));
+      if (!realDefaults) await c.addInitScript(CAMERA_ON);
+      return c;
+    };
     const newPage = b.newPage.bind(b);
-    b.newPage = async (o) => aim(await newPage(o));
+    b.newPage = async (o) => {
+      const p = await newPage(o);
+      if (!realDefaults) await p.addInitScript(CAMERA_ON);
+      return aim(p);
+    };
     return b;
   },
 };

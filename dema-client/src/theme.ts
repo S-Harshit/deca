@@ -50,6 +50,8 @@ export type Prefs = {
   titleBadge: boolean;
   /** A soft chime (and a note in the tab title) when someone joins the room. */
   joinAlert: boolean;
+  /** Starting a call also turns the camera on. Off by default: the microphone starts, and the camera when you choose. */
+  startWithCamera: boolean;
   /** A personal wallpaper is set (the picture itself is in IndexedDB, only on this device). */
   wallpaper: boolean;
   /** How much the theme colour covers the picture (percent) and how blurred it is (px). */
@@ -72,7 +74,7 @@ export const SIDEBAR_MAX = 440;
 const KEY = "deca.prefs";
 
 function defaults(): Prefs {
-  return { theme: "graphite", accent: null, scale: 1, compact: false, radius: 8, linkPreviews: true, home: "simple", hornSound: true, sidebarW: null, collapsed: [], clock: "auto", titleBadge: true, joinAlert: true, wallpaper: false, wallDim: 55, wallBlur: 0, wallAccent: "complement", wallHue: 210, wallSat: 0, wallColorful: false, wallRev: 0 };
+  return { theme: "graphite", accent: null, scale: 1, compact: false, radius: 8, linkPreviews: true, home: "simple", hornSound: true, sidebarW: null, collapsed: [], clock: "auto", titleBadge: true, joinAlert: true, startWithCamera: false, wallpaper: false, wallDim: 55, wallBlur: 0, wallAccent: "complement", wallHue: 210, wallSat: 0, wallColorful: false, wallRev: 0 };
 }
 
 /** Stored values come from the user's own browser but can be stale, hand-edited or from another version. */
@@ -86,6 +88,7 @@ function sanitize(p: Prefs): Prefs {
     clock: p.clock === "12" || p.clock === "24" ? p.clock : "auto",
     titleBadge: typeof p.titleBadge === "boolean" ? p.titleBadge : d.titleBadge,
     joinAlert: typeof p.joinAlert === "boolean" ? p.joinAlert : d.joinAlert,
+    startWithCamera: typeof p.startWithCamera === "boolean" ? p.startWithCamera : d.startWithCamera,
     wallpaper: p.wallpaper === true,
     wallDim: typeof p.wallDim === "number" && Number.isFinite(p.wallDim) ? Math.min(90, Math.max(0, Math.round(p.wallDim))) : d.wallDim,
     wallBlur: typeof p.wallBlur === "number" && Number.isFinite(p.wallBlur) ? Math.min(16, Math.max(0, Math.round(p.wallBlur))) : d.wallBlur,

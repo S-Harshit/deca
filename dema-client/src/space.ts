@@ -154,6 +154,7 @@ export class Space {
   private announceTimer?: ReturnType<typeof setTimeout>;
   private refreshTimer?: ReturnType<typeof setTimeout>;
   private ended: Snapshot["ended"] = null;
+  private camBusy = false;
   /** Tracks heard and screens shared in this visit, for the end summary (the log has neither). */
   private readonly tracks: string[] = [];
   private readonly screenShares = new Map<string, Set<string>>();
@@ -1064,7 +1065,7 @@ export class Space {
   }
 
   /** Join the call: camera + mic, falling back to mic only if there is no usable camera. */
-  async startCamera() {
+  async startCamera(withVideo = true) {
     if (this.tornDown || this.camera) return;
     this.mediaError = "";
     try {
@@ -1072,8 +1073,10 @@ export class Space {
       const gum = (c: MediaStreamConstraints) => navigator.mediaDevices.getUserMedia(c);
       let stream: MediaStream | undefined;
       let why = "";
+      // Microphone only: the camera is not even asked for (its light stays off) until the person turns it on.
+      if (!withVideo) stream = await gum({ audio: AUDIO_CONSTRAINTS });
       // Progressively simpler requests: a strict one can fail on phones even with a working camera.
-      for (const video of [VIDEO_CONSTRAINTS, true]) {
+      for (const video of withVideo ? [VIDEO_CONSTRAINTS, true] : []) {
         try {
           stream = await gum({ video, audio: AUDIO_CONSTRAINTS });
           break;
@@ -1164,11 +1167,48 @@ export class Space {
     this.refresh();
   }
 
-  toggleCam() {
-    if (!this.camera || this.camera.getVideoTracks().length === 0) return;
-    this.camOn = !this.camOn;
-    this.camera.getVideoTracks().forEach((t) => (t.enabled = this.camOn));
-    this.mesh.broadcast(this.mediaMsg());
-    this.refresh();
+  /** Camera off releases the camera itself (its light goes out); on asks for it again, so a call can start without one. */
+  async toggleCam() {
+    const stream = this.camera;
+    if (!stream || this.camBusy) return;
+    if (this.camOn) {
+      for (const t of stream.getVideoTracks()) {
+        stream.removeTrack(t);
+        t.stop();
+      }
+      this.camOn = false;
+      this.publish();
+      return;
+    }
+    this.camBusy = true;
+    this.mediaError = "";
+    try {
+      if (!navigator.mediaDevices) throw new Error("Camera needs a secure context: use https:// or localhost");
+      let got: MediaStream | undefined;
+      for (const video of [VIDEO_CONSTRAINTS, true]) {
+        try {
+          got = await navigator.mediaDevices.getUserMedia({ video });
+          break;
+        } catch (err) {
+          if (err instanceof DOMException && err.name === "NotAllowedError") throw err;
+        }
+      }
+      const track = got?.getVideoTracks()[0];
+      if (!track) throw new Error("no camera");
+      track.applyConstraints({ frameRate: { max: 24 } }).catch(() => undefined);
+      track.contentHint = "motion";
+      track.addEventListener("ended", () => this.camera === stream && stream.getVideoTracks().includes(track) && void this.toggleCam());
+      if (this.camera !== stream || this.tornDown) track.stop(); // the call ended while the browser was asking
+      else {
+        stream.addTrack(track);
+        this.camOn = true;
+        this.publish();
+      }
+    } catch (err) {
+      this.mediaError = mediaErrorText(err);
+      this.refresh();
+    } finally {
+      this.camBusy = false;
+    }
   }
 }
