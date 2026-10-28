@@ -482,7 +482,8 @@ code.inline { font-family: var(--font-mono); font-size: 0.86em; background: var(
   .music.float { position: fixed; right: 24px; bottom: 96px; z-index: 50; width: 300px; box-shadow: var(--shadow); }
   .music.float h3 { cursor: grab; touch-action: none; user-select: none; }
   .music.float .player-frame { height: 150px; }
-  .music.float .queue, .music.float .viz { display: none; }
+  .music.float .viz { display: none; }
+  .music.float .queue { max-height: 7.5rem; } /* the up-next list stays in the pop-out too: it is where you choose what plays */
   /* leave no gap or fold control behind in the sidebar while the player is out */
   .slot:has(.music.float) { height: 0; margin-bottom: calc(-1 * var(--gap)); }
 }
@@ -747,3 +748,5 @@ html[data-theme="web95"] .cam-hint::before { top: auto; bottom: -5px; }
 .queue-play:hover { background: var(--panel-2); }
 .queue-play .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .queue-toggle { display: none; }
+.similar-btn { width: 100%; justify-content: center; margin: 0.5rem 0 0; }
+.queue-head + .queue { margin-top: 0.2rem; }

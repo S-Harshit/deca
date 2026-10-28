@@ -40,6 +40,12 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   await C.getByLabel("YouTube link").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1"); await C.getByLabel("Add to queue").click();
   await C.locator(".np-title").waitFor({ timeout: 40000 }); await C.waitForTimeout(3000);
   ok("a link from an automatic mix adds only that song", (await queue(C)) === 0);
+  // the pop-out keeps the list too (it is where you choose what plays), and the extra button is the same width as the box
+  await A.getByRole("button", { name: "Pop out the player" }).click(); await A.waitForTimeout(500);
+  const fl = await A.evaluate(() => { const box = document.querySelector(".music.float")?.getBoundingClientRect(), q = document.querySelector(".music.float .queue"), s = document.querySelector(".music.float .similar-btn")?.getBoundingClientRect(); return { qVisible: !!q && getComputedStyle(q).display !== "none" && q.getBoundingClientRect().height > 20, plays: document.querySelectorAll(".music.float .queue-play").length, similarFull: !!(box && s && s.width > box.width * 0.8) }; });
+  ok("the pop-out player shows the up-next list with a play button on each song", fl.qVisible && fl.plays > 3, JSON.stringify(fl));
+  ok("Add similar songs sits full width under the list, not stuck to one side", fl.similarFull, JSON.stringify(fl));
+  await A.getByRole("button", { name: "Dock the player" }).click(); await A.waitForTimeout(400);
   // full screen means the picture fills it; the queue opens over it only when asked for
   await A.getByRole("button", { name: "Maximise player" }).click().catch(() => {}); await A.waitForTimeout(700);
   const geo = await A.evaluate(() => { const f = document.querySelector(".music .player-frame")?.getBoundingClientRect(), q = document.querySelector(".music .queue-wrap"); return { fh: f && Math.round(f.height), fw: f && Math.round(f.width), vh: innerHeight, vw: innerWidth, queueShown: !!q && getComputedStyle(q).display !== "none" }; });
