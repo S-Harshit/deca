@@ -45,20 +45,6 @@ export function parsePlaylistId(input: string): string | null {
   }
 }
 
-/** A link to one video inside an automatic mix (the "radio" YouTube starts when you listen to a song: a `list=RD...` with a `v=`): that video. */
-export function parseMixSeed(input: string): string | null {
-  try {
-    const text = input.trim();
-    const u = new URL(text.startsWith("http") ? text : `https://${text}`);
-    const host = u.hostname.replace(/^(www|m|music)\./, "");
-    const v = u.searchParams.get("v");
-    const list = u.searchParams.get("list") ?? "";
-    return (host === "youtube.com" || host === "youtube-nocookie.com") && v && /^[\w-]{11}$/.test(v) && /^RD/.test(list) ? v : null;
-  } catch {
-    return null;
-  }
-}
-
 /** A personal mix ("My Mix", "Discover") or a private list: YouTube never serves these to a page that is not signed in as you. */
 export const isPersonalList = (list: string) => /^(RDMM|RDEM|RDGM|LM$|WL$|LL$)/.test(list) || list === "LM" || list === "WL";
 

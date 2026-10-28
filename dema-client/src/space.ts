@@ -17,7 +17,7 @@ import { Mesh, type PeerInfo } from "./mesh";
 import type { Identity } from "./identity";
 import { signEvent, verifyEvent } from "./signing";
 import { advance, EMPTY_MUSIC, fetchTitle, isNewer, parseVideoId, positionNow, sanitize, type MusicState } from "./music";
-import { isPersonalList, parseMixSeed, parsePlaylistId, playlistIds } from "./yt";
+import { isPersonalList, parsePlaylistId, playlistIds } from "./yt";
 
 const ANNOUNCE_TIMEOUT_MS = 4000;
 /** Images up to this size are fetched automatically so they can show inline. */
@@ -1107,33 +1107,26 @@ export class Space {
     return "";
   }
   /** Queue the videos of a playlist (those that can be played here, in order, as many as fit). */
-  async musicAddPlaylist(input: string): Promise<{ added: number; error?: string }> {
+  async musicAddPlaylist(input: string, confirm?: (count: number) => Promise<boolean>): Promise<{ added: number; error?: string }> {
     const list = parsePlaylistId(input);
     if (!list) return { added: 0, error: "That doesn't look like a YouTube playlist link" };
     if (isPersonalList(list)) return { added: 0, error: "YouTube keeps personal mixes (My Mix, Liked, Watch later) to your own account. Play one song from it, paste that song's link here, then press Add similar songs" };
-    return this.addMany(await playlistIds(list, 80), "YouTube would not give the videos in that playlist (it may be private, or not exist)");
-  }
-  /** A link to a song inside one of YouTube's automatic mixes: queue the song, then the mix built around it. */
-  async musicAddMix(input: string): Promise<{ added: number; error?: string }> {
-    const vid = parseMixSeed(input);
-    if (!vid) return { added: 0, error: "That doesn't look like a YouTube link" };
-    const err = await this.musicAdd(vid);
-    if (err) return { added: 0, error: err };
-    const more = await this.addMany(await playlistIds(`RD${vid}`, 80), "");
-    return { added: 1 + more.added }; // the song itself is queued even when YouTube has nothing more to suggest
+    const ids = await playlistIds(list, 80);
+    if (ids.length && confirm && !(await confirm(Math.min(ids.length, 50)))) return { added: 0 }; // a whole playlist is never added without asking
+    return this.addMany(ids, "YouTube would not give the videos in that playlist (it may be private, or not exist)");
   }
   /** Queue songs YouTube builds around the one that is playing (its "mix"). */
   async musicSimilar(): Promise<{ added: number; error?: string }> {
     const vid = this.music?.cur?.vid;
     if (!vid) return { added: 0, error: "Play a song first" };
-    return this.addMany(await playlistIds(`RD${vid}`, 80), "YouTube did not suggest anything similar for this one");
+    return this.addMany(await playlistIds(`RD${vid}`, 80), "YouTube did not suggest anything similar for this one", 15); // a handful, not a flood
   }
-  private async addMany(ids: string[], empty: string): Promise<{ added: number; error?: string }> {
+  private async addMany(ids: string[], empty: string, limit = 50): Promise<{ added: number; error?: string }> {
     if (!this.canSpeak("music")) return { added: 0, error: "The host has turned music controls off" };
     const have = new Set([this.music?.cur?.vid, ...(this.music?.queue ?? []).map((t) => t.vid)]);
     const fresh = ids.filter((id, i) => !have.has(id) && ids.indexOf(id) === i);
     if (!fresh.length) return { added: 0, error: ids.length ? "Those are already queued" : empty };
-    const room = 50 - (this.music?.queue.length ?? 0) - (this.music?.cur ? 0 : 1);
+    const room = Math.min(limit, 50 - (this.music?.queue.length ?? 0) - (this.music?.cur ? 0 : 1));
     if (room <= 0) return { added: 0, error: "The queue is full (50 songs)" };
     // Titles, a few at a time; a video that cannot be played outside YouTube is left out rather than queued to fail.
     const found: { vid: string; title: string; by: string }[] = [];
@@ -1157,6 +1150,17 @@ export class Space {
       const [next, ...rest] = s.queue;
       return { cur: next ?? null, queue: rest, playing: !!next, pos: 0 };
     });
+  }
+  /** Play a chosen song from the up-next list now; the rest of the list stays as it was. */
+  musicPlayAt(index: number) {
+    this.act((s) => {
+      const t = s.queue[index];
+      return t ? { cur: t, queue: s.queue.filter((_, i) => i !== index), playing: true, pos: 0 } : {};
+    });
+  }
+  /** Empty the up-next list (what is playing carries on). */
+  musicClearQueue() {
+    this.act(() => ({ queue: [] }));
   }
   musicRemove(index: number) {
     this.act((s) => ({ queue: s.queue.filter((_, i) => i !== index) }));

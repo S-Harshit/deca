@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- the YouTube IFrame API ships no types */
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { positionNow } from "../music";
-import { loadYT, parseMixSeed, parsePlaylistId } from "../yt";
+import { ask } from "../confirm";
+import { loadYT, parsePlaylistId } from "../yt";
 import type { Snapshot, Space } from "../space";
 import { SlotToggle } from "../slot";
 import { notify } from "../toast";
@@ -25,6 +26,15 @@ const keepOnScreen = (x: number, y: number, width: number) => ({
 /** How far a player may be from the shared position before it is moved: a little over a second is not heard as "out of sync", and moving it
  *  every time it wobbles would be worse (each move briefly buffers). */
 const DRIFT = 1.0;
+/** Turn captions off in the embedded player (best effort: YouTube honours the account's own setting unless asked). */
+const noCaptions = (p: any) => {
+  try {
+    p.unloadModule?.("captions");
+    p.unloadModule?.("cc");
+  } catch {
+    // an older or busy player: the player variable already asks for none
+  }
+};
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 /** Small shared listening room: everyone plays the same YouTube video, in sync, locally. */
@@ -43,6 +53,7 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
   const [scrub, setScrub] = useState<number | null>(null);
   const [link, setLink] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showQ, setShowQ] = useState(false); // full screen only: the up-next list opens over the picture when asked for, instead of taking room from it
 
   const root = useRef<HTMLElement>(null);
   const [fsMax, setMax] = useState(false);
@@ -188,17 +199,19 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
         p = new YT.Player(mount, {
           width: "100%",
           height: "100%",
-          playerVars: { playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1 },
+          playerVars: { playsinline: 1, rel: 0, controls: 0, disablekb: 1, modestbranding: 1, cc_load_policy: 0, iv_load_policy: 3 }, // no captions, no pop-up notes over a video that is here for the music
           events: {
             onReady: () => {
               if (dead) return;
               player.current = p;
               setReady(true);
+              noCaptions(p);
             },
             onStateChange: (e: any) => {
               if (e.data === YT.PlayerState.ENDED) space.musicEnded(rev.current);
               if (e.data === YT.PlayerState.PLAYING) {
                 setBlocked(false);
+                noCaptions(p); // a viewer whose YouTube account always shows captions would otherwise see them in the mini player
                 // A track takes a moment to start after it is loaded, and the room did not wait: catch up the moment it is really playing.
                 const m = latest.current.music;
                 if (m?.playing && m.cur && loaded.current === m.cur.vid && Date.now() - loadedAt.current < 8000) {
@@ -288,14 +301,12 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
     setBusy(true);
     let first = "";
     for (const l of links) {
-      if (parseMixSeed(l)) {
-        const r = await space.musicAddMix(l);
+      if (parsePlaylistId(l)) {
+        const r = await space.musicAddPlaylist(l, (n) =>
+          ask({ title: `Add ${n} ${n === 1 ? "song" : "songs"} from this playlist?`, lines: ["They are added to the end of the queue for everyone. You can clear them all at once afterwards."], confirm: `Add ${n}`, cancel: "Not now" }),
+        );
         if (r.error) first ||= r.error;
-        else notify(`Added ${r.added} ${r.added === 1 ? "song" : "songs"} from the mix`);
-      } else if (parsePlaylistId(l)) {
-        const r = await space.musicAddPlaylist(l);
-        if (r.error) first ||= r.error;
-        else notify(`Added ${r.added} ${r.added === 1 ? "song" : "songs"} from the playlist`);
+        else if (r.added) notify(`Added ${r.added} ${r.added === 1 ? "song" : "songs"} from the playlist`);
       } else first ||= await space.musicAdd(l);
     }
     setBusy(false);
@@ -436,10 +447,31 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
       )}
 
       {!!music?.queue.length && (
+        <button className="small-btn queue-toggle" aria-expanded={showQ} onClick={() => setShowQ((v) => !v)}>
+          Up next ({music.queue.length})
+        </button>
+      )}
+
+      {!!music?.queue.length && (
+        <div className={`queue-wrap ${showQ ? "open" : ""}`}>
+        {canControl && music.queue.length > 1 && (
+          <div className="queue-head">
+            <span className="muted small">{music.queue.length} up next</span>
+            <button className="small-btn" onClick={() => space.musicClearQueue()}>
+              Clear queue
+            </button>
+          </div>
+        )}
         <ol className="queue" aria-label="Up next">
           {music.queue.map((t, i) => (
             <li key={`${t.vid}-${i}`}>
-              <span className="ellipsis" title={t.title}>{t.title}</span>
+              {canControl ? (
+                <button className="queue-play" aria-label={`Play ${t.title} now`} title="Play this one now" onClick={() => space.musicPlayAt(i)}>
+                  <span className="ellipsis">{t.title}</span>
+                </button>
+              ) : (
+                <span className="ellipsis" title={t.title}>{t.title}</span>
+              )}
               {canControl && (
                 <button className="icon-btn small" aria-label={`Remove ${t.title} from queue`} onClick={() => space.musicRemove(i)}>
                   <Icon name="x" size={13} />
@@ -448,6 +480,7 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
             </li>
           ))}
         </ol>
+        </div>
       )}
 
       {cur && canControl && (
