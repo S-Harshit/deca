@@ -671,3 +671,8 @@ html[data-theme="shadcn"] .sys { font-family: inherit; font-size: 0.8rem; color:
 
 /* your own camera is shown mirrored, like a mirror and like other video apps; only you see it that way (others get the true image) */
 .tile video.mirror { transform: scaleX(-1); }
+
+.qr-modal { width: min(380px, 100%); text-align: center; display: flex; flex-direction: column; gap: 0.8rem; }
+.qr-box { width: min(260px, 100%); margin: 0 auto; background: #fff; border-radius: var(--radius); padding: 4px; line-height: 0; }
+.qr-box svg { width: 100%; height: auto; display: block; }
+.qr-modal .link { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; font-size: 0.75rem; }

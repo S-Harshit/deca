@@ -1,3 +1,8 @@
+import { markTransfer, isTransfer } from "./transfer";
+import { deviceName } from "./qr";
+import { QrDialog } from "./components/QrDialog";
+import { setQrDialog, useQrDialog } from "./qrDialog";
+import { playChime } from "./horn";
 import { EndsIn, RoomSummary } from "./components/RoomEnd";
 import { onKonami } from "./konami";
 import { useScoresDialog, setScoresDialog } from "./scoresDialog";
@@ -68,11 +73,14 @@ function App() {
     };
   }, [space]);
 
-  const enter = (id: string) => {
-    if (!identity || !name.trim() || !id) return;
-    sessionStorage.setItem("name", name.trim());
+  const enter = (id: string, opts?: { transfer?: boolean; asName?: string }) => {
+    const nm = (opts?.asName ?? name).trim();
+    if (!identity || !nm || !id) return;
+    sessionStorage.setItem("name", nm);
+    if (opts?.asName) setName(nm);
+    if (opts?.transfer) markTransfer(id);
     location.hash = `/s/${id}`;
-    setSpace(new Space(id, identity, name.trim()));
+    setSpace(new Space(id, identity, nm));
   };
 
   /** A room with no server: `route` is the invite followed, or null when making a new room (we are its host). */
@@ -143,7 +151,7 @@ function Landing({
   spaceId: string | null;
   manualRoute: ManualRoute | null;
   enterManual: (r: ManualRoute | null, reveal: boolean) => void;
-  enter: (id: string) => void;
+  enter: (id: string, opts?: { transfer?: boolean; asName?: string }) => void;
   theme: React.ReactNode;
   identityReady: boolean;
   identityFailed: boolean;
@@ -204,6 +212,11 @@ function Landing({
       {!invited && (
         <button type="button" className="ghost" onClick={() => setHaveCode((h) => !h)}>
           {haveCode ? "Create a new space instead" : "I have an invite link"}
+        </button>
+      )}
+      {!invited && !haveCode && !serverless && !STATIC && (
+        <button type="button" className="ghost" disabled={!identityReady} onClick={() => enter(rid().slice(0, 12), { transfer: true, asName: name.trim() || deviceName() })} title="Make a private room just for you, then open it on your phone with a QR code. Send files, pictures and text between your own devices.">
+          Move files between my devices
         </button>
       )}
       {!invited && !haveCode && !STATIC && (
@@ -315,6 +328,8 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
   const [games, setGames] = useState<Game[]>([]);
   const [gameOpen, setGameOpen] = useState(false);
   const scoresOpen = useScoresDialog();
+  const qrOpen = useQrDialog();
+  const personal = isTransfer(space.spaceId);
   useEffect(() => onKonami(() => setScoresDialog(true)), []); // hidden: the leaderboard opens with the Konami code
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}games.json`)
@@ -322,7 +337,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
       .then((list) => setGames(Array.isArray(list) ? list : []))
       .catch(() => undefined); // no games folder: the feature simply isn't offered
   }, []);
-  const { hornSound, titleBadge, sidebarW } = usePrefsValue();
+  const { hornSound, titleBadge, joinAlert, sidebarW } = usePrefsValue();
   const prefsApi = usePrefsApi();
   const seenHorn = useRef<string | null>(null);
   const hornId = snap.horn?.id ?? null;
@@ -353,7 +368,26 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
   }, []);
 
   useMediaErrors(snap);
-  useUnreadTitle(snap, code, titleBadge);
+  useUnreadTitle(snap, code, titleBadge, joinAlert);
+
+  // A personal room ("move files between my devices"): show the QR code right away, and lock the room when the second device
+  // is in so nobody else can follow the link. Unlock any time in Host controls.
+  const qrShown = useRef(false);
+  useEffect(() => {
+    if (personal && !qrShown.current && snap.settled && !snap.manual) {
+      qrShown.current = true;
+      setQrDialog(true);
+    }
+  }, [personal, snap.settled, snap.manual]);
+  const locked = useRef(false);
+  const otherDevices = [...state.members.values()].filter((m) => m.online && m.peerId !== me).length;
+  useEffect(() => {
+    if (!personal || locked.current || !isHost || snap.locked || otherDevices < 1) return;
+    locked.current = true;
+    space.setLocked(true);
+    setQrDialog(false);
+    notify("Your other device is in. The room is locked so nobody else can join: unlock it in Host controls if you add another.");
+  }, [personal, isHost, snap.locked, otherDevices, space]);
 
   const hasStage = snap.tiles.length > 0;
   const showGame = gameOpen && games.length > 0;
@@ -469,6 +503,9 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
           <button aria-label="Invite people" title="Copy invite link" onClick={invite}>
             <Icon name={copied ? "check" : "link"} size={16} /> <span className="hide-md">{copied ? "Copied" : "Invite"}</span>
           </button>
+          <button className="icon-btn" aria-label="Show QR code" title="Open this room on another device" onClick={() => setQrDialog(true)}>
+            <Icon name="qr" size={16} />
+          </button>
           {games.length > 0 && (
             <button
               className={`icon-btn games-btn ${gameOpen ? "live" : ""}`}
@@ -500,6 +537,7 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
         </aside>
         {prefsApi && <SidebarGrip width={sidebarW} onChange={(w) => prefsApi.update({ sidebarW: w })} />}
 
+        {qrOpen && <QrDialog link={snap.manual?.invite ?? location.href} onClose={() => setQrDialog(false)} />}
         {scoresOpen && <ScoresDialog snap={snap} games={games} onClose={() => setScoresDialog(false)} />}
         <main className={`main ${hasStage || showGame ? "has-stage" : ""} ${chatExpanded ? "chat-big" : ""}`}>
           {showGame ? (
@@ -699,19 +737,22 @@ function useMediaErrors(snap: Snapshot) {
 }
 
 /** "(2) Deca · code" in the tab title while messages arrive in a background tab. */
-function useUnreadTitle(snap: Snapshot, code: string, badge: boolean) {
+function useUnreadTitle(snap: Snapshot, code: string, badge: boolean, joinAlert: boolean) {
   const seen = useRef(0);
   const unread = useRef(0);
+  const note = useRef("");
   const base = `Deca · ${code}`;
   const count = snap.state.visible.filter((e) => e.type === "chat" || e.type === "file_offer").length;
 
+  const show = useCallback(() => {
+    document.title = `${note.current ? `${note.current} · ` : ""}${unread.current ? `(${unread.current}) ` : ""}${base}`;
+  }, [base]);
+
   useEffect(() => {
-    const show = () => {
-      document.title = unread.current ? `(${unread.current}) ${base}` : base;
-    };
     const clear = () => {
       if (!document.hidden) {
         unread.current = 0;
+        note.current = "";
         show();
       }
     };
@@ -721,16 +762,36 @@ function useUnreadTitle(snap: Snapshot, code: string, badge: boolean) {
       document.removeEventListener("visibilitychange", clear);
       document.title = "Deca";
     };
-  }, [base]);
+  }, [show]);
 
   useEffect(() => {
     const fresh = count - seen.current;
     seen.current = count;
     if (fresh > 0 && document.hidden && badge) {
       unread.current += fresh;
-      document.title = `(${unread.current}) ${base}`;
+      show();
     }
-  }, [count, base, badge]);
+  }, [count, badge, show]);
+
+  // Someone arrives while we are here (not the people already in the room when we joined, who show up as the history syncs):
+  // a soft chime, and the tab title says who while we are in another tab.
+  const online = useRef<Set<string> | null>(null);
+  const settledAt = useRef(0);
+  useEffect(() => {
+    if (!snap.settled) return;
+    settledAt.current ||= Date.now();
+    const now = new Map([...snap.state.members.values()].filter((m) => m.online && m.peerId !== snap.me).map((m) => [m.peerId, m.name]));
+    const prev = online.current;
+    online.current = new Set(now.keys());
+    if (!prev || !joinAlert || Date.now() - settledAt.current < 4000) return;
+    const arrived = [...now].filter(([id]) => !prev.has(id)).map(([, n]) => n);
+    if (!arrived.length) return;
+    void playChime();
+    if (document.hidden) {
+      note.current = `${arrived.join(", ")} joined`;
+      show();
+    }
+  }, [snap.settled, snap.state.members, snap.me, joinAlert, show]);
 }
 
 export default App;

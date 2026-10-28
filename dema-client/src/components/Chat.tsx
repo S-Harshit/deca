@@ -1,3 +1,4 @@
+import { setQrDialog } from "../qrDialog";
 import {
   useCallback,
   useEffect,
@@ -229,6 +230,9 @@ function Timeline({
                 <Icon name="copy" size={15} /> Copy
               </button>
             </div>
+            <button className="small-btn" onClick={() => setQrDialog(true)}>
+              <Icon name="qr" size={13} /> Show QR code
+            </button>
             {snap.manual && (
               <button className="small-btn" onClick={() => setCodeDialog(true)}>
                 Paste their code

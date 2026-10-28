@@ -79,6 +79,33 @@ export function unlockAudio() {
   }
 }
 
+/** A soft two-note chime (a bell-like "someone arrived"): quiet, short, and capped far below the horn. */
+export async function playChime(): Promise<boolean> {
+  unlockAudio();
+  if (!ctx) return false;
+  if (ctx.state === "suspended") await ctx.resume().catch(() => undefined);
+  if (ctx.state !== "running") return false;
+  const out = ctx.createGain();
+  out.gain.value = 0.18;
+  out.connect(ctx.destination);
+  const t = ctx.currentTime;
+  for (const [i, f] of [880, 1318.5].entries()) {
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.value = f;
+    const g = ctx.createGain();
+    const at = t + i * 0.16;
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(1, at + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, at + 0.5);
+    o.connect(g);
+    g.connect(out);
+    o.start(at);
+    o.stop(at + 0.55);
+  }
+  return true;
+}
+
 /** Returns false if the browser would not let it play (no tap yet, or audio unavailable). */
 export async function playHorn(): Promise<boolean> {
   unlockAudio();
