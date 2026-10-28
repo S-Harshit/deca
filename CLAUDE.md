@@ -18,6 +18,8 @@ The server serves `dist/` from disk, so a rebuild is live immediately; changes t
 
 `npm run build:static` (repo root) builds the no-server site (`VITE_STATIC=1`) into `dist-static/`; keep fetches relative (`import.meta.env.BASE_URL`) so it works under a sub-path. Codes in connect-by-code mode are signed and need host approval: never accept a code or relayed `sig` without `verifyText`.
 
+Themes: tokens in `index.css`, per-look component CSS in `themes.css` (scoped to `html[data-theme]`, generic control rules inside `:where()` so component classes win). Run `node tests/tools/theme-audit.cjs` after changing one.
+
 ## Adding a sidebar panel
 Register it with `registerWidget()` (`src/widgets.tsx`; see the bottom of `App.tsx` for the three built-ins) and put a `<SlotToggle />` first in its `<h3>` so it gets the fold arrow. Plans for third-party plugins are in `docs/PLUGINS.md`: keep new shared features expressible with its primitives (last-writer-wins state, signed events, signals) rather than adding another one-off control message like `music`.
 
@@ -34,7 +36,7 @@ A room can run with no signaling server: `localSignal.ts` is an in-browser stand
 - **Games** are static folders in `dema-server/games/<id>/`. Only `snake`, `platformer`, and `freedoom` (without its `.wad`) are tracked; everything else there is git-ignored on purpose. Never commit or fetch copyrighted game assets (the FullScreenMario remake is under a DMCA takedown).
 
 ## Testing
-Tests live in `tests/` (see `tests/README.md`): unit tests in `unit/`, Playwright browser tests in `browser/`. `cd tests && npm install && node run.mjs [quick|unit|browser|<words>]` (the root also has `npm test`). The runner starts the server from the BUILT client (`dema-client/dist`), so rebuild the client first. Browser suites run **one at a time** (one server, per-address limits by design). When testing the UI, assert on behaviour and measure layout; do not rely on screenshots alone. Add a test for each feature or bug fix, in the file for its topic, and keep `docs/SPEC.md` saying what is verified.
+Tests live in `tests/` (see `tests/README.md`): unit tests in `unit/`, Playwright browser tests in `browser/`. `cd tests && npm install && node run.mjs [quick|unit|browser|<words>]` (the root also has `npm test`). The runner starts the server from the BUILT client (`dema-client/dist`), so rebuild the client first. The runner starts its own server with the per-address limits raised for tests only (never loosen them in the product) and runs 3 suites side by side (`--jobs N`); a full run takes about 4 minutes (`quick` about 1.5). When testing the UI, assert on behaviour and measure layout; do not rely on screenshots alone. Add a test for each feature or bug fix, in the file for its topic, and keep `docs/SPEC.md` saying what is verified.
 
 ## Conventions
 - Keep comments to the *why*; no emojis in code. TypeScript is strict (`noUnusedLocals`, `erasableSyntaxOnly`: no constructor parameter properties).

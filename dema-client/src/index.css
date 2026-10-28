@@ -58,11 +58,11 @@
 }
 /* Terminal: one phosphor colour on black, all monospace */
 [data-theme="terminal"] {
-  --bg: #050a05; --bg-deep: #020402; --panel: #081008; --panel-2: #0d180d; --border: #1c4a1c;
-  --text: #3dff7a; --muted: #22a14c; --accent: #3dff7a; --on-accent: #021002;
-  --danger: #ff5f5f; --ok: #3dff7a; --shadow: none; --name-l: 62%; color-scheme: dark;
+  --bg: #0b100c; --bg-deep: #070a08; --panel: #101812; --panel-2: #16211a; --border: #2a4a34;
+  --text: #a9dcb8; --muted: #6b9a7a; --accent: #8fd9a4; --on-accent: #0b130d;
+  --danger: #ff8a80; --ok: #8fd9a4; --shadow: none; --name-l: 66%; color-scheme: dark;
   --font-display: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --hl-keyword: #b6ffc9; --hl-string: #7dffa0; --hl-number: #f0ffd0; --hl-func: #5affa0; --hl-type: #9affb8; --hl-comment: #1f8a45;
+  --hl-keyword: #c8f0d3; --hl-string: #9fe3b0; --hl-number: #e8f5c8; --hl-func: #86e0a8; --hl-type: #b0e8c0; --hl-comment: #5f8f6d;
 }
 /* Newspaper: black ink on cool newsprint, thin rules, serif type */
 [data-theme="newspaper"] {
@@ -70,6 +70,19 @@
   --text: #111111; --muted: #555555; --accent: #111111; --on-accent: #ffffff;
   --danger: #b3261e; --ok: #2e6b34; --shadow: none; --name-l: 25%; color-scheme: light;
   --font-display: "Times New Roman", Times, Georgia, serif;
+}
+/* Cyberpunk: neon cyan and magenta on a purple-black night */
+[data-theme="cyberpunk"] {
+  --bg: #09090c; --bg-deep: #050507; --panel: #14141a; --panel-2: #1c1c24; --border: #3b3b47;
+  --text: #f0efe6; --muted: #8a8a96; --accent: #fcee09; --on-accent: #000000;
+  --danger: #ff003c; --ok: #02d7f2; --shadow: none; --name-l: 70%; color-scheme: dark;
+  --hl-keyword: #ff003c; --hl-string: #02d7f2; --hl-number: #fcee09; --hl-func: #fcee09; --hl-type: #02d7f2; --hl-comment: #6a6a78;
+}
+/* Black hole: deep space behind frosted glass, lit amber by the disk */
+[data-theme="blackhole"] {
+  --bg: #000000; --bg-deep: #000000; --panel: #0a0a16; --panel-2: #12121f; --border: #2a2a40;
+  --text: #ece8ff; --muted: #9a93c0; --accent: #ffa83d; --on-accent: #1a0b00;
+  --danger: #ff6b81; --ok: #7dffb2; --shadow: 0 0 40px rgb(255 140 40 / 0.12); --name-l: 72%; color-scheme: dark;
 }
 [data-theme="sunset"] {
   --bg: #1a1214; --bg-deep: #120c0d; --panel: #231719; --panel-2: #2b1d20; --border: #3d2a2e;

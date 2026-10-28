@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-export type ToolTab = "search" | "docs" | "polls" | "board" | "doors";
+export type ToolTab = "search" | "docs" | "polls" | "board";
 type State = { tab: ToolTab | null; focus: string | null };
 
 /** Which room tool is open (and which item in it): a tiny store so the sidebar panel, the top bar and Ctrl+K can all open the same dialog. */

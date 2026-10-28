@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { accentFrom } from "./wallpaper";
 
-export type ThemeId = "midnight" | "light" | "graphite" | "forest" | "rose" | "sunset" | "shadcn" | "web95" | "paper" | "terminal" | "newspaper";
+export type ThemeId = "midnight" | "light" | "graphite" | "forest" | "rose" | "sunset" | "shadcn" | "web95" | "paper" | "terminal" | "newspaper" | "cyberpunk" | "blackhole";
 
 /** `colors` is [background, surface, accent], only used to draw the swatch. */
 export const THEMES: { id: ThemeId; label: string; colors: [string, string, string] }[] = [
@@ -14,8 +14,10 @@ export const THEMES: { id: ThemeId; label: string; colors: [string, string, stri
   { id: "shadcn", label: "Zinc", colors: ["#ffffff", "#f4f4f5", "#18181b"] },
   { id: "web95", label: "Early web", colors: ["#008080", "#c0c0c0", "#000080"] },
   { id: "paper", label: "Paper", colors: ["#f4eee0", "#fbf7ec", "#9a3d12"] },
-  { id: "terminal", label: "Terminal", colors: ["#050a05", "#0f1a0f", "#3dff7a"] },
+  { id: "terminal", label: "Terminal", colors: ["#0b100c", "#16211a", "#8fd9a4"] },
   { id: "newspaper", label: "Newspaper", colors: ["#f2f2ef", "#ffffff", "#111111"] },
+  { id: "cyberpunk", label: "Cyberpunk", colors: ["#09090c", "#1c1c24", "#fcee09"] },
+  { id: "blackhole", label: "Black hole", colors: ["#000000", "#12121f", "#ffa83d"] },
 ];
 
 export const ACCENTS = ["#c6f432", "#7c83ff", "#3ddc97", "#ff6b7a", "#ffb454", "#4cc9f0", "#c77dff"];

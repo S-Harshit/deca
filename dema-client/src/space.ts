@@ -5,7 +5,7 @@
 import { isBlankMessage, safeWebUrl } from "./message";
 import type { ExportFile, ExportInput } from "./roomExport";
 import type { Highlights } from "./summary";
-import { LIMITS, portalUrl } from "./tools";
+import { LIMITS } from "./tools";
 import { derive, EventLog, HANDS, isEvent, MAX_ARCHIVES, MAX_FILE, MAX_SCORE, rid, type ArchiveRef, type EventType, type SpaceEvent, type SpaceState } from "./log";
 import { openArchive, sha256Hex, type ArchiveData } from "./archive";
 import type { ParsedImport } from "./roomImport";
@@ -588,16 +588,12 @@ export class Space {
   clearBoard() {
     if (!this.toolsError()) this.author("draw_clear", {});
   }
-  addPortal(url: string, label: string) {
-    const err = this.toolsError();
-    if (err) return err;
-    const safe = portalUrl(url.trim());
-    if (!safe) return "That is not a link to a Deca room (it should end in #/s/…)";
-    this.author("portal_add", { id: this.newToolId(), url: safe, label: label.trim().slice(0, LIMITS.labelChars) });
-    return "";
+  /** One paragraph of a note: set its text (and place, by `key`), or remove it. Different people's paragraphs never overwrite each other. */
+  setBlock(doc: string, id: string, key: string, text: string) {
+    if (!this.toolsError()) this.author("blk_set", { doc, id, key, text });
   }
-  removePortal(id: string) {
-    this.author("portal_del", { id });
+  deleteBlock(doc: string, id: string, key: string) {
+    if (!this.toolsError()) this.author("blk_set", { doc, id, key, del: true });
   }
 
   private lastScore = 0;

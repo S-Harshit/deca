@@ -617,58 +617,6 @@ html[data-wall="on"] .topbar { position: relative; z-index: 60; }
 .summary .podium b { font-variant-numeric: tabular-nums; color: var(--accent); }
 .summary p { margin: 0; }
 
-/* =====================================================================================
-   shadcn/ui look ("Zinc"). Every rule is scoped to html[data-theme="shadcn"]: flat surfaces, 1px borders, soft shadows,
-   Inter everywhere, a near-black primary button, a plain focus ring. No other theme changes.
-   ===================================================================================== */
-html[data-theme="shadcn"] { --font-display: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; --radius: 6px; }
-html[data-theme="shadcn"] :is(h1, h2, h3, h4, .wordmark, .wm) { font-weight: 600; letter-spacing: -0.015em; }
-html[data-theme="shadcn"] :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; box-shadow: none; }
-/* buttons and inputs. Written with :where() on the theme so these rules sit just above the base element rules but below every component
-   class (.horn-btn, .scrim, .icon-btn.hangup ...): a stronger selector here once turned the red "wake up" button white. */
-/* element selector and class selectors kept apart: one :is() list would take the class's weight and beat .primary, .scrim and friends */
-:where(html[data-theme="shadcn"]) body button { background: var(--panel); border-color: var(--border); font-weight: 500; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
-:where(html[data-theme="shadcn"]) body :is(.button, .icon-btn) { background: var(--panel); border-color: var(--border); font-weight: 500; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
-:where(html[data-theme="shadcn"]) body button:hover { background: var(--panel-2); border-color: var(--border); }
-:where(html[data-theme="shadcn"]) body :is(.button, .icon-btn):hover { background: var(--panel-2); border-color: var(--border); }
-:where(html[data-theme="shadcn"]) body button:active { transform: none; box-shadow: none; }
-:where(html[data-theme="shadcn"]) body :is(.button, .icon-btn):active { transform: none; box-shadow: none; }
-/* one control height (shadcn's h-9), so an input and the button beside it line up */
-:where(html[data-theme="shadcn"]) body :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="file"]), select) { height: 2.25rem; padding-block: 0; font-size: 0.9rem; }
-:where(html[data-theme="shadcn"]) body :is(button, .button):not(.icon-btn):not(.small-btn):not(.big):not(.tap-play):not(.scrim) { min-height: 2.25rem; padding-block: 0; }
-:where(html[data-theme="shadcn"]) body .icon-btn:not(.small):not(.glass) { width: 2.25rem; height: 2.25rem; }
-html[data-theme="shadcn"] :is(button.primary, .button.primary, .icon-btn.primary-ish) { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
-html[data-theme="shadcn"] :is(button.primary, .button.primary, .icon-btn.primary-ish):hover { background: color-mix(in srgb, var(--accent) 90%, white); border-color: transparent; }
-html[data-theme="shadcn"] :is(button.primary:disabled, .button.primary.disabled) { background: var(--panel-2); border-color: var(--border); color: var(--muted); box-shadow: none; }
-html[data-theme="shadcn"] button.ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--text); }
-html[data-theme="shadcn"] button.ghost:hover { background: var(--panel-2); }
-html[data-theme="shadcn"] .icon-btn.live { background: var(--panel-2); border-color: var(--text); color: var(--text); }
-html[data-theme="shadcn"] .icon-btn.glass { box-shadow: none; }
-/* the red buttons stay red */
-html[data-theme="shadcn"] .horn-btn { background: #d92d20; border-color: #d92d20; color: #fff; box-shadow: none; }
-html[data-theme="shadcn"] .horn-btn:hover { background: #b42318; border-color: #b42318; }
-html[data-theme="shadcn"] .horn-btn:disabled { background: #7a2a25; border-color: #7a2a25; color: #fff; }
-/* inputs */
-html[data-theme="shadcn"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: var(--panel); border-color: var(--border); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
-html[data-theme="shadcn"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select):focus { border-color: var(--text); box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px color-mix(in srgb, var(--text) 25%, transparent); }
-/* surfaces: cards with a thin border and a soft shadow instead of the offset "sticker" shadow */
-html[data-theme="shadcn"] .panel { box-shadow: var(--shadow); }
-html[data-theme="shadcn"] .panel h3 { text-transform: none; letter-spacing: 0; font-size: 0.875rem; }
-html[data-theme="shadcn"] .modal { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
-html[data-theme="shadcn"] :is(.invite-card, .ticket) { border-style: solid; border-width: 1px; border-color: var(--border); box-shadow: var(--shadow); background: var(--panel); }
-html[data-theme="shadcn"] :is(.ticket::before, .ticket::after) { display: none; }
-html[data-theme="shadcn"] .ticket-pill { border-style: solid; }
-html[data-theme="shadcn"] .chat { background-image: none; }
-html[data-theme="shadcn"] .landing:is(.classic, .dotted) { background-image: none; }
-/* small things */
-html[data-theme="shadcn"] :is(.pill, .badge, .count) { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
-html[data-theme="shadcn"] .tile { border: 1px solid var(--border); }
-html[data-theme="shadcn"] .stage-main .tile { border-color: var(--border); }
-html[data-theme="shadcn"] .tile-label { background: rgb(9 9 11 / 0.7); color: #fafafa; transform: none; text-transform: none; font-weight: 500; }
-html[data-theme="shadcn"] .line.mine .what { border-left-color: var(--text); }
-html[data-theme="shadcn"] .sys::before, html[data-theme="shadcn"] .sys::after { content: none; }
-html[data-theme="shadcn"] .sys { font-family: inherit; font-size: 0.8rem; color: var(--muted); }
-
 /* your own camera is shown mirrored, like a mirror and like other video apps; only you see it that way (others get the true image) */
 .tile video.mirror { transform: scaleX(-1); }
 
@@ -677,147 +625,77 @@ html[data-theme="shadcn"] .sys { font-family: inherit; font-size: 0.8rem; color:
 .qr-box svg { width: 100%; height: auto; display: block; }
 .qr-modal .link { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; font-size: 0.75rem; }
 
-/* =====================================================================================
-   Four extra looks. Each block is scoped to its own html[data-theme] and uses :where() on the theme for the generic control rules
-   (same trick as Zinc: they sit just above the base element rules but below every component class like .horn-btn or .scrim).
-   System fonts only, no images: nothing here adds weight.
-   ===================================================================================== */
-
-/* ---- Early web ---- */
-:where(html[data-theme="web95"]) body button { background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #404040 #404040 #fff; box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf; font-weight: 400; }
-:where(html[data-theme="web95"]) body :is(.button, .icon-btn) { background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #404040 #404040 #fff; box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf; font-weight: 400; }
-:where(html[data-theme="web95"]) body button:active { border-color: #404040 #fff #fff #404040; box-shadow: inset 1px 1px #808080; transform: none; }
-:where(html[data-theme="web95"]) body :is(.button, .icon-btn):active { border-color: #404040 #fff #fff #404040; box-shadow: inset 1px 1px #808080; transform: none; }
-:where(html[data-theme="web95"]) body button:hover { background: #d4d0c8; }
-:where(html[data-theme="web95"]) body :is(.button, .icon-btn):hover { background: #d4d0c8; }
-html[data-theme="web95"] :is(button.primary, .button.primary) { background: #c0c0c0; color: #000; font-weight: 700; }
-html[data-theme="web95"] button.ghost { background: transparent; border-color: transparent; box-shadow: none; }
-html[data-theme="web95"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: #fff; color: #000; border: 2px solid; border-color: #808080 #fff #fff #808080; box-shadow: inset 1px 1px #404040; }
-html[data-theme="web95"] :is(input, textarea, select):focus { box-shadow: inset 1px 1px #404040; border-color: #808080 #fff #fff #808080; }
-html[data-theme="web95"] :focus-visible { outline: 1px dotted #000; outline-offset: -4px; }
-html[data-theme="web95"] *:not(.avatar):not(.dot):not(.swatch-art) { border-radius: 0 !important; }
-html[data-theme="web95"] :is(.panel, .modal, .popover, .invite-card, .menu) { background: #c0c0c0; border: 2px solid; border-color: #fff #404040 #404040 #fff; box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf; }
-html[data-theme="web95"] .panel h3 { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; padding: 2px 6px; font-size: 0.8rem; text-transform: none; letter-spacing: 0; }
-html[data-theme="web95"] .panel h3 * { color: #fff; }
-html[data-theme="web95"] :is(.topbar, .sidebar, .composer) { background: #c0c0c0; border-color: #808080; }
-html[data-theme="web95"] .chat, html[data-theme="web95"] .timeline { background: #fff; color: #000; background-image: none; }
-html[data-theme="web95"] .line .who { color: #000080; }
-html[data-theme="web95"] a { color: #0000ee; text-decoration: underline; }
-html[data-theme="web95"] a:visited { color: #551a8b; }
-html[data-theme="web95"] :is(.pill, .badge, .count) { background: #fff; color: #000; border: 1px solid #808080; }
-html[data-theme="web95"] .tile { border: 2px solid; border-color: #808080 #fff #fff #808080; }
-html[data-theme="web95"] .tile-label { background: #000080; color: #fff; transform: none; text-transform: none; }
-html[data-theme="web95"] .stage { background: #006868; }
-html[data-theme="web95"] .chat-expand, html[data-theme="web95"] .chat-callbar { background: #c0c0c0; }
-
-/* ---- Paper ---- */
-html[data-theme="paper"] :is(h1, h2, h3, h4, .wordmark, .wm) { font-weight: 600; letter-spacing: 0; }
-html[data-theme="paper"] .panel h3 { text-transform: none; font-size: 1rem; letter-spacing: 0; }
-html[data-theme="paper"] .panel { box-shadow: none; border: 1px solid var(--border); background: var(--panel); }
-html[data-theme="paper"] :is(.invite-card, .ticket) { border-style: solid; box-shadow: none; }
-html[data-theme="paper"] .modal { box-shadow: 0 8px 24px rgb(60 40 10 / 0.15); }
-html[data-theme="paper"] .chat, html[data-theme="paper"] .landing:is(.classic, .dotted) { background-image: none; }
-:where(html[data-theme="paper"]) body button { background: var(--panel); border-color: var(--border); box-shadow: none; }
-:where(html[data-theme="paper"]) body :is(.button, .icon-btn) { background: var(--panel); border-color: var(--border); box-shadow: none; }
-:where(html[data-theme="paper"]) body button:hover { background: var(--panel-2); border-color: #b9ab88; }
-:where(html[data-theme="paper"]) body :is(.button, .icon-btn):hover { background: var(--panel-2); border-color: #b9ab88; }
-:where(html[data-theme="paper"]) body button:active { transform: none; }
-:where(html[data-theme="paper"]) body :is(.button, .icon-btn):active { transform: none; }
-html[data-theme="paper"] :is(button.primary, .button.primary) { box-shadow: none; }
-html[data-theme="paper"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: var(--panel); }
-html[data-theme="paper"] .tile-label { transform: none; text-transform: none; background: rgb(29 26 20 / 0.75); color: #fffaf0; }
-html[data-theme="paper"] .sys::before, html[data-theme="paper"] .sys::after { content: none; }
-html[data-theme="paper"] .sys { font-family: var(--font-display); font-style: italic; font-size: 0.85rem; color: var(--muted); }
-html[data-theme="paper"] .line .what { font-size: 1rem; }
-
-/* ---- Terminal ---- */
-html[data-theme="terminal"] *:not(svg):not(svg *) { font-family: var(--font-mono) !important; }
-html[data-theme="terminal"] *:not(.avatar):not(.dot):not(.swatch-art) { border-radius: 0 !important; }
-html[data-theme="terminal"] body { text-shadow: 0 0 3px color-mix(in srgb, var(--text) 35%, transparent); }
-html[data-theme="terminal"] :is(.panel, .modal, .popover, .invite-card, .menu) { background: var(--panel); border: 1px solid var(--border); box-shadow: none; }
-html[data-theme="terminal"] .panel h3::before { content: "> "; }
-:where(html[data-theme="terminal"]) body button { background: transparent; border-color: var(--border); color: var(--text); box-shadow: none; }
-:where(html[data-theme="terminal"]) body :is(.button, .icon-btn) { background: transparent; border-color: var(--border); color: var(--text); box-shadow: none; }
-:where(html[data-theme="terminal"]) body button:hover { background: var(--text); color: #021002; border-color: var(--text); text-shadow: none; }
-:where(html[data-theme="terminal"]) body :is(.button, .icon-btn):hover { background: var(--text); color: #021002; border-color: var(--text); text-shadow: none; }
-html[data-theme="terminal"] :is(button.primary, .button.primary, .icon-btn.primary-ish) { background: var(--text); color: #021002; border-color: var(--text); box-shadow: none; text-shadow: none; }
-html[data-theme="terminal"] :is(button.primary, .button.primary):hover { background: transparent; color: var(--text); }
-html[data-theme="terminal"] .icon-btn.hangup { background: var(--danger); color: #1a0000; border-color: var(--danger); }
-html[data-theme="terminal"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: #000; border-color: var(--border); color: var(--text); caret-color: var(--text); }
-html[data-theme="terminal"] :is(input, textarea, select):focus { border-color: var(--text); box-shadow: none; }
-html[data-theme="terminal"] .chat { background-image: none; }
-html[data-theme="terminal"] .tile-label { background: #000; color: var(--text); transform: none; border: 1px solid var(--border); text-transform: none; }
-html[data-theme="terminal"] :is(.pill, .badge, .count) { background: transparent; border: 1px solid var(--border); color: var(--text); }
-html[data-theme="terminal"] .line .who::after { content: ":"; }
-html[data-theme="terminal"] .sys::before { content: "-- "; } html[data-theme="terminal"] .sys::after { content: " --"; }
-html[data-theme="terminal"] a { color: var(--text); text-decoration: underline; }
-html[data-theme="terminal"] ::selection { background: var(--text); color: #021002; }
-
-/* ---- Newspaper ---- */
-html[data-theme="newspaper"] body { font-family: var(--font-display); }
-html[data-theme="newspaper"] :is(.topbar) { border-bottom: 3px double #111; background: var(--panel); }
-html[data-theme="newspaper"] :is(.sidebar) { background: var(--bg); border-right: 1px solid #111; }
-html[data-theme="newspaper"] .panel { background: transparent; border: 0; border-top: 3px double #111; border-radius: 0; box-shadow: none; padding-top: 0.5rem; }
-html[data-theme="newspaper"] .panel h3 { font-variant: small-caps; text-transform: lowercase; letter-spacing: 0.08em; font-size: 0.95rem; border-bottom: 1px solid #111; padding-bottom: 0.2rem; }
-html[data-theme="newspaper"] :is(.modal, .popover, .invite-card, .menu) { background: var(--panel); border: 1px solid #111; box-shadow: 4px 4px 0 #111; }
-html[data-theme="newspaper"] :is(.invite-card, .ticket) { border-style: solid; }
-html[data-theme="newspaper"] .chat { background-image: none; background: var(--panel); }
-html[data-theme="newspaper"] .line .what { text-align: justify; hyphens: auto; }
-html[data-theme="newspaper"] .line .who { font-variant: small-caps; font-family: var(--font-display); font-weight: 700; }
-html[data-theme="newspaper"] .sys { font-family: var(--font-display); font-style: italic; }
-html[data-theme="newspaper"] .sys::before, html[data-theme="newspaper"] .sys::after { content: none; }
-:where(html[data-theme="newspaper"]) body button { background: var(--panel); border: 1px solid #111; box-shadow: none; border-radius: 0; }
-:where(html[data-theme="newspaper"]) body :is(.button, .icon-btn) { background: var(--panel); border: 1px solid #111; box-shadow: none; border-radius: 0; }
-:where(html[data-theme="newspaper"]) body button:hover { background: #111; color: #fff; }
-:where(html[data-theme="newspaper"]) body :is(.button, .icon-btn):hover { background: #111; color: #fff; }
-:where(html[data-theme="newspaper"]) body button:active { transform: none; }
-:where(html[data-theme="newspaper"]) body :is(.button, .icon-btn):active { transform: none; }
-html[data-theme="newspaper"] :is(button.primary, .button.primary) { background: #111; color: #fff; box-shadow: none; }
-html[data-theme="newspaper"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: var(--panel); border: 1px solid #111; border-radius: 0; }
-html[data-theme="newspaper"] :is(input, textarea, select):focus { box-shadow: none; outline: 2px solid #111; }
-html[data-theme="newspaper"] a { color: #111; text-decoration: underline; }
-html[data-theme="newspaper"] .tile { border: 1px solid #111; border-radius: 0; }
-html[data-theme="newspaper"] .tile-label { background: #111; color: #fff; transform: none; text-transform: none; border-radius: 0; }
-html[data-theme="newspaper"] :is(.pill, .badge, .count) { background: transparent; border: 1px solid #111; color: #111; }
-
-/* the wake-up button is red in every theme */
-html[data-theme] .horn-btn { background: #d92d20; border-color: #d92d20; color: #fff; text-shadow: none; }
-html[data-theme] .horn-btn:hover { background: #b42318; border-color: #b42318; color: #fff; }
-html[data-theme] .horn-btn:disabled { background: #7a2a25; border-color: #7a2a25; color: #fff; }
-
-/* the fonts of the extra looks (these outrank the :root default of --font-display, which a plain [data-theme] token block cannot) */
-html[data-theme="web95"] { --font-display: Tahoma, "MS Sans Serif", Verdana, Geneva, sans-serif; }
-html[data-theme="web95"] body { font-family: Tahoma, "MS Sans Serif", Verdana, Geneva, sans-serif; }
-html[data-theme="paper"] { --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, "Times New Roman", serif; }
-html[data-theme="terminal"] { --font-display: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-html[data-theme="newspaper"] { --font-display: "Times New Roman", Times, Georgia, serif; }
-html[data-theme="newspaper"] body { font-family: "Times New Roman", Times, Georgia, serif; font-size: 1.02rem; }
-
-/* ---- room tools dialog ---- */
-.tools-modal { width: min(940px, 100%); height: min(82vh, 700px); display: flex; flex-direction: column; gap: 0.6rem; padding: 0.9rem; }
-.tools-tabs { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
-.tools-body { flex: 1; min-height: 0; overflow: auto; }
-.tool-col { display: flex; flex-direction: column; gap: 0.55rem; min-height: 100%; }
-.tool-split { display: grid; grid-template-columns: minmax(180px, 240px) 1fr; gap: 0.9rem; min-height: 100%; }
-@media (max-width: 700px) { .tool-split { grid-template-columns: 1fr; } .tools-modal { height: 92vh; } }
-.tool-side { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
-.tool-main { min-width: 0; display: flex; flex-direction: column; gap: 0.6rem; }
-.tool-launch { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.hits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
-.hit { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; width: 100%; text-align: left; white-space: normal; padding: 0.4rem 0.6rem; background: var(--panel-2); }
-.hit.on { border-color: var(--accent); }
-a.hit { text-decoration: none; color: inherit; display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow-wrap: anywhere; }
-.doc-text { width: 100%; min-height: 240px; flex: 1; resize: vertical; max-height: none; font-family: var(--font-mono); font-size: 0.85rem; }
-.page-split { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; flex: 1; min-height: 280px; }
-@media (max-width: 700px) { .page-split { grid-template-columns: 1fr; } }
-.page-frame { width: 100%; height: 100%; min-height: 280px; border: 1px solid var(--border); background: #fff; border-radius: var(--radius); }
+/* ---- the workspace: a pane docked beside the chat (a sheet on a phone), plus the search palette and the cards in the feed ---- */
+.workspace { width: min(46%, 560px); min-width: 360px; flex: none; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-left: 1px solid var(--border); }
+.ws-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); flex: none; }
+.ws-tabs { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+.ws-tab { background: transparent; border-color: transparent; color: var(--muted); font-weight: 600; padding: 0.3em 0.75em; }
+.ws-tab.on { color: var(--text); border-color: var(--border); background: var(--panel-2); }
+.ws-body { flex: 1; min-height: 0; overflow: auto; padding: 0.75rem; display: flex; flex-direction: column; }
+.ws-docs { display: grid; grid-template-columns: minmax(130px, 170px) 1fr; gap: 0.75rem; flex: 1; min-height: 0; }
+.ws-list { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.ws-actions { display: flex; gap: 0.35rem; }
+.ws-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.ws-item { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0.1rem; width: 100%; text-align: left; white-space: normal; padding: 0.45rem 0.6rem; background: transparent; border-color: transparent; }
+.ws-item strong { overflow-wrap: anywhere; font-weight: 600; }
+.ws-item.on { background: var(--panel-2); border-color: var(--border); }
+.ws-main, .ws-col { min-width: 0; display: flex; flex-direction: column; gap: 0.6rem; flex: 1; }
+.ws-empty { margin: auto; text-align: center; }
+.ws-dochead { display: flex; flex-direction: column; gap: 0.25rem; }
+.ws-dochead p { margin: 0; }
+@media (max-width: 860px) {
+  .workspace { position: fixed; inset: 0; z-index: 90; width: auto; min-width: 0; border-left: 0; }
+  .ws-docs { grid-template-columns: 1fr; }
+  .ws-list { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .ws-items { flex-direction: row; flex-wrap: wrap; }
+  .ws-item { width: auto; }
+}
+.note { display: flex; flex-direction: column; gap: 0.15rem; }
+.para { position: relative; }
+.para textarea { width: 100%; resize: none; overflow: hidden; border-color: transparent; background: transparent; padding: 0.3em 0.45em; line-height: 1.5; min-height: 2em; }
+.para textarea:hover { border-color: var(--border); }
+.para textarea:focus { background: var(--panel-2); }
+.para-who { position: absolute; right: 4px; top: -2px; font-size: 0.65rem; background: var(--accent); color: var(--on-accent); padding: 0 6px; border-radius: 4px; z-index: 1; }
+.doc-text { width: 100%; min-height: 220px; flex: 1; resize: vertical; max-height: none; font-family: var(--font-mono); font-size: 0.82rem; }
+.page-split { display: flex; flex-direction: column; gap: 0.6rem; flex: 1; min-height: 0; }
+.page-frame { width: 100%; flex: 1; min-height: 260px; border: 1px solid var(--border); background: #fff; border-radius: var(--radius); }
 .poll { padding: 0.7rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel-2); display: flex; flex-direction: column; gap: 0.35rem; }
-.poll-opt { position: relative; justify-content: space-between; overflow: hidden; width: 100%; text-align: left; }
+.poll h4 { margin: 0; }
+.poll-opt { position: relative; justify-content: space-between; overflow: hidden; width: 100%; text-align: left; padding: 0.5em 0.75em; }
 .poll-opt.mine { border-color: var(--accent); }
 .poll-bar { position: absolute; inset: 0 auto 0 0; background: var(--accent-soft); z-index: 0; transition: width 0.2s; }
 .poll-label, .poll-count { position: relative; z-index: 1; }
+.poll-count { font-variant-numeric: tabular-nums; }
+.ws-form { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.7rem; border: 1px solid var(--border); border-radius: var(--radius); }
+.ws-form h4 { margin: 0; }
+.ws-polls { display: flex; flex-direction: column; gap: 0.75rem; }
 .board { width: 100%; height: auto; aspect-ratio: 5 / 3; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); touch-action: none; cursor: crosshair; }
-.board-bar .dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); padding: 0; }
+.board-bar { align-items: center; }
+.board-bar .dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); padding: 0; flex: none; }
+.feed-card { margin: 0.5rem 0 0.5rem 8.4rem; max-width: 460px; padding: 0.65rem 0.8rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); display: flex; flex-direction: column; gap: 0.35rem; }
+.feed-card h4 { margin: 0; }
+.feed-card p { margin: 0; }
+.doc-card { flex-direction: row; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+@media (max-width: 860px) { .feed-card { margin-left: 0; max-width: none; } }
+.palette-scrim { align-items: start; padding-top: 12vh; }
+.palette { width: min(560px, 100%); padding: 0.7rem; display: flex; flex-direction: column; gap: 0.5rem; max-height: 70vh; }
+.palette input { width: 100%; text-align: left; font-size: 1rem; }
+.palette .hits { overflow: auto; }
+.hits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.hit { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0.1rem; width: 100%; text-align: left; white-space: normal; padding: 0.45rem 0.65rem; background: transparent; border-color: transparent; }
+.hit strong { overflow-wrap: anywhere; }
+.hit:hover, .hit:focus-visible { background: var(--panel-2); border-color: var(--border); }
+.palette p { margin: 0; }
 .line.flash { animation: flash 1.6s ease-out; }
 @keyframes flash { 0%, 40% { background: var(--accent-soft); } 100% { background: transparent; } }
 .modal-scrim:has([role="alertdialog"]) { z-index: 320; } /* a confirmation always sits above the dialog that asked */
+
+/* ---- one control height: an input and the button beside it line up, everywhere ---- */
+:root { --control-h: 38px; }
+:is(.topbar .row, .call-controls, .add-track, .invite-card .row, .composer, .actions, .ws-actions) > button:not(.small-btn):not(.icon-btn.small) { min-height: var(--control-h); }
+:is(.row, .add-track, .composer) > :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), select) { height: var(--control-h); padding-block: 0; }
+.invite-card .row > code.link { display: inline-flex; align-items: center; min-height: var(--control-h); box-sizing: border-box; }
+
+/* the small choosers (size, clock, corners) and the fold arrows react when you point at them */
+.segmented button:not(.on):hover { background: var(--accent-soft); color: var(--text); }
+.slot-toggle:hover { background: var(--panel-2); }

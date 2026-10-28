@@ -323,7 +323,8 @@ const ENDED = {
   },
 };
 
-const RoomTools = lazy(() => import("./components/RoomTools")); // loaded only when someone opens a tool
+const Workspace = lazy(() => import("./components/Workspace")); // loaded only when someone opens a tool
+const SearchPalette = lazy(() => import("./components/SearchPalette"));
 
 function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space; onLeave: () => void; onRejoin: () => void; theme: React.ReactNode }>) {
   const snap = useSyncExternalStore(space.subscribe, space.getSnapshot);
@@ -560,9 +561,9 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
         </aside>
         {prefsApi && <SidebarGrip width={sidebarW} onChange={(w) => prefsApi.update({ sidebarW: w })} />}
 
-        {tool.tab && (
+        {tool.tab === "search" && (
           <Suspense fallback={null}>
-            <RoomTools space={space} snap={snap} tab={tool.tab} focus={tool.focus} />
+            <SearchPalette snap={snap} />
           </Suspense>
         )}
         {qrOpen && <QrDialog link={snap.manual?.invite ?? location.href} onClose={() => setQrDialog(false)} />}
@@ -585,6 +586,11 @@ function SpaceView({ space, onLeave, onRejoin, theme }: Readonly<{ space: Space;
           )}
           <Chat space={space} snap={snap} isHost={isHost} inviteLink={snap.manual?.invite ?? location.href} onInvite={invite} callBar={canExpandChat ? <ChatCallBar snap={snap} expanded={chatExpanded} onToggle={() => setChatBig((v) => !v)} /> : null} />
         </main>
+        {tool.tab && tool.tab !== "search" && (
+          <Suspense fallback={null}>
+            <Workspace space={space} snap={snap} tab={tool.tab} focus={tool.focus} />
+          </Suspense>
+        )}
       </div>
     </div>
   );
@@ -666,18 +672,17 @@ registerWidget({ id: "members", title: "Members", order: 10, render: ({ space, s
 registerWidget({ id: "music", title: "Music", order: 20, render: ({ space, snap }) => <MusicPlayer space={space} snap={snap} /> });
 registerWidget({
   id: "tools",
-  title: "Room tools",
+  title: "Workspace",
   order: 25,
   render: () => (
-    <section className="panel" aria-label="Room tools">
+    <section className="panel" aria-label="Workspace">
       <h3>
-        <SlotToggle /> Room tools
+        <SlotToggle /> Workspace
       </h3>
       <div className="tool-launch">
-        <button className="small-btn" onClick={() => openTool("docs")}>Pages &amp; notes</button>
+        <button className="small-btn" onClick={() => openTool("docs")}>Notes &amp; pages</button>
         <button className="small-btn" onClick={() => openTool("polls")}>Polls</button>
         <button className="small-btn" onClick={() => openTool("board")}>Board</button>
-        <button className="small-btn" onClick={() => openTool("doors")}>Doors</button>
         <button className="small-btn" onClick={() => openTool("search")}>Search</button>
       </div>
     </section>

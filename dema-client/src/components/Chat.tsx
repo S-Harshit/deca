@@ -1,3 +1,5 @@
+import { PollCard, DocCard } from "./FeedCards";
+import { openTool } from "../toolsDialog";
 import { setQrDialog } from "../qrDialog";
 import {
   useCallback,
@@ -149,12 +151,6 @@ function Timeline({
         return `${name(e.author)} opened a page for everyone: ${hostOf(e.payload.url)}`;
       case "room_options":
         return e.payload.endsAt === undefined ? "" : e.payload.endsAt ? `${name(e.author)} set this room to end at ${new Date(Number(e.payload.endsAt)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : `${name(e.author)} removed the end time`;
-      case "doc_set":
-        return `${name(e.author)} made ${e.payload.kind === "page" ? "a page" : "a note"}: ${String(e.payload.title ?? "").slice(0, 60)}`;
-      case "poll_new":
-        return `${name(e.author)} started a poll: ${String(e.payload.q ?? "").slice(0, 100)}`;
-      case "portal_add":
-        return `${name(e.author)} added a door: ${String(e.payload.label || "another room").slice(0, 60)}`;
       case "archive_added":
         return `${name(e.author)} added imported history (${String(e.payload.events)} lines)`;
       case "perms_changed":
@@ -170,6 +166,8 @@ function Timeline({
     if (e.type === "chat" && isBlankMessage(String(e.payload.text ?? ""))) return null; // an empty code block from an older client
     if (e.type === "score") return null; // shown only in the leaderboard
     if (e.type === "room_options" && e.payload.endsAt === undefined) return null; // the summary switch has no line of its own
+    if (e.type === "poll_new") return <PollCard key={e.id} e={e} space={space} snap={snap} mine={e.author === me} who={name(e.author)} />;
+    if (e.type === "doc_set") return <DocCard key={e.id} e={e} snap={snap} who={name(e.author)} />;
     if (e.type !== "chat" && e.type !== "file_offer" && e.type !== "coin" && e.type !== "rps" && e.type !== "blame") {
       prev = null;
       return (
@@ -831,6 +829,19 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
 
   const [menu, setMenu] = useState(false);
   const menuBox = useRef<HTMLDivElement>(null);
+  const [toolsMenu, setToolsMenu] = useState(false);
+  const toolsBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!toolsMenu) return;
+    const away = (ev: MouseEvent) => !toolsBox.current?.contains(ev.target as Node) && setToolsMenu(false);
+    const esc = (ev: globalThis.KeyboardEvent) => ev.key === "Escape" && setToolsMenu(false);
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [toolsMenu]);
   useEffect(() => {
     if (!menu) return;
     const away = (ev: MouseEvent) => !menuBox.current?.contains(ev.target as Node) && setMenu(false);
@@ -843,9 +854,10 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
     };
   }, [menu]);
 
-  const send = () => {
-    if (isBlankMessage(text)) return; // includes a code block that was left empty
-    const command = text.trim().toLowerCase();
+  const send = (override?: string) => {
+    const raw = typeof override === "string" ? override : text;
+    if (isBlankMessage(raw)) return; // includes a code block that was left empty
+    const command = raw.trim().toLowerCase();
     // Hidden: not listed anywhere in the UI. A self-playing runner strip for this tab only.
     if (command === "/run" || command === "/run on" || command === "/run off") {
       const want = command === "/run" ? !runnerOn() : command === "/run on";
@@ -854,12 +866,32 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
       setText("");
       return;
     }
+    // The room's tools, from the keyboard: /note /page /board /search and  /poll Question | option | option
+    if (command === "/note" || command === "/page" || command === "/board" || command === "/search" || command.startsWith("/poll ") || command === "/poll") {
+      if (command === "/board") openTool("board");
+      else if (command === "/search") openTool("search");
+      else if (command === "/note" || command === "/page") {
+        const id = space.newToolId();
+        const err = space.saveDoc(id, command === "/page" ? "page" : "note", command === "/page" ? "My page" : "Untitled note", command === "/page" ? "<h1>My page</h1>\n" : "");
+        if (err) notify(err, "error");
+        else openTool("docs", id);
+      } else {
+        const [q, ...opts] = raw.trim().slice(5).split("|").map((x) => x.trim());
+        if (!q) openTool("polls");
+        else {
+          const err = space.newPoll(q, opts);
+          if (err) notify(`${err}. Write it as /poll Question | option | option`, "error");
+        }
+      }
+      setText("");
+      return;
+    }
     if (command === "/flip" || command === "/rps" || command === "/blame") {
       (command === "/flip" ? flip : command === "/blame" ? blame : rps)(); // typing a command is the same as using the menu
       setText("");
       return;
     }
-    space.sendChat(text);
+    space.sendChat(raw);
     setText("");
   };
 
@@ -921,6 +953,30 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
           </div>
         )}
       </div>
+      <div className="decider-wrap" ref={toolsBox}>
+        <button className="icon-btn" type="button" aria-label="Add to the room" aria-haspopup="menu" aria-expanded={toolsMenu} title="Notes, pages, polls, a whiteboard, search" disabled={!canChat} onClick={() => setToolsMenu((m) => !m)}>
+          <Icon name="plus" />
+        </button>
+        {toolsMenu && (
+          <div className="menu" role="menu" aria-label="Add to the room">
+            <button role="menuitem" onClick={() => { setToolsMenu(false); send("/note"); }}>
+              New note <span className="muted small">/note</span>
+            </button>
+            <button role="menuitem" onClick={() => { setToolsMenu(false); send("/page"); }}>
+              New page <span className="muted small">/page</span>
+            </button>
+            <button role="menuitem" onClick={() => { setToolsMenu(false); openTool("polls"); }}>
+              Poll <span className="muted small">/poll</span>
+            </button>
+            <button role="menuitem" onClick={() => { setToolsMenu(false); openTool("board"); }}>
+              Whiteboard <span className="muted small">/board</span>
+            </button>
+            <button role="menuitem" onClick={() => { setToolsMenu(false); openTool("search"); }}>
+              Search the room <span className="muted small">Ctrl K</span>
+            </button>
+          </div>
+        )}
+      </div>
       <button className="icon-btn" type="button" aria-label="Insert code block" title="Code block (```). Shift+Enter adds a new line." disabled={!canChat} onClick={insertFence}>
         <Icon name="code" />
       </button>
@@ -935,7 +991,7 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
         onKeyDown={onKeyDown}
         onPaste={onPaste}
       />
-      <button className="primary send" aria-label="Send" title="Send (Enter)" onClick={send} disabled={!canChat || isBlankMessage(text)}>
+      <button className="primary send" aria-label="Send" title="Send (Enter)" onClick={() => send()} disabled={!canChat || isBlankMessage(text)}>
         <Icon name="send" size={17} />
       </button>
     </div>

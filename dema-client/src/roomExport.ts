@@ -86,8 +86,6 @@ function describe(e: SpaceEvent, name: (id: string) => string): { kind: "msg" | 
       return { kind: "sys", who, text: `${who} made ${p.kind === "page" ? "a page" : "a note"}: ${String(p.title ?? "").slice(0, 60)}` };
     case "poll_new":
       return { kind: "sys", who, text: `${who} started a poll: ${String(p.q ?? "").slice(0, 100)}` };
-    case "portal_add":
-      return { kind: "sys", who, text: `${who} added a door: ${String(p.label ?? "another room").slice(0, 60)}` };
     case "room_options":
       return { kind: "sys", who, text: p.endsAt === undefined ? "room options changed" : p.endsAt ? "an end time was set for the room" : "the end time was removed" };
     case "score":

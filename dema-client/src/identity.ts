@@ -72,18 +72,27 @@ const MAX_ROOMS = 20;
 const MAX_AGE_MS = 7 * 24 * 3600 * 1000;
 const held = new Set<string>();
 
-/** True when this tab now holds the claim on this room's remembered identity (always true where Web Locks do not exist). */
-function claim(roomId: string): Promise<boolean> {
-  if (held.has(roomId)) return Promise.resolve(true);
-  if (!navigator.locks) return Promise.resolve(true);
-  return new Promise((resolve) => {
-    void navigator.locks.request(`deca-identity:${roomId}`, { ifAvailable: true }, (lock) => {
-      if (!lock) return void resolve(false);
-      held.add(roomId);
-      resolve(true);
-      return new Promise<void>(() => undefined); // held until this tab closes
+/**
+ * True when this tab now holds the claim on this room's remembered identity (always true where Web Locks do not exist). A tab that was
+ * just closed can take a moment to let go of its claim, so a taken claim is asked for again for a second and a half before it is
+ * believed: that way closing a tab and opening the link again straight away is still the same person, while a tab that is really open
+ * costs the newcomer only that short wait.
+ */
+async function claim(roomId: string): Promise<boolean> {
+  if (held.has(roomId) || !navigator.locks) return true;
+  for (let tries = 0; tries < 7; tries++) {
+    const got = await new Promise<boolean>((resolve) => {
+      void navigator.locks.request(`deca-identity:${roomId}`, { ifAvailable: true }, (lock) => {
+        if (!lock) return void resolve(false);
+        held.add(roomId);
+        resolve(true);
+        return new Promise<void>(() => undefined); // held until this tab closes
+      });
     });
-  });
+    if (got) return true;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return false;
 }
 
 type Remembered = Record<string, { at: number; id: Saved }>;

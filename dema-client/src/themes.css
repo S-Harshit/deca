@@ -1,0 +1,398 @@
+/* =====================================================================================
+   shadcn/ui look ("Zinc"). Every rule is scoped to html[data-theme="shadcn"]: flat surfaces, 1px borders, soft shadows,
+   Inter everywhere, a near-black primary button, a plain focus ring. No other theme changes.
+   ===================================================================================== */
+html[data-theme="shadcn"] { --font-display: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; --radius: 6px; }
+html[data-theme="shadcn"] :is(h1, h2, h3, h4, .wordmark, .wm) { font-weight: 600; letter-spacing: -0.015em; }
+html[data-theme="shadcn"] :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; box-shadow: none; }
+/* buttons and inputs. Written with :where() on the theme so these rules sit just above the base element rules but below every component
+   class (.horn-btn, .scrim, .icon-btn.hangup ...): a stronger selector here once turned the red "wake up" button white. */
+/* element selector and class selectors kept apart: one :is() list would take the class's weight and beat .primary, .scrim and friends */
+:where(html[data-theme="shadcn"]) body button { background: var(--panel); border-color: var(--border); font-weight: 500; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+:where(html[data-theme="shadcn"]) body :is(.button, .icon-btn) { background: var(--panel); border-color: var(--border); font-weight: 500; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+:where(html[data-theme="shadcn"]) body button:hover { background: var(--panel-2); border-color: var(--border); }
+:where(html[data-theme="shadcn"]) body :is(.button, .icon-btn):hover { background: var(--panel-2); border-color: var(--border); }
+:where(html[data-theme="shadcn"]) body button:active { transform: none; box-shadow: none; }
+:where(html[data-theme="shadcn"]) body :is(.button, .icon-btn):active { transform: none; box-shadow: none; }
+/* one control height (shadcn's h-9), so an input and the button beside it line up */
+:where(html[data-theme="shadcn"]) body :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="file"]), select) { height: var(--control-h); padding-block: 0; font-size: 0.9rem; }
+:where(html[data-theme="shadcn"]) body :is(button, .button):not(.icon-btn):not(.small-btn):not(.big):not(.tap-play):not(.scrim) { min-height: var(--control-h); padding-block: 0; }
+:where(html[data-theme="shadcn"]) body .icon-btn:not(.small):not(.glass) { width: var(--control-h); height: var(--control-h); }
+html[data-theme="shadcn"] :is(button.primary, .button.primary, .icon-btn.primary-ish) { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+html[data-theme="shadcn"] :is(button.primary, .button.primary, .icon-btn.primary-ish):hover { background: color-mix(in srgb, var(--accent) 90%, white); border-color: transparent; }
+html[data-theme="shadcn"] :is(button.primary:disabled, .button.primary.disabled) { background: var(--panel-2); border-color: var(--border); color: var(--muted); box-shadow: none; }
+html[data-theme="shadcn"] button.ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--text); }
+html[data-theme="shadcn"] button.ghost:hover { background: var(--panel-2); }
+html[data-theme="shadcn"] .icon-btn.live { background: var(--panel-2); border-color: var(--text); color: var(--text); }
+html[data-theme="shadcn"] .icon-btn.glass { box-shadow: none; }
+/* the red buttons stay red */
+html[data-theme="shadcn"] .horn-btn { background: #d92d20; border-color: #d92d20; color: #fff; box-shadow: none; }
+html[data-theme="shadcn"] .horn-btn:hover { background: #b42318; border-color: #b42318; }
+html[data-theme="shadcn"] .horn-btn:disabled { background: #7a2a25; border-color: #7a2a25; color: #fff; }
+/* inputs */
+html[data-theme="shadcn"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: var(--panel); border-color: var(--border); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+html[data-theme="shadcn"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select):focus { border-color: var(--text); box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px color-mix(in srgb, var(--text) 25%, transparent); }
+/* surfaces: cards with a thin border and a soft shadow instead of the offset "sticker" shadow */
+html[data-theme="shadcn"] .panel { box-shadow: var(--shadow); }
+html[data-theme="shadcn"] .panel h3 { text-transform: none; letter-spacing: 0; font-size: 0.875rem; }
+html[data-theme="shadcn"] .modal { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+html[data-theme="shadcn"] :is(.invite-card, .ticket) { border-style: solid; border-width: 1px; border-color: var(--border); box-shadow: var(--shadow); background: var(--panel); }
+html[data-theme="shadcn"] :is(.ticket::before, .ticket::after) { display: none; }
+html[data-theme="shadcn"] .ticket-pill { border-style: solid; }
+html[data-theme="shadcn"] .chat { background-image: none; }
+html[data-theme="shadcn"] .landing:is(.classic, .dotted) { background-image: none; }
+/* small things */
+html[data-theme="shadcn"] :is(.pill, .badge, .count) { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+html[data-theme="shadcn"] .tile { border: 1px solid var(--border); }
+html[data-theme="shadcn"] .stage-main .tile { border-color: var(--border); }
+html[data-theme="shadcn"] .tile-label { background: rgb(9 9 11 / 0.7); color: #fafafa; transform: none; text-transform: none; font-weight: 500; }
+html[data-theme="shadcn"] .line.mine .what { border-left-color: var(--text); }
+html[data-theme="shadcn"] .sys::before, html[data-theme="shadcn"] .sys::after { content: none; }
+html[data-theme="shadcn"] .sys { font-family: inherit; font-size: 0.8rem; color: var(--muted); }
+
+
+/* the wake-up button is red in every theme */
+html[data-theme] .horn-btn { background: #d92d20; border-color: #d92d20; color: #fff; text-shadow: none; }
+html[data-theme] .horn-btn:hover { background: #b42318; border-color: #b42318; color: #fff; }
+html[data-theme] .horn-btn:disabled { background: #7a2a25; border-color: #7a2a25; color: #fff; }
+
+/* =====================================================================================================================================
+   Six looks that are meant to be a place, not a palette. Each is scoped to its own html[data-theme]; generic control rules sit inside
+   :where() so a component's own colours (the red wake-up button, the phone drawer's dim layer, hang-up) still win. System fonts only,
+   no images: the pictures are drawn with gradients, so nothing here adds weight, and every animation stops for people who ask for
+   reduced motion. The theme's own font variable is set on html[...] (not a bare attribute selector), which outranks :root.
+   ===================================================================================================================================== */
+
+/* =============================================== EARLY WEB: a 1995 desktop, Netscape and all =============================================== */
+html[data-theme="web95"] { --font-display: Tahoma, "MS Sans Serif", Verdana, Geneva, sans-serif; }
+html[data-theme="web95"] body { font-family: Tahoma, "MS Sans Serif", Verdana, Geneva, sans-serif; background: #008080; }
+html[data-theme="web95"] *:not(.avatar):not(.dot):not(.swatch-art):not(.status)::before, html[data-theme="web95"] *:not(.avatar):not(.dot):not(.swatch-art) { border-radius: 0 !important; }
+:where(html[data-theme="web95"]) body button { background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #404040 #404040 #fff; box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf; font-weight: 400; }
+:where(html[data-theme="web95"]) body :is(.button, .icon-btn) { background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #404040 #404040 #fff; box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf; font-weight: 400; }
+:where(html[data-theme="web95"]) body button:hover { background: #d4d0c8; }
+:where(html[data-theme="web95"]) body :is(.button, .icon-btn):hover { background: #d4d0c8; }
+:where(html[data-theme="web95"]) body button:active { border-color: #404040 #fff #fff #404040; box-shadow: inset 1px 1px #808080; transform: none; }
+:where(html[data-theme="web95"]) body :is(.button, .icon-btn):active { border-color: #404040 #fff #fff #404040; box-shadow: inset 1px 1px #808080; transform: none; }
+html[data-theme="web95"] :is(button.primary, .button.primary) { background: #c0c0c0; color: #000; font-weight: 700; outline: 1px solid #000; outline-offset: -4px; }
+html[data-theme="web95"] button.ghost { background: transparent; border-color: transparent; box-shadow: none; }
+html[data-theme="web95"] button.ghost:hover { background: #d4d0c8; border-color: #fff #404040 #404040 #fff; }
+html[data-theme="web95"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: #fff; color: #000; border: 2px solid; border-color: #808080 #fff #fff #808080; box-shadow: inset 1px 1px #404040; }
+html[data-theme="web95"] :is(input, textarea, select):focus { box-shadow: inset 1px 1px #404040; border-color: #808080 #fff #fff #808080; outline: 1px dotted #000; outline-offset: -3px; }
+html[data-theme="web95"] :focus-visible { outline: 1px dotted #000; outline-offset: -4px; }
+html[data-theme="web95"] ::selection { background: #000080; color: #fff; }
+/* windows: grey bevelled frames with a navy title bar and a little close box */
+html[data-theme="web95"] :is(.panel, .modal, .popover, .invite-card, .menu, .palette, .feed-card, .workspace) { background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #404040 #404040 #fff; box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf, 3px 3px 0 #004d4d; }
+html[data-theme="web95"] .panel h3 { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; padding: 2px 4px 2px 6px; font-size: 0.78rem; text-transform: none; letter-spacing: 0; display: flex; align-items: center; gap: 0.35rem; }
+html[data-theme="web95"] .panel h3 * { color: #fff; }
+html[data-theme="web95"] .panel h3 .count { background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #404040 #404040 #fff; }
+html[data-theme="web95"] .panel h3::after { content: "x"; margin-left: auto; width: 16px; height: 14px; display: grid; place-items: center; background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #404040 #404040 #fff; font: 700 11px/1 "Courier New", monospace; }
+html[data-theme="web95"] .ws-head { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; }
+html[data-theme="web95"] .ws-tab { color: #fff; background: transparent; border-color: transparent; box-shadow: none; }
+html[data-theme="web95"] .ws-tab.on { background: #c0c0c0; color: #000; border-color: #fff #404040 #404040 #fff; }
+html[data-theme="web95"] .ws-head .icon-btn { width: 20px; height: 18px; }
+html[data-theme="web95"] .workspace { background: #c0c0c0; }
+html[data-theme="web95"] .ws-item, html[data-theme="web95"] .hit { background: #fff; color: #000; border: 1px solid #808080; box-shadow: none; }
+html[data-theme="web95"] :is(.ws-item.on, .hit:hover) { background: #000080; color: #fff; }
+html[data-theme="web95"] :is(.ws-item.on, .hit:hover) * { color: #fff; }
+/* the taskbar: the top bar moves to the bottom of the screen like a Start bar */
+html[data-theme="web95"] .app { display: flex; flex-direction: column; }
+html[data-theme="web95"] .topbar { order: 99; background: #c0c0c0; border-top: 2px solid #fff; border-bottom: 0; box-shadow: inset 0 1px #dfdfdf; padding-block: 2px; }
+html[data-theme="web95"] .topbar .popover { top: auto; bottom: calc(100% + 6px); }
+html[data-theme="web95"] .ticket-pill { background: #000; color: #00ff00; font-family: "Courier New", monospace; border: 2px solid; border-color: #808080 #fff #fff #808080; letter-spacing: 0.08em; }
+html[data-theme="web95"] .ticket-pill::before { content: "VISITOR NO. "; opacity: 0.8; font-size: 0.7em; }
+html[data-theme="web95"] .status.on { animation: web95-blink 1.6s steps(1) infinite; }
+@keyframes web95-blink { 50% { opacity: 0.25; } }
+/* the chat is a web page in a browser window: white, Times, blue links, a title bar on top */
+html[data-theme="web95"] .main { margin: 6px; border: 2px solid; border-color: #808080 #fff #fff #808080; background: #fff; }
+html[data-theme="web95"] .chat, html[data-theme="web95"] .timeline { background: #fff; color: #000; background-image: none; font-family: "Times New Roman", Times, serif; font-size: 1.05rem; }
+html[data-theme="web95"] .chat::before { content: "Deca Chat - Netscape"; position: sticky; top: 0; z-index: 2; display: block; padding: 2px 6px; background: linear-gradient(90deg, #000080, #1084d0); color: #fff; font: 700 0.78rem Tahoma, sans-serif; }
+html[data-theme="web95"] .line .who { color: #000080; font-family: Tahoma, sans-serif; font-weight: 700; }
+html[data-theme="web95"] .line .t { color: #404040; font-family: "Courier New", monospace; }
+html[data-theme="web95"] .line.mine .what { border-left: 4px solid #000080; }
+html[data-theme="web95"] .sys { font-family: Tahoma, sans-serif; color: #404040; }
+html[data-theme="web95"] .sys::before { content: "--- "; } html[data-theme="web95"] .sys::after { content: " ---"; }
+html[data-theme="web95"] a { color: #0000ee; text-decoration: underline; }
+html[data-theme="web95"] a:visited { color: #551a8b; }
+html[data-theme="web95"] .composer, html[data-theme="web95"] .sidebar { background: #008080; border-color: #006868; }
+html[data-theme="web95"] .composer { background: #c0c0c0; border-top: 2px solid #fff; }
+html[data-theme="web95"] :is(.pill, .badge, .count) { background: #fff; color: #000; border: 1px solid #808080; }
+html[data-theme="web95"] .tile { border: 2px solid; border-color: #808080 #fff #fff #808080; }
+html[data-theme="web95"] .tile-label { background: #000080; color: #fff; transform: none; text-transform: none; }
+html[data-theme="web95"] .stage { background: #006868; }
+html[data-theme="web95"] .feed-card { margin-left: 8.4rem; }
+html[data-theme="web95"] .poll-bar { background: #000080; opacity: 0.25; }
+html[data-theme="web95"] .poll-opt.mine { outline: 2px solid #000080; }
+html[data-theme="web95"] ::-webkit-scrollbar { width: 16px; height: 16px; }
+html[data-theme="web95"] ::-webkit-scrollbar-track { background: conic-gradient(#c0c0c0 25%, #fff 0 50%, #c0c0c0 0 75%, #fff 0) 0 0 / 2px 2px; }
+html[data-theme="web95"] ::-webkit-scrollbar-thumb { background: #c0c0c0; border: 2px solid; border-color: #fff #404040 #404040 #fff; border-radius: 0; }
+
+/* =============================================== PAPER: a notebook, index cards and a fountain pen =============================================== */
+html[data-theme="paper"] { --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, "Times New Roman", serif; }
+html[data-theme="paper"] body { background: #f1e9d6 radial-gradient(1200px 600px at 20% -10%, #fbf6e8, transparent 60%), radial-gradient(900px 500px at 100% 110%, #e6dabd, transparent 60%); background-attachment: fixed; }
+html[data-theme="paper"] :is(h1, h2, h3, h4, .wordmark, .wm) { font-weight: 600; letter-spacing: 0; }
+:where(html[data-theme="paper"]) body button { background: transparent; border: 1.5px solid #2a2418; color: #2a2418; box-shadow: none; font-variant: small-caps; letter-spacing: 0.04em; font-weight: 600; }
+:where(html[data-theme="paper"]) body :is(.button, .icon-btn) { background: transparent; border: 1.5px solid #2a2418; color: #2a2418; box-shadow: none; }
+:where(html[data-theme="paper"]) body button:hover { background: #2a2418; color: #fbf6e8; }
+:where(html[data-theme="paper"]) body :is(.button, .icon-btn):hover { background: #2a2418; color: #fbf6e8; }
+:where(html[data-theme="paper"]) body :is(button, .button, .icon-btn):active { transform: translateY(1px) rotate(-0.4deg); }
+html[data-theme="paper"] :is(button.primary, .button.primary) { background: var(--accent); border-color: var(--accent); color: #fffaf0; box-shadow: 2px 2px 0 #2a2418; }
+html[data-theme="paper"] :is(button.primary, .button.primary):hover { background: #7e2f0d; }
+html[data-theme="paper"] button.ghost { border-color: transparent; background: transparent; color: #6f6347; }
+html[data-theme="paper"] button.ghost:hover { background: transparent; color: #2a2418; text-decoration: underline wavy #9a3d12; }
+html[data-theme="paper"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: transparent; border: 0; border-bottom: 1.5px solid #2a2418; border-radius: 0; box-shadow: none; font-family: Georgia, serif; }
+html[data-theme="paper"] :is(input, textarea, select):focus { border-bottom-color: var(--accent); box-shadow: 0 2px 0 var(--accent); background: rgba(154, 61, 18, 0.05); }
+html[data-theme="paper"] ::selection { background: #ffe66b; color: #1d1a14; }
+/* index cards, pinned up with a strip of tape, each hung a hair off straight */
+html[data-theme="paper"] .panel { position: relative; background: #fffdf3; border: 1px solid #d6cbb2; box-shadow: 0 1px 0 #d6cbb2, 0 6px 14px rgb(80 60 20 / 0.12); margin-top: 0.4rem; }
+html[data-theme="paper"] .slot:nth-child(odd) .panel { transform: rotate(-0.35deg); }
+html[data-theme="paper"] .slot:nth-child(even) .panel { transform: rotate(0.3deg); }
+html[data-theme="paper"] .panel::before { content: ""; position: absolute; top: -9px; left: 50%; width: 74px; height: 17px; background: rgb(255 232 140 / 0.7); transform: translateX(-50%) rotate(-2deg); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
+html[data-theme="paper"] .panel h3 { text-transform: none; letter-spacing: 0; font-size: 1.05rem; border-bottom: 1px dashed #c9bb98; padding-bottom: 0.2rem; }
+html[data-theme="paper"] :is(.modal, .popover, .menu, .palette, .feed-card, .invite-card) { background: #fffdf3; border: 1px solid #d6cbb2; box-shadow: 0 10px 28px rgb(80 60 20 / 0.2); }
+html[data-theme="paper"] .invite-card { border-style: dashed; border-width: 2px; border-color: #b9ab88; }
+/* the chat is a ruled page with a red margin line; the lines sit under the text */
+html[data-theme="paper"] .chat, html[data-theme="paper"] .timeline { background-color: #fffdf3; background-image: linear-gradient(90deg, transparent 3.1rem, rgb(214 90 80 / 0.55) 3.1rem 3.18rem, transparent 3.18rem), repeating-linear-gradient(transparent 0, transparent 1.58rem, rgb(120 160 200 / 0.35) 1.58rem 1.64rem); background-attachment: local; }
+html[data-theme="paper"] .line { line-height: 1.64rem; padding: 0; }
+html[data-theme="paper"] .line .what { font-family: Georgia, "Times New Roman", serif; font-size: 1.02rem; }
+html[data-theme="paper"] .line .who { font-family: "Bradley Hand", "Segoe Script", "Lucida Handwriting", "Apple Chancery", cursive; font-size: 1.05rem; font-weight: 400; }
+html[data-theme="paper"] .line .t { font-style: italic; color: #8a7d5e; }
+html[data-theme="paper"] .line.mine .what { border-left: 0; padding-left: 0; text-decoration: underline wavy rgb(154 61 18 / 0.35); text-decoration-thickness: 1px; text-underline-offset: 4px; }
+html[data-theme="paper"] .sys { font-family: Georgia, serif; font-style: italic; color: #8a7d5e; margin: 0.8rem 0; }
+html[data-theme="paper"] .sys::before, html[data-theme="paper"] .sys::after { content: none; }
+html[data-theme="paper"] .tile { border: 6px solid #fffdf3; box-shadow: 0 2px 8px rgb(60 40 10 / 0.35); transform: rotate(-0.6deg); }
+html[data-theme="paper"] .tile-label { transform: none; text-transform: none; background: #fffdf3; color: #2a2418; font-family: "Bradley Hand", "Segoe Script", cursive; }
+html[data-theme="paper"] :is(.pill, .badge, .count) { background: #ffe66b66; color: #2a2418; border: 0; }
+html[data-theme="paper"] mark { background: #ffe66b; }
+html[data-theme="paper"] .topbar { background: transparent; border-bottom: 2px solid #2a2418; }
+html[data-theme="paper"] .sidebar, html[data-theme="paper"] .composer { background: transparent; border-color: #d6cbb2; }
+html[data-theme="paper"] .para textarea { background-image: repeating-linear-gradient(transparent 0, transparent 1.5em, rgb(120 160 200 / 0.4) 1.5em 1.56em); border: 0; line-height: 1.56em; }
+
+/* =============================================== TERMINAL: a green CRT with scanlines and a prompt =============================================== */
+html[data-theme="terminal"] { --font-display: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+html[data-theme="terminal"] *:not(svg):not(svg *) { font-family: var(--font-mono) !important; }
+html[data-theme="terminal"] *:not(.avatar):not(.dot):not(.swatch-art) { border-radius: 0 !important; }
+html[data-theme="terminal"] body { line-height: 1.55; }
+html[data-theme="terminal"] body::after { content: ""; position: fixed; inset: 0; z-index: 9999; pointer-events: none; background: repeating-linear-gradient(0deg, rgb(0 0 0 / 0.1) 0 1px, transparent 1px 4px), radial-gradient(ellipse at center, transparent 62%, rgb(0 0 0 / 0.35) 100%); }
+html[data-theme="terminal"] :is(.panel, .modal, .popover, .invite-card, .menu, .palette, .feed-card, .workspace) { background: var(--panel); border: 1px solid var(--border); box-shadow: 0 0 0 1px #000; }
+html[data-theme="terminal"] .panel h3::before { content: "+-[ "; } html[data-theme="terminal"] .panel h3::after { content: " ]--"; margin-left: auto; opacity: 0.6; }
+html[data-theme="terminal"] .panel h3 { display: flex; text-transform: uppercase; }
+:where(html[data-theme="terminal"]) body button { background: transparent; border: 0; color: var(--text); box-shadow: none; padding-inline: 0.4em; }
+:where(html[data-theme="terminal"]) body :is(.button, .icon-btn) { background: transparent; border: 0; color: var(--text); box-shadow: none; }
+html[data-theme="terminal"] :is(.topbar > .row > button, button.primary, button.wide, button.big, button.danger, .actions button):not(.icon-btn):not(.send)::before { content: "[ "; opacity: 0.7; white-space: pre; }
+html[data-theme="terminal"] :is(.topbar > .row > button, button.primary, button.wide, button.big, button.danger, .actions button):not(.icon-btn):not(.send)::after { content: " ]"; opacity: 0.7; white-space: pre; }
+:where(html[data-theme="terminal"]) body button:hover { background: var(--text); color: #0b130d; text-shadow: none; }
+:where(html[data-theme="terminal"]) body :is(.button, .icon-btn):hover { background: var(--text); color: #0b130d; text-shadow: none; }
+html[data-theme="terminal"] :is(button.primary:not(.send), .button.primary, .icon-btn.primary-ish) { background: var(--text); color: #0b130d; text-shadow: none; box-shadow: none; }
+html[data-theme="terminal"] :is(button.primary, .button.primary):hover { background: transparent; color: var(--text); text-shadow: inherit; }
+html[data-theme="terminal"] .icon-btn.hangup { background: var(--danger); color: #1a0000; text-shadow: none; }
+html[data-theme="terminal"] :is(.swatch, .dot, .poll-opt, .ws-item, .hit, .para-who, .ws-tab, .small-btn)::before, html[data-theme="terminal"] :is(.swatch, .dot, .poll-opt, .ws-item, .hit, .ws-tab)::after { content: none; }
+html[data-theme="terminal"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: #000; border: 1px solid var(--border); color: var(--text); caret-color: var(--text); caret-shape: block; box-shadow: none; }
+html[data-theme="terminal"] :is(input, textarea, select):focus { border-color: var(--text); box-shadow: none; }
+html[data-theme="terminal"] .composer::before { content: "$"; align-self: center; padding: 0 0.3rem 0 0.6rem; color: var(--text); font-weight: 700; }
+html[data-theme="terminal"] .line .who::before { content: "<"; opacity: 0.6; } html[data-theme="terminal"] .line .who::after { content: ">"; opacity: 0.6; }
+html[data-theme="terminal"] .line .t::before { content: "["; } html[data-theme="terminal"] .line .t::after { content: "]"; }
+html[data-theme="terminal"] .line.mine .what { border-left: 0; padding-left: 0; }
+html[data-theme="terminal"] .line.mine .what::before { content: "> "; opacity: 0.7; }
+html[data-theme="terminal"] .chat, html[data-theme="terminal"] .timeline { background-image: none; }
+html[data-theme="terminal"] .sys::before { content: "*** "; } html[data-theme="terminal"] .sys::after { content: " ***"; }
+html[data-theme="terminal"] .tile-label { background: #000; color: var(--text); transform: none; border: 1px solid var(--border); text-transform: none; }
+html[data-theme="terminal"] :is(.pill, .badge, .count) { background: transparent; border: 1px solid var(--border); color: var(--text); }
+html[data-theme="terminal"] a { color: var(--text); text-decoration: underline; }
+html[data-theme="terminal"] ::selection { background: var(--text); color: #0b130d; }
+html[data-theme="terminal"] :is(video, .image img, .file img, .board) { filter: grayscale(1) sepia(1) hue-rotate(70deg) saturate(2.6) contrast(1.15) brightness(0.95); }
+html[data-theme="terminal"] .topbar { border-bottom: 1px solid var(--border); background: #000; }
+html[data-theme="terminal"] .wm::before { content: "root@"; opacity: 0.6; } html[data-theme="terminal"] .wm::after { content: ":~#"; opacity: 0.6; }
+html[data-theme="terminal"] .poll-bar { background: rgb(143 217 164 / 0.16); }
+html[data-theme="terminal"] :is(.poll-opt, .ws-item, .hit, .ws-tab, .small-btn) { border: 1px solid var(--border); }
+html[data-theme="terminal"] :is(.ws-item.on, .ws-tab.on, .poll-opt.mine) { border-color: var(--text); }
+
+/* =============================================== NEWSPAPER: a front page with a masthead, rules and halftone photos =============================================== */
+html[data-theme="newspaper"] { --font-display: "Times New Roman", Times, Georgia, serif; }
+html[data-theme="newspaper"] body { font-family: "Times New Roman", Times, Georgia, serif; font-size: 1.03rem; background: #ecebe5 radial-gradient(rgb(0 0 0 / 0.04) 1px, transparent 1px) 0 0 / 3px 3px; }
+html[data-theme="newspaper"] .app { background: transparent; }
+/* the masthead: the nameplate across the top, an edition line in rules under it, then the controls */
+html[data-theme="newspaper"] .topbar { flex-wrap: wrap; row-gap: 0; padding-top: 0; background: #f4f3ee; border-bottom: 3px double #111; }
+html[data-theme="newspaper"] .topbar::before { content: "The Deca Gazette"; order: -2; flex: 0 0 100%; text-align: center; font: 700 2.4rem/1.15 "Old English Text MT", "UnifrakturMaguntia", "Times New Roman", serif; letter-spacing: 0.01em; padding: 0.15rem 0 0.1rem; }
+html[data-theme="newspaper"] .topbar::after { content: "ALL THE NEWS THAT IS FIT TO CHAT  *  VOL. I  *  LATE CITY EDITION  *  FREE"; order: -1; flex: 0 0 100%; text-align: center; font: 700 0.62rem/1 "Times New Roman", serif; letter-spacing: 0.22em; padding: 0.3rem 0; margin-bottom: 0.3rem; border-top: 1px solid #111; border-bottom: 1px solid #111; }
+html[data-theme="newspaper"] .topbar .wm, html[data-theme="newspaper"] .topbar .logo-mark { display: none; }
+html[data-theme="newspaper"] .sidebar { background: #f4f3ee; border-right: 1px solid #111; }
+html[data-theme="newspaper"] .panel { background: transparent; border: 0; border-top: 4px double #111; border-radius: 0; box-shadow: none; padding-top: 0.4rem; }
+html[data-theme="newspaper"] .panel h3 { font-variant: small-caps; text-transform: lowercase; letter-spacing: 0.1em; font-size: 1rem; border-bottom: 1px solid #111; padding-bottom: 0.2rem; }
+html[data-theme="newspaper"] .panel h3::before { content: "\00a7\00a0"; }
+html[data-theme="newspaper"] :is(.modal, .popover, .invite-card, .menu, .palette, .workspace) { background: #f8f7f2; border: 1px solid #111; box-shadow: 5px 5px 0 #111; }
+html[data-theme="newspaper"] .workspace { box-shadow: none; border-left: 3px double #111; }
+html[data-theme="newspaper"] .invite-card::before { content: "PUBLIC NOTICE"; display: block; font: 700 0.62rem "Times New Roman", serif; letter-spacing: 0.25em; border-bottom: 1px solid #111; margin-bottom: 0.3rem; }
+html[data-theme="newspaper"] :is(.invite-card, .ticket) { border-style: solid; }
+/* the feed is the paper: justified type, bylines in small caps, a thin rule between stories */
+html[data-theme="newspaper"] .chat, html[data-theme="newspaper"] .timeline { background: #f8f7f2; background-image: none; }
+html[data-theme="newspaper"] .line:not(.grouped) { border-top: 1px solid rgb(0 0 0 / 0.35); padding-top: 0.25rem; }
+html[data-theme="newspaper"] .line .what { text-align: justify; hyphens: auto; }
+html[data-theme="newspaper"] .line .who { font-variant: small-caps; font-family: "Times New Roman", serif; font-weight: 700; letter-spacing: 0.05em; }
+html[data-theme="newspaper"] .line:not(.grouped):not(.mine) .who::before { content: "By "; font-weight: 400; font-style: italic; }
+html[data-theme="newspaper"] .line .t { font-style: italic; }
+html[data-theme="newspaper"] .line.mine .what { border-left: 0; padding-left: 0; }
+html[data-theme="newspaper"] .sys { font-style: italic; font-family: "Times New Roman", serif; text-align: center; }
+html[data-theme="newspaper"] .sys::before, html[data-theme="newspaper"] .sys::after { content: none; }
+html[data-theme="newspaper"] .poll-card h4::before { content: "BREAKING: "; font-family: "Times New Roman", serif; letter-spacing: 0.05em; }
+html[data-theme="newspaper"] .poll-card h4, html[data-theme="newspaper"] .doc-card strong { font: 700 1.35rem/1.1 "Times New Roman", serif; text-transform: uppercase; }
+html[data-theme="newspaper"] .doc-card::before { content: "EXTRA!"; font: 700 0.65rem "Times New Roman", serif; letter-spacing: 0.2em; border: 1px solid #111; padding: 0 0.3rem; }
+html[data-theme="newspaper"] .feed-card { background: transparent; border: 0; border-top: 4px double #111; border-bottom: 1px solid #111; box-shadow: none; }
+:where(html[data-theme="newspaper"]) body button { background: transparent; border: 1px solid #111; box-shadow: none; font-variant: small-caps; letter-spacing: 0.06em; }
+:where(html[data-theme="newspaper"]) body :is(.button, .icon-btn) { background: transparent; border: 1px solid #111; box-shadow: none; }
+:where(html[data-theme="newspaper"]) body button:hover { background: #111; color: #fff; }
+:where(html[data-theme="newspaper"]) body :is(.button, .icon-btn):hover { background: #111; color: #fff; }
+:where(html[data-theme="newspaper"]) body :is(button, .button, .icon-btn):active { transform: none; }
+html[data-theme="newspaper"] :is(button.primary, .button.primary) { background: #111; color: #fff; }
+html[data-theme="newspaper"] :is(button.primary, .button.primary):hover { background: #fff; color: #111; }
+html[data-theme="newspaper"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: #fff; border: 1px solid #111; box-shadow: none; }
+html[data-theme="newspaper"] :is(input, textarea, select):focus { outline: 2px solid #111; outline-offset: 1px; box-shadow: none; }
+html[data-theme="newspaper"] a { color: #111; text-decoration: underline; }
+html[data-theme="newspaper"] ::selection { background: #111; color: #fff; }
+/* photographs are newsprint: grey, contrasty, with a halftone screen over them */
+html[data-theme="newspaper"] :is(video, .image img, .file img) { filter: grayscale(1) contrast(1.25); }
+html[data-theme="newspaper"] .tile { border: 1px solid #111; position: relative; }
+html[data-theme="newspaper"] .tile::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(rgb(0 0 0 / 0.55) 22%, transparent 24%) 0 0 / 4px 4px; mix-blend-mode: multiply; opacity: 0.35; }
+html[data-theme="newspaper"] .tile-label { background: #f8f7f2; color: #111; transform: none; text-transform: none; font-style: italic; border: 1px solid #111; }
+html[data-theme="newspaper"] :is(.pill, .badge, .count) { background: transparent; border: 1px solid #111; color: #111; }
+html[data-theme="newspaper"] .composer { background: #f4f3ee; border-top: 3px double #111; }
+
+/* =============================================== CYBERPUNK: a Night City HUD, yellow tags, cut corners, hazard stripes =============================================== */
+html[data-theme="cyberpunk"] { --font-display: "Bahnschrift", "Agency FB", "Arial Narrow", "Roboto Condensed", "Helvetica Neue Condensed", "Segoe UI", sans-serif; --cut: 12px; }
+html[data-theme="cyberpunk"] body { font-family: "Segoe UI", system-ui, sans-serif; background: #09090c; }
+/* the city behind: a faint blueprint grid, a red haze bottom-left and a cyan haze top-right, and a hazard stripe along the very bottom */
+html[data-theme="cyberpunk"] body::before { content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none; background: radial-gradient(900px 500px at -5% 105%, rgb(255 0 60 / 0.22), transparent 65%), radial-gradient(900px 520px at 105% -5%, rgb(2 215 242 / 0.2), transparent 65%), linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px) 0 0 / 100% 44px, linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px) 0 0 / 44px 100%; }
+html[data-theme="cyberpunk"] body::after { content: ""; position: fixed; inset: 0; z-index: 9999; pointer-events: none; background: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.03) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, #fcee09 0 8px, #09090c 8px 16px) bottom / 100% 5px no-repeat; mix-blend-mode: normal; opacity: 0.9; }
+html[data-theme="cyberpunk"] :is(h1, h2, h3, h4, .wm, .wordmark) { text-transform: uppercase; letter-spacing: 0.14em; }
+html[data-theme="cyberpunk"] .wm { color: #fcee09; text-shadow: 2px 0 #ff003c, -2px 0 #02d7f2; animation: cyber-glitch 6s steps(1) infinite; }
+@keyframes cyber-glitch { 0%, 93%, 100% { transform: none; text-shadow: 2px 0 #ff003c, -2px 0 #02d7f2; } 94% { transform: translateX(-3px); text-shadow: -4px 0 #ff003c, 4px 0 #02d7f2; } 96% { transform: translateX(3px) skewX(-6deg); } 98% { transform: none; } }
+/* plates: two corners cut, a yellow bar down the left, and a tag-style title */
+html[data-theme="cyberpunk"] :is(.panel, .modal, .popover, .invite-card, .menu, .palette, .feed-card, .poll, .ws-form) { background: rgb(20 20 26 / 0.92); border: 1px solid #3b3b47; border-left: 3px solid #fcee09; border-radius: 0; clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut)); box-shadow: none; }
+html[data-theme="cyberpunk"] .panel { padding: 1.15rem 1.05rem 1rem; margin-top: 0.35rem; }
+html[data-theme="cyberpunk"] .workspace { background: rgb(14 14 19 / 0.96); border: 0; border-left: 3px solid #fcee09; clip-path: none; }
+html[data-theme="cyberpunk"] .panel h3 { display: inline-flex; align-items: center; gap: 0.5rem; align-self: flex-start; background: #fcee09; color: #000; padding: 0.22rem 0.9rem 0.22rem 0.55rem; margin: -1.15rem 0 0.9rem -1.05rem; font-size: 0.72rem; clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+html[data-theme="cyberpunk"] .panel h3 * { color: #000; }
+html[data-theme="cyberpunk"] .panel h3 .count { background: #000; color: #fcee09; border: 0; }
+:where(html[data-theme="cyberpunk"]) body button { background: transparent; color: #fcee09; border: 1px solid #fcee09; border-radius: 0; clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px); box-shadow: none; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; font-size: 0.74rem; padding-inline: 0.95em; }
+:where(html[data-theme="cyberpunk"]) body :is(.button, .icon-btn) { background: transparent; color: #fcee09; border: 1px solid #fcee09; border-radius: 0; clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px); box-shadow: none; }
+:where(html[data-theme="cyberpunk"]) body button:hover { background: #fcee09; color: #000; }
+:where(html[data-theme="cyberpunk"]) body :is(.button, .icon-btn):hover { background: #fcee09; color: #000; }
+:where(html[data-theme="cyberpunk"]) body :is(button, .button, .icon-btn):active { transform: translate(1px, 1px); background: #02d7f2; border-color: #02d7f2; color: #000; }
+html[data-theme="cyberpunk"] :is(button.primary, .button.primary, .icon-btn.primary-ish) { background: #fcee09; color: #000; border-color: #fcee09; }
+html[data-theme="cyberpunk"] :is(button.primary, .button.primary):hover { background: #02d7f2; border-color: #02d7f2; }
+html[data-theme="cyberpunk"] button.ghost { background: transparent; border-color: transparent; clip-path: none; color: #8a8a96; }
+html[data-theme="cyberpunk"] button.ghost:hover { color: #fcee09; background: transparent; text-decoration: underline; }
+html[data-theme="cyberpunk"] .icon-btn.hangup { background: #ff003c; color: #fff; border-color: #ff003c; }
+html[data-theme="cyberpunk"] .icon-btn.live { background: rgb(2 215 242 / 0.18); color: #02d7f2; border-color: #02d7f2; }
+html[data-theme="cyberpunk"] button.danger { color: #ff003c; border-color: #ff003c; }
+html[data-theme="cyberpunk"] button.danger:hover { background: #ff003c; color: #fff; }
+html[data-theme="cyberpunk"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: #0d0d12; border: 1px solid #3b3b47; border-bottom: 2px solid #02d7f2; border-radius: 0; color: #f0efe6; box-shadow: none; clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%); }
+html[data-theme="cyberpunk"] :is(input, textarea, select):focus { border-color: #fcee09; border-bottom-color: #fcee09; box-shadow: none; }
+html[data-theme="cyberpunk"] ::selection { background: #fcee09; color: #000; }
+html[data-theme="cyberpunk"] a { color: #02d7f2; text-decoration: none; border-bottom: 1px dashed #02d7f2; }
+html[data-theme="cyberpunk"] .topbar { background: #0d0d12; border-bottom: 1px solid #3b3b47; position: relative; padding-block: 0.45rem; }
+html[data-theme="cyberpunk"] .topbar::after { content: ""; position: absolute; inset: auto 0 -1px 0; height: 2px; background: linear-gradient(90deg, #fcee09 0 32%, transparent 32% 34%, #ff003c 34% 38%, transparent 38%); }
+html[data-theme="cyberpunk"] .sidebar { background: rgb(13 13 18 / 0.88); border-right: 1px solid #3b3b47; gap: 1.1rem; padding: 1.2rem 1rem; }
+html[data-theme="cyberpunk"] .composer { background: #0d0d12; border-top: 1px solid #3b3b47; gap: 0.5rem; }
+html[data-theme="cyberpunk"] .chat, html[data-theme="cyberpunk"] .timeline { background: rgb(9 9 12 / 0.6); background-image: none; }
+html[data-theme="cyberpunk"] .line { padding: 3px 0; }
+html[data-theme="cyberpunk"] .line .who { text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; font-size: 0.74rem; }
+html[data-theme="cyberpunk"] .line .t { color: #8a8a96; font-family: var(--font-mono); }
+html[data-theme="cyberpunk"] .line.mine .what { border-left: 3px solid #fcee09; padding-left: 0.65rem; background: linear-gradient(90deg, rgb(252 238 9 / 0.08), transparent 60%); }
+html[data-theme="cyberpunk"] .sys { color: #ff003c; letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.66rem; }
+html[data-theme="cyberpunk"] .sys::before { content: "// "; } html[data-theme="cyberpunk"] .sys::after { content: " //"; }
+/* the Workspace launcher and every list in the pane breathe: wider gaps, tag-like rows */
+html[data-theme="cyberpunk"] .tool-launch { gap: 0.8rem 0.6rem; padding-top: 0.3rem; }
+html[data-theme="cyberpunk"] .ws-head { padding: 0.8rem 1rem; background: #0d0d12; border-bottom: 1px solid #3b3b47; gap: 0.8rem; }
+html[data-theme="cyberpunk"] .ws-tabs { gap: 0.5rem; }
+html[data-theme="cyberpunk"] .ws-body { padding: 1.1rem; gap: 1rem; }
+html[data-theme="cyberpunk"] .ws-docs { gap: 1.1rem; }
+html[data-theme="cyberpunk"] .ws-list, html[data-theme="cyberpunk"] .ws-main, html[data-theme="cyberpunk"] .ws-col, html[data-theme="cyberpunk"] .ws-polls, html[data-theme="cyberpunk"] .ws-form, html[data-theme="cyberpunk"] .ws-dochead { gap: 0.8rem; }
+html[data-theme="cyberpunk"] .ws-actions { gap: 0.6rem; }
+html[data-theme="cyberpunk"] .ws-items, html[data-theme="cyberpunk"] .hits { gap: 0.5rem; }
+html[data-theme="cyberpunk"] .ws-item, html[data-theme="cyberpunk"] .hit { padding: 0.7rem 0.85rem; background: #101016; border: 1px solid #3b3b47; border-left: 3px solid #3b3b47; clip-path: none; text-transform: none; letter-spacing: 0.02em; font-weight: 500; color: #f0efe6; }
+html[data-theme="cyberpunk"] :is(.ws-item, .hit):hover { background: rgb(252 238 9 / 0.1); border-color: #fcee09; color: #f0efe6; }
+html[data-theme="cyberpunk"] .ws-item.on { background: rgb(252 238 9 / 0.12); border-color: #fcee09; border-left-color: #fcee09; }
+html[data-theme="cyberpunk"] .ws-tab { clip-path: none; border-color: transparent; color: #8a8a96; }
+html[data-theme="cyberpunk"] .ws-tab.on { background: #fcee09; color: #000; border-color: #fcee09; }
+html[data-theme="cyberpunk"] .poll { padding: 1rem; gap: 0.6rem; }
+html[data-theme="cyberpunk"] .poll-opt { clip-path: none; padding: 0.7em 0.9em; text-transform: none; letter-spacing: 0.02em; font-weight: 500; color: #f0efe6; border-color: #3b3b47; }
+html[data-theme="cyberpunk"] .poll-opt:hover { color: #000; }
+html[data-theme="cyberpunk"] .poll-opt.mine { border-color: #fcee09; }
+html[data-theme="cyberpunk"] .poll-bar { background: linear-gradient(90deg, rgb(252 238 9 / 0.35), rgb(2 215 242 / 0.25)); }
+html[data-theme="cyberpunk"] .feed-card { gap: 0.6rem; padding: 0.9rem 1rem; }
+html[data-theme="cyberpunk"] .tile { border: 1px solid #3b3b47; position: relative; clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut)); }
+html[data-theme="cyberpunk"] .tile::after { content: ""; position: absolute; inset: 6px; pointer-events: none; background: linear-gradient(#fcee09, #fcee09) top left / 18px 2px no-repeat, linear-gradient(#fcee09, #fcee09) top left / 2px 18px no-repeat, linear-gradient(#fcee09, #fcee09) bottom right / 18px 2px no-repeat, linear-gradient(#fcee09, #fcee09) bottom right / 2px 18px no-repeat; }
+html[data-theme="cyberpunk"] .tile-label { background: #fcee09; color: #000; transform: none; text-transform: uppercase; letter-spacing: 0.1em; border-radius: 0; font-weight: 700; }
+html[data-theme="cyberpunk"] :is(.pill, .badge, .count) { background: transparent; color: #fcee09; border: 1px solid #fcee09; border-radius: 0; }
+html[data-theme="cyberpunk"] .avatar { box-shadow: 0 0 0 2px #fcee09; }
+html[data-theme="cyberpunk"] .status.on::before { background: #02d7f2; box-shadow: 0 0 8px #02d7f2; }
+html[data-theme="cyberpunk"] :is(.ws-tab, .ws-item, .hit, .poll-opt, .swatch, .dot, .small-btn.primary) { clip-path: none; }
+@media (prefers-reduced-motion: reduce) { html[data-theme="cyberpunk"] .wm { animation: none; } }
+
+/* =============================================== BLACK HOLE: an accretion disk drawn in gradients behind frosted glass =============================================== */
+html[data-theme="blackhole"] { --font-display: "Inter", "Segoe UI", system-ui, sans-serif; background: #000; }
+html[data-theme="blackhole"] body { background: transparent; }
+/* the sky: stars scattered by gradients, turning very slowly about the hole */
+html[data-theme="blackhole"] body::before { content: ""; position: fixed; inset: -50%; z-index: -4; pointer-events: none; transform-origin: 72% 46%;
+  background-image: radial-gradient(1.2px 1.2px at 8% 12%, #fff, transparent), radial-gradient(1px 1px at 17% 71%, #cfd8ff, transparent), radial-gradient(1.6px 1.6px at 26% 33%, #fff, transparent), radial-gradient(1px 1px at 33% 88%, #ffe9c9, transparent), radial-gradient(1.2px 1.2px at 41% 9%, #fff, transparent), radial-gradient(1px 1px at 48% 57%, #bcd0ff, transparent), radial-gradient(1.8px 1.8px at 55% 24%, #fff, transparent), radial-gradient(1px 1px at 61% 79%, #fff, transparent), radial-gradient(1.2px 1.2px at 67% 40%, #ffd9b0, transparent), radial-gradient(1px 1px at 74% 91%, #cfd8ff, transparent), radial-gradient(1.6px 1.6px at 81% 15%, #fff, transparent), radial-gradient(1px 1px at 88% 62%, #fff, transparent), radial-gradient(1.2px 1.2px at 93% 35%, #bcd0ff, transparent), radial-gradient(1px 1px at 4% 52%, #fff, transparent), radial-gradient(1.4px 1.4px at 22% 6%, #ffe9c9, transparent), radial-gradient(1px 1px at 37% 46%, #fff, transparent), radial-gradient(1px 1px at 59% 5%, #cfd8ff, transparent), radial-gradient(1.2px 1.2px at 78% 74%, #fff, transparent), radial-gradient(1px 1px at 96% 84%, #fff, transparent), radial-gradient(1.4px 1.4px at 12% 93%, #bcd0ff, transparent);
+  background-size: 50% 50%; animation: bh-sky 420s linear infinite; }
+@keyframes bh-sky { to { transform: rotate(360deg); } }
+/* behind: the glowing halo (light bent over and under the hole), the black disk, the far side of the accretion disk */
+html[data-theme="blackhole"]::after { content: ""; position: fixed; z-index: -3; pointer-events: none; width: 130vmin; height: 130vmin; left: 72%; top: 46%; translate: -50% -50%;
+  background: radial-gradient(circle at 50% 50%, #000 0 15.2%, transparent 15.6%), radial-gradient(ellipse 46% 7.5% at 50% 50%, transparent 40%, #ffe9c2 55%, #ff8a1f 70%, rgb(120 25 0 / 0.8) 86%, transparent 100%), radial-gradient(circle at 50% 50%, transparent 15%, #fff1d6 15.8%, #ffb25a 17.5%, rgb(255 120 30 / 0.55) 21%, rgb(120 40 200 / 0.18) 32%, transparent 48%);
+  rotate: -9deg; animation: bh-pulse 7s ease-in-out infinite; }
+@keyframes bh-pulse { 50% { filter: brightness(1.18) saturate(1.1); } }
+/* in front of the hole: the near half of the disk sweeping across it */
+html[data-theme="blackhole"]::before { content: ""; position: fixed; z-index: -2; pointer-events: none; width: 130vmin; height: 130vmin; left: 72%; top: 46%; translate: -50% -50%; rotate: -9deg;
+  background: radial-gradient(ellipse 46% 7.5% at 50% 50%, transparent 40%, #ffe9c2 55%, #ff8a1f 70%, rgb(120 25 0 / 0.8) 86%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 50%, #000 50.5%); -webkit-mask-image: linear-gradient(to bottom, transparent 50%, #000 50.5%); animation: bh-pulse 7s ease-in-out infinite; }
+html[data-theme="blackhole"] body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at 72% 46%, transparent 25%, rgb(0 0 0 / 0.6) 100%); }
+@media (max-width: 860px) { html[data-theme="blackhole"]::after, html[data-theme="blackhole"]::before { left: 50%; top: 24%; width: 150vmin; height: 150vmin; } html[data-theme="blackhole"] body::before { transform-origin: 50% 24%; } }
+@media (prefers-reduced-motion: reduce) { html[data-theme="blackhole"] body::before, html[data-theme="blackhole"]::after, html[data-theme="blackhole"]::before,  }
+/* the interface is frosted glass over it */
+html[data-theme="blackhole"] :is(.topbar, .sidebar, .composer, .stage) { background: rgb(6 6 14 / 0.52); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); border-color: rgb(255 255 255 / 0.1); }
+html[data-theme="blackhole"] :is(.chat, .timeline) { background: rgb(4 4 10 / 0.38); background-image: none; backdrop-filter: blur(5px); }
+html[data-theme="blackhole"] :is(.panel, .modal, .popover, .invite-card, .menu, .palette, .feed-card, .workspace, .poll, .ws-form) { background: rgb(10 10 22 / 0.58); border: 1px solid rgb(255 255 255 / 0.14); box-shadow: 0 8px 40px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.08); backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2); }
+html[data-theme="blackhole"] .workspace { border-width: 0 0 0 1px; }
+html[data-theme="blackhole"] .panel h3 { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.72rem; color: #ffc88a; }
+:where(html[data-theme="blackhole"]) body button { background: rgb(255 255 255 / 0.06); border: 1px solid rgb(255 255 255 / 0.16); color: var(--text); box-shadow: none; }
+:where(html[data-theme="blackhole"]) body :is(.button, .icon-btn) { background: rgb(255 255 255 / 0.06); border: 1px solid rgb(255 255 255 / 0.16); color: var(--text); box-shadow: none; }
+:where(html[data-theme="blackhole"]) body button:hover { background: rgb(255 168 61 / 0.2); border-color: #ffa83d; box-shadow: 0 0 18px rgb(255 168 61 / 0.35); }
+:where(html[data-theme="blackhole"]) body :is(.button, .icon-btn):hover { background: rgb(255 168 61 / 0.2); border-color: #ffa83d; box-shadow: 0 0 18px rgb(255 168 61 / 0.35); }
+html[data-theme="blackhole"] :is(button.primary, .button.primary) { background: linear-gradient(135deg, #ffb25a, #ff7a18); color: #1a0b00; border-color: #ffb25a; box-shadow: 0 0 22px rgb(255 140 40 / 0.45); }
+html[data-theme="blackhole"] :is(button.primary, .button.primary):hover { background: linear-gradient(135deg, #ffe9c2, #ffb25a); box-shadow: 0 0 32px rgb(255 170 80 / 0.7); }
+html[data-theme="blackhole"] button.ghost { background: transparent; border-color: transparent; color: #b9b2d9; box-shadow: none; }
+html[data-theme="blackhole"] button.ghost:hover { color: #ffc88a; background: rgb(255 255 255 / 0.05); box-shadow: none; }
+html[data-theme="blackhole"] :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea, select) { background: rgb(0 0 0 / 0.45); border: 1px solid rgb(255 255 255 / 0.16); color: var(--text); }
+html[data-theme="blackhole"] :is(input, textarea, select):focus { border-color: #ffa83d; box-shadow: 0 0 0 3px rgb(255 168 61 / 0.22); }
+html[data-theme="blackhole"] .wm { background: linear-gradient(90deg, #ffe9c2, #ff8a1f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+html[data-theme="blackhole"] .line .who { text-shadow: 0 0 10px currentColor; }
+html[data-theme="blackhole"] .line.mine .what { border-left-color: #ffa83d; }
+html[data-theme="blackhole"] .tile { border: 1px solid rgb(255 255 255 / 0.18); box-shadow: 0 0 30px rgb(0 0 0 / 0.6); }
+html[data-theme="blackhole"] .tile-label { background: rgb(0 0 0 / 0.6); backdrop-filter: blur(6px); transform: none; text-transform: none; }
+html[data-theme="blackhole"] :is(.pill, .badge, .count) { background: rgb(255 168 61 / 0.15); color: #ffc88a; border: 1px solid rgb(255 168 61 / 0.35); }
+html[data-theme="blackhole"] a { color: #ffc88a; }
+html[data-theme="blackhole"] .poll-bar { background: linear-gradient(90deg, rgb(255 168 61 / 0.4), rgb(176 80 255 / 0.3)); }
+html[data-theme="blackhole"] ::selection { background: #ffa83d; color: #1a0b00; }
+
+/* hovered menu items and danger buttons: the generic hover of a look sets a light or dark text colour, so each look says what the surface under it becomes */
+html[data-theme="paper"] :is(.menu button:hover, button.danger:hover) { background: #2a2418; color: #fbf6e8; border-color: #2a2418; }
+html[data-theme="terminal"] :is(.menu button:hover, button.danger:hover) { background: var(--text); color: #0b130d; border-color: var(--text); }
+html[data-theme="newspaper"] :is(.menu button:hover, button.danger:hover) { background: #111; color: #fff; border-color: #111; }
+html[data-theme="web95"] :is(.menu button:hover) { background: #000080; color: #fff; }
+html[data-theme="web95"] .panel h3 button:hover { background: #d4d0c8; color: #000; }
+html[data-theme="web95"] .panel h3 button { background: #c0c0c0; color: #000; }
+html[data-theme] a:hover { filter: brightness(1.2); text-decoration: underline; }
+html[data-theme="shadcn"] .small-btn:hover { background: var(--panel-2); border-color: var(--text); }
+html[data-theme="web95"] .slot-toggle:hover { background: #d4d0c8; color: #000; }
+html[data-theme="cyberpunk"] :is(.menu button:hover, .slot-toggle:hover) { background: #fcee09; color: #000; }
+html[data-theme="cyberpunk"] .panel h3 button:hover { background: #000; color: #fcee09; }
+html[data-theme="cyberpunk"] a:hover { color: #fcee09; border-bottom-color: #fcee09; filter: none; text-decoration: none; }
+/* terminal: the brackets round the top bar's text buttons are for roomy screens; on a phone they would push the bar wider than the screen */
+@media (max-width: 860px) {
+  html[data-theme="terminal"] .topbar > .row > button::before, html[data-theme="terminal"] .topbar > .row > button::after { content: none; }
+  html[data-theme="terminal"] .wm::before, html[data-theme="terminal"] .wm::after { content: none; }
+  html[data-theme="terminal"] .topbar .row { gap: 0.2rem; }
+  html[data-theme="terminal"] .topbar button { padding-inline: 0.2em; }
+  html[data-theme="terminal"] .topbar .icon-btn { width: 34px; }
+}

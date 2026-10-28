@@ -32,13 +32,12 @@ export type EventType =
   | "room_options"
   | "doc_set"
   | "doc_del"
+  | "blk_set"
   | "poll_new"
   | "poll_vote"
   | "poll_end"
   | "draw"
   | "draw_clear"
-  | "portal_add"
-  | "portal_del"
   | "horn";
 
 export type SpaceEvent = {
@@ -147,7 +146,7 @@ export type SpaceState = {
   members: Map<string, Member>;
   kicked: Set<string>;
   closed: boolean;
-  /** Pages and notes, polls, the drawing board and doors to other rooms (see tools.ts). */
+  /** Pages and notes, polls and the drawing board (see tools.ts). */
   tools: RoomTools;
   /** When the closing event was authored (the host's clock), or 0. */
   closedAt: number;
@@ -342,13 +341,12 @@ export function derive(events: SpaceEvent[], initialHost: string): SpaceState {
         break;
       case "doc_set":
       case "doc_del":
+      case "blk_set":
       case "poll_new":
       case "poll_vote":
       case "poll_end":
       case "draw":
       case "draw_clear":
-      case "portal_add":
-      case "portal_del":
         if (applyTool(tools, e, members.has(e.author) && (isHost || perms.chat), isHost)) visible.push(e);
         break;
       case "room_options":

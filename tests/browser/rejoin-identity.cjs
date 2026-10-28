@@ -24,7 +24,7 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   await B1.close();
   await A.getByText("Ben left").waitFor({ timeout: 20000 }).catch(() => {});
   const B2 = await join(benCtx, "Benjamin");
-  await A.waitForFunction(() => /Benjamin/.test(document.querySelector(".members")?.innerText || ""), null, { timeout: 20000 });
+  await A.getByText(/Benjamin came back/).first().waitFor({ timeout: 40000 }); // not just a "connecting" row: the link is up and the return is in the log
   const idAfter = await B2.evaluate(() => JSON.parse(sessionStorage.getItem("deca.identity")).pub);
   ok("the same browser comes back as the same identity", idBefore === idAfter);
   const list = (await members(A)).join(" | ");
@@ -35,7 +35,7 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
 
   // two tabs of the same browser at once are two people
   const B3 = await join(benCtx, "Benji-second-tab");
-  await A.waitForFunction(() => /Benji-second-tab/.test(document.querySelector(".members")?.innerText || ""), null, { timeout: 20000 });
+  await A.getByText(/Benji-second-tab joined/).first().waitFor({ timeout: 40000 });
   ok("a second tab open at the same time is a separate person, and does not kick the first", (await count(A)) === "3" && (await B2.locator(".composer textarea").isVisible()));
   const idThird = await B3.evaluate(() => JSON.parse(sessionStorage.getItem("deca.identity")).pub);
   ok("with its own identity", idThird !== idAfter);

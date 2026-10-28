@@ -19,7 +19,7 @@ const same = (x, y) => ["x", "y", "width", "height"].every((k) => Math.abs(x[k] 
   ok("narrow chat: the message box is wide enough (was 143px)", tab0.width >= 250, tab0.width);
   const tools = await a.locator(".composer > :not(textarea):not(.send)").evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { y: Math.round(r.y), r: Math.round(r.right) }; }));
   const cb = await box(a, ".composer");
-  ok("the tool buttons sit on a row below the box and inside the chat", tools.length === 3 && tools.every((t) => t.y > tab0.y + tab0.height - 2 && t.r <= chat0.x + chat0.width + 1), JSON.stringify(tools));
+  ok("the tool buttons sit on a row below the box and inside the chat", tools.length === 4 && tools.every((t) => t.y > tab0.y + tab0.height - 2 && t.r <= chat0.x + chat0.width + 1), JSON.stringify(tools));
   const sendB = await box(a, ".composer .send"); ok("send button stays beside the box, bottom-aligned with it", Math.abs(sendB.y + sendB.height - (tab0.y + tab0.height)) < 2, JSON.stringify([sendB, tab0]));
   await ta.focus(); let prev = Math.round((await ta.boundingBox()).height), jumps = 0; const msg = "hello everyone this is a message that keeps going and going and going on and on";
   for (const ch of msg) { await a.keyboard.type(ch); const h = Math.round((await ta.boundingBox()).height); if (h !== prev) { jumps++; prev = h; } }

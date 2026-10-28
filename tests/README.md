@@ -11,13 +11,15 @@ Two kinds, both run by `run.mjs`:
 cd tests
 npm install
 npx playwright-core install chromium     # once; or set CHROME_PATH to a Chrome/Chromium you already have
-node run.mjs                             # everything (about 20-30 minutes)
+node run.mjs                             # everything except the deliberately slow suite: about 4 minutes, 3 suites at a time
 node run.mjs quick                       # a fast, representative subset
+node run.mjs --jobs 6                     # more suites side by side (faster on a strong machine, flakier on a weak one)
+node run.mjs --slow                      # also run the suite that waits on purpose (code-mode-slow, about 2 minutes)
 node run.mjs unit                        # unit tests only
 node run.mjs scores room                 # any suite whose name contains one of the words
 ```
 
-The runner starts the app itself on `http://localhost:8080` from `dema-client/dist` (it builds it first if missing), or reuses one that is already answering there. **Rebuild the client after changing it** (`cd dema-client && npm run build`), because the server serves the built files. Browser suites run one at a time on purpose: they share one server and its per-address limits.
+The runner starts **its own app** on `http://localhost:8080` from `dema-client/dist` (it builds it first if missing) and runs suites side by side (`--jobs`, default 3). To allow that it raises the server's per-address limits (`MAX_PER_IP`, `JOINS_PER_MIN`, ...) **for this test server only**: the shipped defaults are untouched, because the suites make many rooms from one address, which those limits are designed to refuse. If something is already answering on 8080 the runner stops and says so (stop it, or use `--reuse --jobs 1` to use that app under its own limits). **Rebuild the client after changing it** (`cd dema-client && npm run build`), because the server serves the built files.
 
 A failing suite is retried once (`RETRIES=0` to turn that off) because a few are timing-sensitive; a retry that passes is reported as such.
 
