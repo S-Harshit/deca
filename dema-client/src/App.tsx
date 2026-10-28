@@ -6,6 +6,7 @@ import { QrDialog } from "./components/QrDialog";
 import { setQrDialog, useQrDialog } from "./qrDialog";
 import { setDropsDialog, useDropsDialog } from "./dropsDialog";
 import { inAppBrowser } from "./inApp";
+import { loadIceServers } from "./mesh";
 import { playChime } from "./horn";
 import { EndsIn, LeftNow, RoomSummary } from "./components/RoomEnd";
 import { onKonami } from "./konami";
@@ -57,6 +58,7 @@ function App() {
   const [identityFailed, setIdentityFailed] = useState(false);
   useEffect(() => {
     loadIdentity().then(setIdentity, () => setIdentityFailed(true));
+    if (spaceFromHash()) void loadIceServers(); // someone opening an invite: by the time they press Join, the server list (and any relay credentials) is already here. Not in connect-by-code mode, which asks the server for nothing
   }, []);
 
   useEffect(() => {

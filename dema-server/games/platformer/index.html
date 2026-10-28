@@ -32,18 +32,22 @@ const LEVELS = [
 let level = 0, seed = 7; const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
 const EMPTY = 0, SOLID = 1, BRICK = 2, BLOCK = 3, USED = 4, SPIKE = 5;
 let COLS = 210, FLAG_COL = COLS - 9, grid = [];
-const coins = [], slimes0 = [], checkpoints = [];
+const coins = [], slimes0 = [], checkpoints = [], items = new Map(); // items: which power-up a "?" block holds, by tile
 // A hop reaches about 45 px (2.8 tiles) at best. A coin must sit where a jump from solid ground can touch it: floating bricks are too high to stand on
 // (they are for bumping from below), so a coin is measured from the ground under it, never from a brick.
 const REACH = 44;
 function build(n) {
   const L = LEVELS[n]; seed = L.seed; COLS = L.cols; FLAG_COL = COLS - 9;
-  grid = Array.from({ length: ROWS }, () => new Uint8Array(COLS)); coins.length = 0; slimes0.length = 0; checkpoints.length = 0;
+  grid = Array.from({ length: ROWS }, () => new Uint8Array(COLS)); coins.length = 0; slimes0.length = 0; checkpoints.length = 0; items.clear();
   const ground = (c0, c1, h = 0) => { for (let c = c0; c < c1; c++) for (let r = GROUND - h; r < ROWS; r++) grid[r][c] = SOLID; };
   const arc = (c, row, n2) => { for (let i = 0; i < n2; i++) coins.push({ x: (c + i) * T + 4, y: (row - Math.round(Math.sin((i / Math.max(1, n2 - 1)) * Math.PI) * 1.5)) * T + 2, got: false }); };
   function flatBit(c, len) {
     ground(c, c + len);
-    if (len >= 8 && rnd() < 0.6) { const b = c + 2 + Math.floor(rnd() * (len - 6)); grid[GROUND - 4][b] = BRICK; grid[GROUND - 4][b + 1] = BLOCK; grid[GROUND - 4][b + 2] = BRICK; arc(b - 1, GROUND - 3, 5); }
+    if (len >= 8 && rnd() < 0.55) { // one "?" block, hit from below: it holds a power-up (not a coin), and the coins sit beside it
+      const b = c + 3 + Math.floor(rnd() * (len - 7)); grid[GROUND - 4][b] = BLOCK;
+      const roll = rnd(); items.set((GROUND - 4) * COLS + b, roll < 0.4 ? "shield" : roll < 0.8 ? "boots" : "heart");
+      arc(c + 1, GROUND - 2, 2); arc(b + 2, GROUND - 2, Math.min(3, c + len - b - 3));
+    }
     else arc(c + 2, GROUND - 2, Math.min(5, len - 3));
     if (len >= 10 || (L.hard && len >= 8)) slimes0.push({ x: (c + 3 + Math.floor(rnd() * (len - 9 + (L.hard ? 1 : 0)))) * T, dir: rnd() < 0.5 ? -1 : 1 }); // never in the last 6 tiles: a hop over it must not land in a pit
   }
@@ -69,6 +73,13 @@ function build(n) {
     if (top >= ROWS * T) top = GROUND * T;
     k.y = Math.max(k.y, top - REACH - 12);
   }
+  // ...and must not overlap any block or ground: nudge it clear (down first, then up), or drop it
+  const inTile = (k) => { for (let r = Math.floor(k.y / T); r <= Math.floor((k.y + 11) / T); r++) for (let q = Math.floor(k.x / T); q <= Math.floor((k.x + 7) / T); q++) if (grid[r]?.[q] >= SOLID && grid[r][q] <= USED) return true; return false; };
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const k = coins[i]; const y0 = k.y; let ok = !inTile(k);
+    for (const d of [-8, -16, -24, 8, 16, 24]) { if (ok) break; k.y = y0 + d; ok = !inTile(k); }
+    if (!ok) coins.splice(i, 1);
+  }
 }
 build(0);
 
@@ -83,7 +94,7 @@ const beep = (f0, f1, dur, type = "square", vol = 0.06) => {
     v.gain.setValueAtTime(vol, t); v.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(v); v.connect(actx.destination); o.start(t); o.stop(t + dur);
   } catch {}
 };
-const sfx = { jump: () => beep(300, 700, 0.14), coin: () => { beep(880, 1320, 0.07); }, stomp: () => beep(220, 90, 0.12, "triangle", 0.1), hurt: () => beep(300, 60, 0.4, "sawtooth", 0.07), win: () => { beep(523, 523, 0.12); setTimeout(() => beep(659, 659, 0.12), 120); setTimeout(() => beep(784, 1046, 0.35), 240); }, bump: () => beep(140, 100, 0.08, "square", 0.05) };
+const sfx = { power: () => { beep(440, 880, 0.12, "triangle", 0.08); setTimeout(() => beep(660, 1320, 0.14, "triangle", 0.08), 90); }, jump: () => beep(300, 700, 0.14), coin: () => { beep(880, 1320, 0.07); }, stomp: () => beep(220, 90, 0.12, "triangle", 0.1), hurt: () => beep(300, 60, 0.4, "sawtooth", 0.07), win: () => { beep(523, 523, 0.12); setTimeout(() => beep(659, 659, 0.12), 120); setTimeout(() => beep(784, 1046, 0.35), 240); }, bump: () => beep(140, 100, 0.08, "square", 0.05) };
 
 // ---------- state ----------
 let reported = false;
@@ -93,7 +104,7 @@ let p, slimes, score, got, lives, cam, state, frame, cp, hold = 0, popups = [], 
 const keys = {}; let jumpBuf = 0, coyote = 0, jumpHeld = false;
 function resetWorld(full) {
   if (full) { reported = false; level = 0; build(0); total = 0; score = 0; got = 0; lives = 3; cp = 40; state = "play"; }
-  p = { x: cp, y: (GROUND - 1) * T - 4, w: 12, h: 16, vx: 0, vy: 0, on: false, face: 1, inv: 90 };
+  p = { x: cp, y: (GROUND - 1) * T - 4, w: 12, h: 16, vx: 0, vy: 0, on: false, face: 1, inv: 90, shield: p ? p.shield : false, boots: p ? p.boots : 0 };
   slimes = slimes0.filter((s) => full || s.x > cp - 80 || true).map((s) => ({ x: s.x, y: (GROUND - 1) * T + 4, w: 14, h: 12, vx: 0.45 * s.dir, vy: 0, dead: 0, on: false, alive: true }));
   slimes.forEach((s) => { if (s.x < cp + 90 && s.x > cp - 40) s.alive = false; }); // never spawn one on top of you
   popups = []; bumps = [];
@@ -106,13 +117,16 @@ const num = (v, lo, hi) => (typeof v === "number" && Number.isFinite(v) ? Math.m
 const net = (data) => { if (window.parent !== window) parent.postMessage({ deca: "net", data }, "*"); };
 const activeMates = () => { const now = performance.now(); return [...mates.values()].filter((m) => now - m.seen < 2500 && m.lv === level); };
 let clearT = 0;
+// who the team is still waiting for at the flag: not those already there or out, and not someone who has stood still for 15 s (gone to make tea)
+const waitingFor = () => activeMates().filter((m) => !m.done && !m.out && performance.now() - m.moved < 15000);
 // Everything from other players is untrusted: numbers are clamped, anything odd is dropped.
 function onNet(from, name, d) {
   if (!d || typeof d !== "object" || typeof from !== "string") return;
   if (d.k === "p") {
     const x = num(d.x, 0, COLS * T), y = num(d.y, -200, H + 200), lv = Number.isInteger(d.lv) && d.lv >= 0 && d.lv < LEVELS.length ? d.lv : null;
     if (x === null || y === null || lv === null) return;
-    mates.set(from, { id: from, name: String(name ?? "").slice(0, 16), x, y, f: d.f === -1 ? -1 : 1, lv, done: d.d === 1, out: d.o === 1, seen: performance.now() });
+    const was = mates.get(from), now = performance.now();
+    mates.set(from, { id: from, name: String(name ?? "").slice(0, 16), x, y, f: d.f === -1 ? -1 : 1, lv, done: d.d === 1, out: d.o === 1, seen: now, moved: !was || Math.abs(was.x - x) > 0.5 || Math.abs(was.y - y) > 0.5 || was.lv !== lv ? now : was.moved });
     if (lv > level && state !== "over") { level = lv - 1; nextLevel(); } // someone who arrives late catches up with the team
   } else if (d.k === "c" && d.lv === level && Number.isInteger(d.i) && coins[d.i] && !coins[d.i].got) { coins[d.i].got = true; got++; sfx.coin(); }
 }
@@ -133,11 +147,17 @@ function move(b, bumpHeads) {
 }
 function bump(tx, ty) {
   bumps.push({ x: tx, y: ty, t: 0 });
-  if (grid[ty][tx] === BLOCK) { grid[ty][tx] = USED; got++; score += 100; sfx.coin(); popups.push({ x: tx * T + 4, y: ty * T - 6, t: 0 }); } else sfx.bump();
+  if (grid[ty][tx] === BLOCK) {
+    grid[ty][tx] = USED; const kind = items.get(ty * COLS + tx) || "shield"; sfx.power();
+    if (kind === "shield") { p.shield = true; popups.push({ x: tx * T - 6, y: ty * T - 6, t: 0, text: "SHIELD" }); }
+    else if (kind === "boots") { p.boots = 720; popups.push({ x: tx * T - 6, y: ty * T - 6, t: 0, text: "HIGH JUMP" }); }
+    else { lives = Math.min(5, lives + 1); popups.push({ x: tx * T - 2, y: ty * T - 6, t: 0, text: "+1 LIFE" }); }
+  } else sfx.bump();
 }
-function hurt() {
+function hurt(pit) {
   if (p.inv > 0 || state !== "play") return;
-  sfx.hurt(); lives--;
+  if (p.shield && !pit) { p.shield = false; p.inv = 70; sfx.stomp(); popups.push({ x: p.x - 8, y: p.y - 8, t: 0, text: "BLOCKED" }); return; } // the shield takes one hit
+  p.shield = false; sfx.hurt(); lives--;
   if (lives <= 0) { if (activeMates().some((m) => !m.out)) state = "spectate"; else { state = "over"; report(); } return; }
   p.x = cp; p.y = (GROUND - 1) * T - 4; p.vx = p.vy = 0; p.inv = 120;
 }
@@ -149,7 +169,7 @@ function update() {
   if (BOT) botThink();
   if (!BOT && frame % 4 === 0) net({ k: "p", lv: level, x: Math.round(p.x), y: Math.round(p.y), f: p.face, d: state === "wait" || state === "clear" || state === "win" ? 1 : 0, o: state === "spectate" || state === "over" ? 1 : 0 });
   if (state === "wait") { // at the flag: the level is cleared when everyone still playing has got here too
-    if (!activeMates().some((m) => !m.done && !m.out)) { if (level < LEVELS.length - 1) { state = "clear"; clearT = activeMates().length ? 150 : 0; } else { state = "win"; report(); } }
+    if (!waitingFor().length) { if (level < LEVELS.length - 1) { state = "clear"; clearT = activeMates().length ? 150 : 0; } else { state = "win"; report(); } }
   }
   if (state === "clear" && clearT > 0 && --clearT === 0) { nextLevel(); return; } // together, the next level starts by itself
   if (state === "spectate") { // out of lives: watch a teammate until the level is cleared (or everyone is out)
@@ -166,7 +186,7 @@ function update() {
   const wantJump = keys[" "] || keys.ArrowUp || keys.w;
   if (wantJump && !jumpHeld) jumpBuf = 6; jumpHeld = !!wantJump;
   coyote = p.on ? 6 : coyote - 1; jumpBuf--;
-  if (jumpBuf > 0 && coyote > 0) { p.vy = -5.2; p.on = false; coyote = 0; jumpBuf = 0; sfx.jump(); }
+  if (jumpBuf > 0 && coyote > 0) { p.vy = p.boots > 0 ? -6.3 : -5.2; p.on = false; coyote = 0; jumpBuf = 0; sfx.jump(); }
   if (!wantJump && p.vy < -2) p.vy += 0.5; // let go early = shorter hop
   p.vy = Math.min(p.vy + 0.3, 6);
   move(p, true);
@@ -175,7 +195,8 @@ function update() {
     if (!m.out && p.vy >= 0 && p.x + p.w > m.x + 2 && p.x < m.x + 10 && feet >= m.y - 1 && feet - p.vy <= m.y + 2) { p.y = m.y - p.h; p.vy = 0; p.on = true; }
   }
   if (p.inv > 0) p.inv--;
-  if (p.y > H + 40) hurt();
+  if (p.boots > 0) p.boots--;
+  if (p.y > H + 40) hurt(true);
   for (const k of checkpoints) if (p.x > k && cp < k) cp = k;
   // hazards
   const tx0 = Math.floor(p.x / T), tx1 = Math.floor((p.x + p.w) / T), ty = Math.floor((p.y + p.h - 1) / T);
@@ -196,7 +217,7 @@ function update() {
   }
   if (p.x + p.w > FLAG_COL * T + 4) { score += 500; sfx.win(); state = "wait"; }
   cam = Math.max(0, Math.min(COLS * T - W, p.x + p.w / 2 - W / 2));
-  popups.forEach((o) => o.t++); popups = popups.filter((o) => o.t < 30); bumps.forEach((b) => b.t++); bumps = bumps.filter((b) => b.t < 8);
+  popups.forEach((o) => o.t++); popups = popups.filter((o) => o.t < 50); bumps.forEach((b) => b.t++); bumps = bumps.filter((b) => b.t < 8);
 }
 
 // ---------- autopilot (only with ?bot=1): looks ahead and jumps; used to prove the level is finishable ----------
@@ -209,6 +230,24 @@ function botThink() {
   const slime = slimes.some((s) => s.alive && !s.dead && s.x > p.x && s.x - p.x < 34 && Math.abs(s.y - p.y) < 20) && solid(front + 5, feet) && solid(front + 3, feet);
   if ((gapAhead || wallAhead || spike || slime) && (p.on || coyote > 0)) keys[" "] = true;
   if (!p.on && p.vy < 0) keys[" "] = true; // hold for the full jump
+}
+
+// ---------- the hero: a little fox, drawn from a pixel map ----------
+const FOX = [
+  ".oo......oo.", ".oOo....oOo.", ".oOOooooOOo.", ".oOOOOOOOOo.", ".oOeeOOeeOo.", ".oOekOOekOo.", ".oOOOnnOOOo.", "..oWWWWWWo..",
+  "..SSSSSSSS..", ".oOOWWWWOOo.", ".oOOWWWWOOo.", ".oOOWWWWOOo.", ".oOOOOOOOOo.", "..oOOooOOo..",
+];
+const FOXCOL = { o: "#5d3a1a", O: "#f08a24", W: "#ffe8c7", e: "#ffffff", k: "#1b1b1b", n: "#d4506a" };
+function drawFox(px, py, face, step, scarf, alpha = 1) {
+  g.globalAlpha = alpha;
+  for (let r = 0; r < FOX.length; r++) for (let q = 0; q < 12; q++) {
+    const ch = FOX[r][face > 0 ? q : 11 - q]; if (ch === ".") continue;
+    g.fillStyle = ch === "S" ? scarf : FOXCOL[ch]; g.fillRect(px + q, py + 1 + r, 1, 1);
+  }
+  const tx = face > 0 ? px - 3 : px + 12, wag = Math.floor(frame / 8) % 2; // tail with a cream tip, behind the body
+  g.fillStyle = FOXCOL.o; g.fillRect(tx, py + 9 - wag, 3, 5); g.fillStyle = FOXCOL.O; g.fillRect(tx + (face > 0 ? 0 : 1), py + 10 - wag, 2, 3); g.fillStyle = FOXCOL.W; g.fillRect(tx + (face > 0 ? 0 : 1), py + 9 - wag, 2, 1);
+  g.fillStyle = FOXCOL.o; g.fillRect(px + 2 + step, py + 14, 3, 2); g.fillRect(px + 7 - step, py + 14, 3, 2); // paws
+  g.globalAlpha = 1;
 }
 
 // ---------- drawing ----------
@@ -238,25 +277,22 @@ function draw() {
   for (const m of activeMates()) {
     const col = MATE_COLORS[[...m.id].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7) % MATE_COLORS.length];
     const mx = Math.round(m.x - cam), my = Math.round(m.y);
-    g.globalAlpha = m.out ? 0.3 : 0.9;
-    g.fillStyle = "#37474f"; g.fillRect(mx + 1, my + 13, 4, 3); g.fillRect(mx + 7, my + 13, 4, 3);
-    g.fillStyle = col; g.fillRect(mx, my + 4, 12, 10); g.fillStyle = "#eceff1"; g.fillRect(mx + 1, my, 10, 6); g.fillStyle = "#111"; g.fillRect(mx + (m.f > 0 ? 6 : 2), my + 2, 3, 3);
+    drawFox(mx, my, m.f, Math.floor(frame / 6) % 2, col, m.out ? 0.3 : 0.92);
     g.globalAlpha = 1; g.font = "bold 7px monospace"; g.textAlign = "center"; g.fillStyle = "#fff"; g.fillText((m.done ? "✓ " : "") + m.name, mx + 6, my - 4); g.textAlign = "left";
   }
-  // player: a little robot
+  // player: the fox, with a ring while the shield is up
   if (!(p.inv > 0 && frame % 6 < 3)) {
     const px = Math.round(p.x - cam), py = Math.round(p.y), step = p.on && Math.abs(p.vx) > 0.3 ? Math.floor(frame / 5) % 2 : 0;
-    g.fillStyle = "#37474f"; g.fillRect(px + 1 + step, py + 13, 4, 3); g.fillRect(px + 7 - step, py + 13, 4, 3);
-    g.fillStyle = "#4fc3f7"; g.fillRect(px, py + 4, 12, 10); g.fillStyle = "#29b6f6"; g.fillRect(px, py + 11, 12, 3);
-    g.fillStyle = "#eceff1"; g.fillRect(px + 1, py, 10, 6); g.fillStyle = "#111"; g.fillRect(px + (p.face > 0 ? 6 : 2), py + 2, 3, 3); g.fillStyle = "#ff7043"; g.fillRect(px + 5, py - 3, 2, 3);
+    drawFox(px, py, p.face, step, "#42a5f5");
+    if (p.shield) { g.strokeStyle = "rgba(120,200,255," + (0.55 + Math.sin(frame / 8) * 0.25) + ")"; g.lineWidth = 1.5; g.beginPath(); g.arc(px + 6, py + 9, 11, 0, Math.PI * 2); g.stroke(); }
   }
-  popups.forEach((o) => { g.fillStyle = "#ffd23f"; g.fillRect(Math.round(o.x - cam), Math.round(o.y - o.t * 0.8), 6, 10); });
+  popups.forEach((o) => { g.font = "bold 7px monospace"; g.fillStyle = "#fff"; g.strokeStyle = "#000"; g.lineWidth = 2; const tx = Math.round(o.x - cam), ty = Math.round(o.y - o.t * 0.8); g.strokeText(o.text || "", tx, ty); g.fillText(o.text || "", tx, ty); });
   // HUD
   g.font = "bold 9px monospace"; g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(0, 0, W, 14); g.fillStyle = "#fff";
-  g.fillText("LV " + (level + 1) + "/" + LEVELS.length + "  COINS " + String(got).padStart(2, "0") + "  SCORE " + String(score).padStart(5, "0") + "   LIVES " + "♥".repeat(Math.max(0, lives)) + (activeMates().length ? "   TEAM " + (activeMates().length + 1) : ""), 6, 10);
+  g.fillText("LV " + (level + 1) + "/" + LEVELS.length + "  COINS " + String(got).padStart(2, "0") + "  SCORE " + String(score).padStart(5, "0") + "   LIVES " + "♥".repeat(Math.max(0, lives)) + (activeMates().length ? "   TEAM " + (activeMates().length + 1) : "") + (p.shield ? "   SHIELD" : "") + (p.boots > 0 ? "   HIGH JUMP " + Math.ceil(p.boots / 60) + "s" : ""), 6, 10);
   if (muted) g.fillText("MUTED", W - 40, 10);
   const say = (a, b) => { g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(40, 66, W - 80, 56); g.fillStyle = "#fff"; g.font = "bold 14px monospace"; g.textAlign = "center"; g.fillText(a, W / 2, 90); g.font = "9px monospace"; g.fillText(b, W / 2, 108); g.textAlign = "left"; };
-  if (state === "wait") say("YOU MADE IT!", "Waiting for " + activeMates().filter((m) => !m.done && !m.out).length + " teammate(s)...");
+  if (state === "wait") say("YOU MADE IT!", "Waiting for " + waitingFor().length + " teammate(s)...");
   if (state === "spectate") say("YOU ARE OUT", "Watching until the team clears the level");
   if (state === "clear") say("LEVEL " + (level + 1) + " CLEAR!", "Next: " + LEVELS[level + 1].name + (clearT > 0 ? "  ·  starting..." : "  ·  Space to go on"));
   if (state === "win") say("YOU BEAT THE EDGE!", "Final score " + score + "  ·  Space to play again");
@@ -284,7 +320,7 @@ addEventListener("keyup", (e) => { keys[e.key.length === 1 ? e.key.toLowerCase()
 addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
 cv.addEventListener("pointerdown", () => cv.focus());
 frame = 0; cam = 0; resetWorld(true); cv.focus(); requestAnimationFrame(loop);
-window.__pixelHop = { get p() { return p; }, get state() { return state; }, get score() { return score; }, get lives() { return lives; }, get cols() { return COLS; }, get level() { return level; }, get coins() { return coins; }, get mates() { return activeMates(); }, teleport(x, y) { p.x = x; p.y = y; p.vy = 0; }, get grid() { return grid; }, get levels() { return LEVELS.length; }, nextLevel() { nextLevel(); },  get coinsLeft() { return coins.filter((k) => !k.got).length; }, step(n = 1) { for (let i = 0; i < n; i++) update(); } };
+window.__pixelHop = { get p() { return p; }, get state() { return state; }, get score() { return score; }, get lives() { return lives; }, get cols() { return COLS; }, get level() { return level; }, get coins() { return coins; }, get items() { return items; }, bump(tx, ty) { bump(tx, ty); }, hurt() { hurt(); }, get mates() { return activeMates(); }, teleport(x, y) { p.x = x; p.y = y; p.vy = 0; }, get grid() { return grid; }, get levels() { return LEVELS.length; }, nextLevel() { nextLevel(); },  get coinsLeft() { return coins.filter((k) => !k.got).length; }, step(n = 1) { for (let i = 0; i < n; i++) update(); } };
 </script>
 </body>
 </html>

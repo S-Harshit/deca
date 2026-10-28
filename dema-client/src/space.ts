@@ -6,6 +6,7 @@ import { isBlankMessage, safeWebUrl } from "./message";
 import type { ExportFile, ExportInput } from "./roomExport";
 import type { Highlights } from "./summary";
 import { LIMITS } from "./tools";
+import { streamFile } from "./fileStream";
 import type { Collab } from "./collab";
 import { derive, EventLog, HANDS, isEvent, MAX_ARCHIVES, MAX_FILE, MAX_SCORE, rid, type ArchiveRef, type EventType, type SpaceEvent, type SpaceState } from "./log";
 import { openArchive, sha256Hex, type ArchiveData } from "./archive";
@@ -16,8 +17,8 @@ import { Mesh, type PeerInfo } from "./mesh";
 import type { Identity } from "./identity";
 import { signEvent, verifyEvent } from "./signing";
 import { advance, EMPTY_MUSIC, fetchTitle, isNewer, parseVideoId, positionNow, sanitize, type MusicState } from "./music";
+import { isPersonalList, parseMixSeed, parsePlaylistId, playlistIds } from "./yt";
 
-const CHUNK = 16 * 1024;
 const ANNOUNCE_TIMEOUT_MS = 4000;
 /** Images up to this size are fetched automatically so they can show inline. */
 const AUTO_IMAGE_MAX = 10 * 1024 * 1024;
@@ -193,6 +194,12 @@ export class Space {
     this.peerId = identity.peerId;
     this.name = name;
     this.snapshot = this.build();
+    // The host keeps everyone's music clock honest: a small "it is at this second now" every 4 s while something plays. It used to come from
+    // whoever last pressed a button, which meant nobody once a track had moved on by itself, and drift then grew for the rest of the queue.
+    this.musicTimer = setInterval(() => {
+      const m = this.music;
+      if (m?.playing && m.cur && this.snapshot.state.hostId === this.peerId) this.mesh.broadcast({ t: "music-sync", rev: m.rev, by: m.by, pos: positionNow(m, this.musicAt) });
+    }, 4000);
     this.mesh = new Mesh(spaceId, identity.peerId, name, identity.secret, {
       onJoined: (hostId, existing, max, locked) => {
         this.capacity = max ?? this.capacity;
@@ -1002,9 +1009,7 @@ export class Space {
     const next = prev
       .then(async () => {
         await this.mesh.sendFile(to, JSON.stringify({ t: "start", fileId, type: file.type }));
-        for (let o = 0; o < file.size; o += CHUNK) {
-          await this.mesh.sendFile(to, await file.slice(o, o + CHUNK).arrayBuffer());
-        }
+        await streamFile(file, (piece) => this.mesh.sendFile(to, piece));
         await this.mesh.sendFile(to, JSON.stringify({ t: "end", fileId }));
       })
       .catch(() => undefined);
@@ -1080,14 +1085,6 @@ export class Space {
     this.music = next;
     this.musicAt = Date.now();
     if (broadcast) this.mesh.broadcast({ t: "music", s: next });
-    // Whoever last touched the music keeps everyone's clock honest.
-    clearInterval(this.musicTimer);
-    if (next.playing && next.by === this.peerId) {
-      this.musicTimer = setInterval(() => {
-        const m = this.music;
-        if (m?.playing) this.mesh.broadcast({ t: "music-sync", rev: m.rev, by: m.by, pos: positionNow(m, this.musicAt) });
-      }, 10000);
-    }
     this.refresh();
   }
 
@@ -1101,13 +1098,53 @@ export class Space {
   /** Returns an error message, or "" on success. */
   async musicAdd(input: string) {
     const vid = parseVideoId(input);
-    if (!vid) return /[?&]list=/.test(input) ? "That's a playlist link. Paste a video link instead (playlists aren't supported)" : "That doesn't look like a YouTube link";
+    if (!vid) return parsePlaylistId(input) ? "That's a playlist link: paste it in the same box and it is queued whole" : "That doesn't look like a YouTube link";
     if (!this.canSpeak("music")) return "The host has turned music controls off";
     const meta = await fetchTitle(vid);
     if ("error" in meta) return meta.error;
     const track = { vid, title: meta.title, by: this.peerId };
     this.act((s) => (s.cur ? { queue: [...s.queue, track].slice(0, 50) } : { cur: track, playing: true, pos: 0 }));
     return "";
+  }
+  /** Queue the videos of a playlist (those that can be played here, in order, as many as fit). */
+  async musicAddPlaylist(input: string): Promise<{ added: number; error?: string }> {
+    const list = parsePlaylistId(input);
+    if (!list) return { added: 0, error: "That doesn't look like a YouTube playlist link" };
+    if (isPersonalList(list)) return { added: 0, error: "YouTube keeps personal mixes (My Mix, Liked, Watch later) to your own account. Play one song from it, paste that song's link here, then press Add similar songs" };
+    return this.addMany(await playlistIds(list, 80), "YouTube would not give the videos in that playlist (it may be private, or not exist)");
+  }
+  /** A link to a song inside one of YouTube's automatic mixes: queue the song, then the mix built around it. */
+  async musicAddMix(input: string): Promise<{ added: number; error?: string }> {
+    const vid = parseMixSeed(input);
+    if (!vid) return { added: 0, error: "That doesn't look like a YouTube link" };
+    const err = await this.musicAdd(vid);
+    if (err) return { added: 0, error: err };
+    const more = await this.addMany(await playlistIds(`RD${vid}`, 80), "");
+    return { added: 1 + more.added }; // the song itself is queued even when YouTube has nothing more to suggest
+  }
+  /** Queue songs YouTube builds around the one that is playing (its "mix"). */
+  async musicSimilar(): Promise<{ added: number; error?: string }> {
+    const vid = this.music?.cur?.vid;
+    if (!vid) return { added: 0, error: "Play a song first" };
+    return this.addMany(await playlistIds(`RD${vid}`, 80), "YouTube did not suggest anything similar for this one");
+  }
+  private async addMany(ids: string[], empty: string): Promise<{ added: number; error?: string }> {
+    if (!this.canSpeak("music")) return { added: 0, error: "The host has turned music controls off" };
+    const have = new Set([this.music?.cur?.vid, ...(this.music?.queue ?? []).map((t) => t.vid)]);
+    const fresh = ids.filter((id, i) => !have.has(id) && ids.indexOf(id) === i);
+    if (!fresh.length) return { added: 0, error: ids.length ? "Those are already queued" : empty };
+    const room = 50 - (this.music?.queue.length ?? 0) - (this.music?.cur ? 0 : 1);
+    if (room <= 0) return { added: 0, error: "The queue is full (50 songs)" };
+    // Titles, a few at a time; a video that cannot be played outside YouTube is left out rather than queued to fail.
+    const found: { vid: string; title: string; by: string }[] = [];
+    const todo = fresh.slice(0, room + 12); // a little extra, since some will be dropped
+    for (let i = 0; i < todo.length && found.length < room; i += 8) {
+      const batch = await Promise.all(todo.slice(i, i + 8).map(async (vid) => ({ vid, meta: await fetchTitle(vid) })));
+      for (const { vid, meta } of batch) if (!("error" in meta) && found.length < room) found.push({ vid, title: meta.title, by: this.peerId });
+    }
+    if (!found.length) return { added: 0, error: "None of those can be played here" };
+    this.act((s) => (s.cur ? { queue: [...s.queue, ...found].slice(0, 50) } : { cur: found[0], playing: true, pos: 0, queue: [...s.queue, ...found.slice(1)].slice(0, 50) }));
+    return { added: found.length };
   }
   musicToggle() {
     this.act((s) => (s.cur ? { playing: !s.playing } : {}));

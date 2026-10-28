@@ -3,10 +3,10 @@
 // Nothing is uploaded or stored anywhere, so the link works only while the sharer's tab stays open. The room is not the chat room: a guest
 // never sees it, and the guest page can do nothing except ask for this one file.
 import { rid } from "./log";
+import { streamFile } from "./fileStream";
 import { Mesh } from "./mesh";
 
 export const DROP_MAX = 200 * 1024 * 1024; // held in memory while it travels, so a phone is not asked for more than this
-const CHUNK = 16 * 1024;
 export const dropRoom = (token: string) => `d${token}`;
 
 export type Guest = { sent: number; state: "sending" | "done" | "failed" };
@@ -78,14 +78,17 @@ export class DropHost {
             }
           }
           let last = 0;
-          for (let o = 0; o < this.file.size; o += CHUNK) {
-            await this.mesh.sendFile(to, await this.file.slice(o, o + CHUNK).arrayBuffer());
-            this.guests.set(to, { sent: Math.min(this.file.size, o + CHUNK), state: "sending" });
-            if (o - last > this.file.size / 50) {
-              last = o;
-              this.changed();
-            }
-          }
+          await streamFile(
+            this.file,
+            (piece) => this.mesh.sendFile(to, piece),
+            (sent) => {
+              this.guests.set(to, { sent, state: "sending" });
+              if (sent - last > this.file.size / 50) {
+                last = sent;
+                this.changed();
+              }
+            },
+          );
           await this.mesh.sendFile(to, JSON.stringify({ t: "end" }));
           this.guests.set(to, { sent: this.file.size, state: "done" });
           this.finished++;

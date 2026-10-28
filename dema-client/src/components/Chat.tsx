@@ -1069,7 +1069,7 @@ function Composer({ space, snap, isHost }: Readonly<{ space: Space; snap: Snapsh
       {matches.length > 0 && (
         <div className="menu cmd-menu" role="listbox" aria-label="Commands">
           {matches.map((m, i) => (
-            <button key={m.cmd} role="option" aria-selected={i === Math.min(cmdAt, matches.length - 1)} className={i === Math.min(cmdAt, matches.length - 1) ? "on" : ""} onMouseDown={(e) => e.preventDefault()} onMouseEnter={() => setCmdAt(i)} onClick={() => pick(m)}>
+            <button key={m.cmd} role="option" aria-selected={i === Math.min(cmdAt, matches.length - 1)} className={i === Math.min(cmdAt, matches.length - 1) ? "on" : ""} onMouseDown={(e) => e.preventDefault()} onMouseMove={(e) => (e.movementX || e.movementY) && setCmdAt(i)} onClick={() => pick(m)}>
               <strong>{m.cmd}</strong> <span className="muted small">{m.hint}</span>
             </button>
           ))}

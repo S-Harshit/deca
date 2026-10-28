@@ -139,7 +139,7 @@ label.icon-btn { cursor: pointer; }
 .image { display: flex; flex-direction: column; gap: 0.25rem; }
 .img-btn { padding: 0; border: 0; background: none; border-radius: var(--radius); overflow: hidden; cursor: zoom-in; display: block; }
 .img-btn:hover { background: none; }
-.img-btn img { display: block; max-width: min(360px, 100%); max-height: 300px; border-radius: var(--radius); }
+.img-btn img { display: block; max-width: min(360px, 100%); max-height: min(300px, 30vh); border-radius: var(--radius); }
 .img-ph { display: flex; align-items: center; gap: 0.7rem; min-width: 240px; padding: 0.3rem 0; }
 .new-pill { position: absolute; left: 50%; bottom: 0.8rem; transform: translateX(-50%); background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: var(--shadow); border-radius: 999px; }
 .drop-overlay { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; gap: 0.6rem; align-items: center; justify-content: center; background: color-mix(in srgb, var(--bg) 85%, transparent); border: 2px dashed var(--accent); border-radius: var(--radius); color: var(--accent); font-weight: 600; backdrop-filter: blur(2px); }
@@ -346,7 +346,7 @@ code.inline { font-family: var(--font-mono); font-size: 0.86em; background: var(
 .hljs-emphasis { font-style: italic; } .hljs-strong { font-weight: 700; }
 
 /* ---- video in chat ---- */
-.chat-video { display: block; width: min(420px, 100%); max-height: 320px; border-radius: var(--radius); background: #000; border: 1px solid var(--border); }
+.chat-video { display: block; width: min(420px, 100%); max-height: min(320px, 32vh); border-radius: var(--radius); background: #000; border: 1px solid var(--border); }
 
 /* a lone tile fills the stage (cropped to fit) instead of overflowing it */
 .stage-grid.n1 { flex: 1 1 auto; min-height: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
@@ -368,7 +368,7 @@ code.inline { font-family: var(--font-mono); font-size: 0.86em; background: var(
 
 /* ---- image links + coin flips ---- */
 .link-image { display: block; margin-top: 0.35rem; width: fit-content; max-width: 100%; }
-.link-image img { display: block; max-width: min(360px, 100%); max-height: 300px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--panel-2); }
+.link-image img { display: block; max-width: min(360px, 100%); max-height: min(300px, 30vh); border-radius: var(--radius); border: 1px solid var(--border); background: var(--panel-2); }
 .show-image { margin-top: 0.35rem; }
 .coin-row { display: inline-flex; align-items: center; gap: 0.55rem; min-height: 26px; padding: 0.1rem 0; }
 .coin { width: 22px; height: 22px; font-size: 0.72rem; border-radius: 50%; display: inline-grid; place-items: center; flex: none; font-family: var(--font-display); font-weight: 700; color: var(--on-accent); background: radial-gradient(circle at 30% 28%, color-mix(in srgb, var(--accent) 60%, white), var(--accent) 60%); border: 1.5px solid color-mix(in srgb, var(--accent) 55%, black); box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 55%, black); }
@@ -454,7 +454,7 @@ code.inline { font-family: var(--font-mono); font-size: 0.86em; background: var(
 }
 @media (max-width: 1239px) {
   .main.has-stage .media-col { flex: none; }
-  .game-panel { height: 46vh; min-height: 260px; }
+  .game-panel { height: min(46vh, 380px); min-height: 260px; } /* the chat below keeps at least half the screen, so a picture cannot take it all */
 }
 @media (max-width: 860px) { .games-btn { display: none; } }
 
@@ -716,7 +716,10 @@ html[data-theme] .board-bar .dot { width: 22px; height: 22px; min-width: 22px; m
 @media (max-width: 860px) { .ws-grip, .ws-maxbtn { display: none; } }
 .cmd-menu { left: 3.2rem; min-width: 270px; }
 .cmd-menu button { display: flex; justify-content: space-between; gap: 1rem; width: 100%; text-align: left; }
-.cmd-menu button.on { background: var(--panel-2); border-color: var(--border); }
+/* one highlight only: the chosen row (keys or a real mouse move), never a second one from the pointer resting under the list while you type */
+.menu.cmd-menu button { transition: none; }
+.menu.cmd-menu button:hover:not(.on) { background: transparent !important; color: inherit !important; border-color: transparent !important; }
+.menu.cmd-menu button.on { background: var(--accent-soft) !important; color: var(--text) !important; box-shadow: inset 3px 0 0 var(--accent); border-color: transparent !important; }
 .cmd-hint { position: absolute; bottom: calc(100% + 4px); left: 3.2rem; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.25rem 0.6rem; }
 /* "your camera is off", shown at the camera button when a call starts */
 .cam-wrap { position: relative; display: inline-flex; }

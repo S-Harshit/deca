@@ -14,21 +14,29 @@ const rtcConfig = (iceServers: RTCIceServer[]): RTCConfiguration => ({ iceServer
 
 // The server hands out ICE servers (STUN + optional TURN) from its ICE_SERVERS env var, so TURN
 // credentials can change without rebuilding the client.
-async function loadIceServers(): Promise<RTCIceServer[]> {
-  if (import.meta.env.VITE_STATIC) return DEFAULT_ICE; // static hosting has no /ice
-  try {
-    // Never let a slow /ice hold up every connection: give it a couple of seconds, then use STUN.
-    const res = await fetch(`${import.meta.env.BASE_URL}ice`, { signal: AbortSignal.timeout(2500) });
-    if (res.ok) return await res.json();
-  } catch {
-    // fall through to STUN only
-  }
-  return DEFAULT_ICE;
+let iceCache: { at: number; list: Promise<RTCIceServer[]> } | null = null;
+/** Asked once and kept for half an hour (relay credentials last far longer), and fetched at page load: joining a room never waits on it. */
+export function loadIceServers(): Promise<RTCIceServer[]> {
+  if (import.meta.env.VITE_STATIC) return Promise.resolve(DEFAULT_ICE); // static hosting has no /ice
+  if (iceCache && Date.now() - iceCache.at < 30 * 60_000) return iceCache.list;
+  const list = (async () => {
+    try {
+      // Never let a slow /ice hold up every connection: give it a couple of seconds, then use STUN.
+      const res = await fetch(`${import.meta.env.BASE_URL}ice`, { signal: AbortSignal.timeout(2500) });
+      if (res.ok) return (await res.json()) as RTCIceServer[];
+    } catch {
+      // fall through to STUN only
+    }
+    iceCache = null; // do not remember a failure
+    return DEFAULT_ICE;
+  })();
+  iceCache = { at: Date.now(), list };
+  return list;
 }
 
 const BLOCKED_AFTER_MS = 25000;
 /** A first attempt that has not reached the network by now is rebuilt at once, up to QUICK_RETRIES times. Often the first try only opens the routers, and the second goes through. */
-const QUICK_RETRY_MS = 7000;
+const QUICK_RETRY_MS = 5000;
 const QUICK_RETRIES = 2;
 /** A link that has not opened its data channel by now is rebuilt. */
 const OPEN_TIMEOUT_MS = 20000;
@@ -263,7 +271,7 @@ export class Mesh {
   }
 
   /** Send on the file channel, waiting when the buffer is full. */
-  async sendFile(peerId: string, data: string | ArrayBuffer) {
+  async sendFile(peerId: string, data: string | ArrayBuffer | ArrayBufferView) {
     const ch = this.peers.get(peerId)?.file;
     if (ch?.readyState !== "open") throw new Error("file channel closed");
     if (ch.bufferedAmount > 1_000_000) {

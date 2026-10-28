@@ -1,38 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- the YouTube IFrame API ships no types */
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { positionNow } from "../music";
+import { loadYT, parseMixSeed, parsePlaylistId } from "../yt";
 import type { Snapshot, Space } from "../space";
 import { SlotToggle } from "../slot";
 import { notify } from "../toast";
 import { Icon } from "./Icons";
 import { Visualizer } from "./Visualizer";
-
-declare global {
-  interface Window {
-    YT?: any;
-    onYouTubeIframeAPIReady?: () => void;
-  }
-}
-
-let ytLoading: Promise<any> | null = null;
-function loadYT(): Promise<any> {
-  if (window.YT?.Player) return Promise.resolve(window.YT);
-  ytLoading ??= new Promise((resolve, reject) => {
-    const prev = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      prev?.();
-      resolve(window.YT);
-    };
-    const s = document.createElement("script");
-    s.src = "https://www.youtube.com/iframe_api";
-    s.onerror = () => {
-      ytLoading = null;
-      reject(new Error("The YouTube player couldn't load. Check your connection or ad blocker."));
-    };
-    document.head.appendChild(s);
-  });
-  return ytLoading;
-}
 
 const VOL_KEY = "deca.volume";
 const loadVolume = () => {
@@ -48,6 +22,9 @@ const keepOnScreen = (x: number, y: number, width: number) => ({
   x: Math.min(Math.max(0, innerWidth - width), Math.max(0, x)),
   y: Math.min(innerHeight - 56, Math.max(0, y)),
 });
+/** How far a player may be from the shared position before it is moved: a little over a second is not heard as "out of sync", and moving it
+ *  every time it wobbles would be worse (each move briefly buffers). */
+const DRIFT = 1.0;
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 /** Small shared listening room: everyone plays the same YouTube video, in sync, locally. */
@@ -146,6 +123,14 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
    *  right after those are our own doing, not a person clicking inside the video. */
   const cmdAt = useRef(0);
   const loadedAt = useRef(0);
+  const seekedAt = useRef(0);
+  /** Move the player to where the room is, unless we just did (a seek takes a moment to settle and must not be repeated). */
+  const catchUp = useCallback((p: any, target: number, force = false) => {
+    if (!force && Date.now() - seekedAt.current < 3000) return;
+    seekedAt.current = Date.now();
+    cmdAt.current = Date.now();
+    p.seekTo(target, true);
+  }, []);
   useEffect(() => {
     rev.current = music?.rev ?? 0;
     latest.current = { music, musicAt };
@@ -165,11 +150,10 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
     if (m.playing && (st === -1 || st === 5)) {
       cmdAt.current = Date.now();
       p.playVideo();
-    } else if (m.playing && st === 1 && Math.abs((p.getCurrentTime?.() ?? 0) - target) > 3) {
-      cmdAt.current = Date.now();
-      p.seekTo(target, true);
+    } else if (m.playing && st === 1 && Math.abs((p.getCurrentTime?.() ?? 0) - target) > DRIFT) {
+      catchUp(p, target + 0.15);
     }
-  }, []);
+  }, [catchUp]);
 
   /**
    * Someone paused or played INSIDE the video (clicking it). That is a request like pressing our
@@ -213,7 +197,15 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
             },
             onStateChange: (e: any) => {
               if (e.data === YT.PlayerState.ENDED) space.musicEnded(rev.current);
-              if (e.data === YT.PlayerState.PLAYING) setBlocked(false);
+              if (e.data === YT.PlayerState.PLAYING) {
+                setBlocked(false);
+                // A track takes a moment to start after it is loaded, and the room did not wait: catch up the moment it is really playing.
+                const m = latest.current.music;
+                if (m?.playing && m.cur && loaded.current === m.cur.vid && Date.now() - loadedAt.current < 8000) {
+                  const target = positionNow(m, latest.current.musicAt);
+                  if (Math.abs((p.getCurrentTime?.() ?? 0) - target) > 0.5) catchUp(p, target + 0.1, true);
+                }
+              }
               if (e.data !== YT.PlayerState.PLAYING && e.data !== YT.PlayerState.PAUSED) return;
               const now = Date.now();
               if (now - cmdAt.current < 800 || now - loadedAt.current < 2500) return; // our own doing, or settling after a load
@@ -240,7 +232,7 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
       }
       box.replaceChildren();
     };
-  }, [active, space, userChangedPlayer]);
+  }, [active, space, userChangedPlayer, catchUp]);
 
   // Follow the shared state: load/cue the track, play/pause, and correct drift.
   useEffect(() => {
@@ -257,10 +249,10 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
       return;
     }
     const st = p.getPlayerState?.();
-    if (Math.abs((p.getCurrentTime?.() ?? 0) - target) > 2) p.seekTo(target, true);
+    if (Math.abs((p.getCurrentTime?.() ?? 0) - target) > (music.playing ? DRIFT : 0.5)) catchUp(p, target, !music.playing);
     if (music.playing && st !== 1 && st !== 3) p.playVideo();
     if (!music.playing && st === 1) p.pauseVideo();
-  }, [ready, music, musicAt]);
+  }, [ready, music, musicAt, catchUp]);
 
   useEffect(() => {
     const p = player.current;
@@ -281,7 +273,7 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
       const p = player.current;
       if (p) setProg({ t: p.getCurrentTime?.() ?? 0, d: p.getDuration?.() ?? 0 });
     }, 500);
-    const check = setInterval(reconcile, 3000); // belt and braces: also catches drift and silent changes
+    const check = setInterval(reconcile, 1000); // belt and braces: also catches drift and silent changes
     return () => {
       clearInterval(id);
       clearInterval(check);
@@ -295,7 +287,17 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
     const links = sent.split(/[\s,]+/).filter(Boolean).slice(0, 10);
     setBusy(true);
     let first = "";
-    for (const l of links) first ||= await space.musicAdd(l);
+    for (const l of links) {
+      if (parseMixSeed(l)) {
+        const r = await space.musicAddMix(l);
+        if (r.error) first ||= r.error;
+        else notify(`Added ${r.added} ${r.added === 1 ? "song" : "songs"} from the mix`);
+      } else if (parsePlaylistId(l)) {
+        const r = await space.musicAddPlaylist(l);
+        if (r.error) first ||= r.error;
+        else notify(`Added ${r.added} ${r.added === 1 ? "song" : "songs"} from the playlist`);
+      } else first ||= await space.musicAdd(l);
+    }
     setBusy(false);
     if (first) notify(first, "error");
     else setLink((now) => (now === sent ? "" : now)); // don't wipe what they typed while it was adding
@@ -448,6 +450,23 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
         </ol>
       )}
 
+      {cur && canControl && (
+        <button
+          className="small-btn similar-btn"
+          disabled={busy}
+          title="Queue songs YouTube thinks go with this one"
+          onClick={async () => {
+            setBusy(true);
+            const r = await space.musicSimilar();
+            setBusy(false);
+            if (r.error) notify(r.error, "error");
+            else notify(`Added ${r.added} similar ${r.added === 1 ? "song" : "songs"}`);
+          }}
+        >
+          Add similar songs
+        </button>
+      )}
+
       <form
         className="add-track"
         onSubmit={(e) => {
@@ -456,7 +475,7 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
         }}
       >
         <input
-          placeholder={canControl ? "Paste YouTube link(s)" : "Music controls are off"}
+          placeholder={canControl ? "Paste YouTube link(s) or a playlist" : "Music controls are off"}
           aria-label="YouTube link"
           value={link}
           disabled={!canControl}

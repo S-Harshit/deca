@@ -9,7 +9,7 @@ const src = join(here, "..", "..", "dema-client", "src");
 const out = join(here, "..", ".build");
 mkdirSync(out, { recursive: true });
 
-const FILES = ["signing", "identity", "roomExport", "zip", "log", "archive", "unzip", "roomImport", "wallpaper", "runnerSim", "message", "music", "sas", "localSignal", "localNetwork", "scores", "summary", "tools", "collab"];
+const FILES = ["signing", "identity", "roomExport", "zip", "log", "archive", "unzip", "roomImport", "wallpaper", "runnerSim", "message", "music", "sas", "localSignal", "localNetwork", "scores", "summary", "tools", "collab", "yt"];
 for (const name of FILES) {
   let text = readFileSync(join(src, `${name}.ts`), "utf8").replace(/from "\.\/([a-zA-Z]+)"/g, 'from "./$1.ts"');
   if (name === "wallpaper") {
