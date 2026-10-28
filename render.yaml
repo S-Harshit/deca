@@ -7,3 +7,10 @@ services:
     buildCommand: cd dema-client && npm ci && npm run build && cd ../dema-server && npm ci && (bash games/freedoom/get-wad.sh || echo "Freedoom data not downloaded; the game stays hidden")
     startCommand: cd dema-server && node server.js
     healthCheckPath: /healthz
+    # Optional relay for people whose network blocks direct connections (see docs/SPEC.md, "Turning the relay on").
+    # Render asks for these when you deploy the blueprint; leave them empty to stay STUN-only.
+    envVars:
+      - key: TURN_KEY_ID
+        sync: false
+      - key: TURN_KEY_API_TOKEN
+        sync: false

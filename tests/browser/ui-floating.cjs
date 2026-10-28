@@ -26,9 +26,12 @@ const THEMES = ["midnight", "light", "graphite", "forest", "rose", "sunset", "sh
         const covered = pts.filter(([x, y]) => { const e = document.elementFromPoint(x, y); return !e || !pop.contains(e); }).length;
         // and nothing inside may stick out sideways
         const out = [...pop.querySelectorAll("*")].filter((e) => { const q = e.getBoundingClientRect(); return q.width > 0 && (q.right > box.right + 1 || q.left < box.left - 1); }).length;
-        return { covered, out, w: pop.scrollWidth - pop.clientWidth };
+        // theme tiles must hold their own names, and the colour dots must be round
+        const tiles = [...pop.querySelectorAll(".swatch")].filter((e) => e.scrollWidth > e.clientWidth || e.scrollHeight > e.clientHeight).map((e) => e.textContent.trim());
+        const dots = [...pop.querySelectorAll(".dot")].filter((e) => { const q = e.getBoundingClientRect(); return Math.abs(q.width - q.height) > 1; }).length;
+        return { covered, out, tiles, dots, w: pop.scrollWidth - pop.clientWidth };
       });
-      ok(`${t} @${vp.width}: the Appearance popover is on top of everything and nothing sticks out of it`, !r.none && r.covered === 0 && r.out === 0 && r.w <= 0, JSON.stringify(r));
+      ok(`${t} @${vp.width}: the Appearance popover is on top of everything and nothing sticks out of it, every theme tile holds its name and the colour dots are round`, !r.none && r.covered === 0 && r.out === 0 && r.w <= 0 && r.tiles.length === 0 && r.dots === 0, JSON.stringify(r));
       await p.context().close();
     }
   }
@@ -64,6 +67,21 @@ const THEMES = ["midnight", "light", "graphite", "forest", "rose", "sunset", "sh
   ok("and it does not jump when results appear or go", pb2.y === pb.y && pb2.height === pb.height);
   await A.keyboard.press("Escape"); await A.waitForTimeout(200);
   ok("Escape closes only the search; the workspace is still there", (await pal.count()) === 0 && (await ws.count()) === 1);
+  // the workspace can be dragged wider or narrower and maximised over the chat
+  const w0 = (await ws.boundingBox()).width, g = await A.getByRole("separator", { name: "Resize workspace" }).boundingBox();
+  await A.mouse.move(g.x + g.width / 2, g.y + 200); await A.mouse.down(); await A.mouse.move(g.x - 140, g.y + 200, { steps: 6 }); await A.mouse.up();
+  const w1 = (await ws.boundingBox()).width;
+  ok("dragging the left edge makes the workspace wider", w1 > w0 + 100, `${w0} -> ${w1}`);
+  await A.getByRole("button", { name: "Maximise workspace" }).click(); await A.waitForTimeout(200);
+  const big = await ws.boundingBox();
+  ok("maximise gives the workspace the whole area and hides the chat", big.width > w1 + 150 && (await A.locator(".composer textarea").isVisible()) === false, JSON.stringify(big));
+  await A.getByRole("button", { name: "Restore workspace size" }).click(); await A.waitForTimeout(200);
+  ok("restore brings the chat back at the size it had", (await A.locator(".composer textarea").isVisible()) && Math.abs((await ws.boundingBox()).width - w1) < 3);
+  await A.keyboard.press("Escape"); await ws.waitFor({ state: "detached" });
+  await A.getByRole("button", { name: "Notes & pages" }).click(); await ws.waitFor();
+  ok("the size is remembered on this device", Math.abs((await ws.boundingBox()).width - w1) < 3);
+  await A.getByRole("separator", { name: "Resize workspace" }).dblclick(); await A.waitForTimeout(200);
+  ok("double-clicking the edge resets it", Math.abs((await ws.boundingBox()).width - w0) < 3);
   await A.keyboard.press("Escape"); await A.waitForTimeout(200);
   ok("a second Escape closes the workspace", (await ws.count()) === 0);
   await A.keyboard.press("Control+k"); await A.locator(".palette").waitFor();
@@ -83,6 +101,13 @@ const THEMES = ["midnight", "light", "graphite", "forest", "rose", "sunset", "sh
   ok("the black hole sky is a canvas behind the interface", (await cv.count()) === 1 && (await cv.evaluate((e) => getComputedStyle(e).position)) === "fixed");
   ok("it draws light (not a black or blank frame) and it moves over time", s1 !== s2 && bright > 200 && lit > 2000, `bright ${bright} lit ${lit}`);
   ok("it never takes a click", (await cv.evaluate((e) => getComputedStyle(e).pointerEvents)) === "none");
+  // a dropped graphics context must not freeze the sky: it is rebuilt on a fresh canvas that draws
+  await H.evaluate(() => { document.querySelector("canvas.bh-canvas").dataset.old = "1"; const gl = document.querySelector("canvas.bh-canvas").getContext("webgl"); gl.getExtension("WEBGL_lose_context").loseContext(); });
+  await H.waitForFunction(() => { const c = document.querySelector("canvas.bh-canvas"); return c && !c.dataset.old; }, null, { timeout: 8000 }).catch(() => {});
+  const fresh = await H.evaluate(() => { const c = document.querySelector("canvas.bh-canvas"); return !!c && !c.dataset.old; });
+  await H.waitForTimeout(800);
+  const r1 = (await H.locator("canvas.bh-canvas").screenshot()).toString("base64"); await H.waitForTimeout(1000); const r2 = (await H.locator("canvas.bh-canvas").screenshot()).toString("base64");
+  ok("after the graphics context is lost, the sky is rebuilt and keeps moving", fresh && r1 !== r2);
   await H.getByLabel("Appearance").click(); await H.getByRole("button", { name: "Light theme" }).click(); await H.waitForTimeout(300);
   ok("switching to another theme removes it", (await H.locator("canvas.bh-canvas").count()) === 0);
   await b.close();

@@ -8,7 +8,7 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   const B = await mk(); await B.goto(A.url()); await B.locator("input").first().fill("Bob"); await B.getByRole("button", { name: /join/i }).first().click(); await B.locator(".composer textarea").waitFor();
   await A.waitForFunction(() => /\b2 \/ /.test(document.querySelector(".members")?.closest("section")?.querySelector("h3")?.innerText || ""), null, { timeout: 30000 });
   const timerBox = A.getByLabel("End this room after a set time"), sumBox = A.getByLabel("Show a summary when the room ends");
-  ok("both options are off by default", !(await timerBox.isChecked()) && !(await sumBox.isChecked()));
+  ok("the end time is off by default and the summary is on", !(await timerBox.isChecked()) && (await sumBox.isChecked()));
   ok("no countdown and no end line yet", (await A.getByRole("timer", { name: "Time left in this room" }).count()) === 0 && (await B.getByRole("timer", { name: "Time left in this room" }).count()) === 0);
   ok("only the host sees the options", (await B.getByLabel("End this room after a set time").count()) === 0);
   const say = async (p, t) => { await p.locator(".composer textarea").fill(t); await p.locator(".composer textarea").press("Enter"); };
@@ -57,9 +57,10 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   // summary off: closing shows no summary
   const b2 = await chromium.launch({ }); const c2 = await b2.newContext({ viewport: { width: 1300, height: 900 } }); const H = await c2.newPage();
   await H.goto("http://localhost:8080/"); await H.locator("input").first().fill("Hal"); await H.getByRole("button", { name: /create/i }).first().click(); await H.locator(".composer textarea").waitFor();
+  await H.getByLabel("Show a summary when the room ends").uncheck(); await H.waitForTimeout(300);
   await H.getByRole("button", { name: "Close space" }).click(); await H.getByRole("button", { name: "Close for everyone" }).click();
   await H.getByRole("heading", { name: "Space closed" }).waitFor({ timeout: 8000 });
-  ok("closing normally, summary off: plain end screen", (await H.locator(".summary").count()) === 0);
+  ok("closing normally, summary switched off: plain end screen", (await H.locator(".summary").count()) === 0);
   await b2.close();
   const b3 = await chromium.launch({ }); const P = await (await b3.newContext({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true })).newPage();
   await P.goto("http://localhost:8080/"); await P.locator("input").first().fill("Pia"); await P.getByRole("button", { name: /create/i }).first().click(); await P.locator(".composer textarea").waitFor();

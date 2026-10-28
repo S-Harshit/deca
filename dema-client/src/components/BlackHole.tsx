@@ -1,8 +1,8 @@
 // The "Black hole" theme's sky: a live shader, drawn at the screen's own resolution so it stays sharp at any size. It paints a black
 // shadow, a tilted accretion disk turning faster near the centre (bright on the side coming towards you), light from the far side of
 // the disk bent over and under the hole, and stars pulled out of place around it. No image or video is downloaded. Loaded only when
-// the theme is chosen; the page falls back to a plain CSS glow if WebGL is not available.
-import { useEffect, useRef } from "react";
+// the theme is chosen; the page falls back to a plain CSS glow if WebGL is not available. If the browser drops the graphics context it is rebuilt on a fresh canvas.
+import { useEffect, useRef, useState } from "react";
 
 const VERT = "attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}";
 const FRAG = `precision highp float;
@@ -56,6 +56,7 @@ export default function BlackHole({ calm }: Readonly<{ calm: boolean }>) {
   const ref = useRef<HTMLCanvasElement>(null);
   const calmRef = useRef(calm);
   calmRef.current = calm;
+  const [epoch, setEpoch] = useState(0); // a lost graphics context (a busy GPU) gets a fresh canvas, so the sky never freezes
   useEffect(() => {
     const cv = ref.current;
     const gl = cv?.getContext("webgl", { antialias: false, alpha: false, powerPreference: "low-power" });
@@ -81,7 +82,7 @@ export default function BlackHole({ calm }: Readonly<{ calm: boolean }>) {
     const uRes = gl.getUniformLocation(prog, "uRes");
     const uC = gl.getUniformLocation(prog, "uC");
     const uT = gl.getUniformLocation(prog, "uT");
-    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const calmMotion = matchMedia("(prefers-reduced-motion: reduce)").matches; // a gentle drift, a quarter of the speed, never a frozen picture
     const t0 = performance.now();
     let raf = 0;
     let last = 0;
@@ -103,19 +104,18 @@ export default function BlackHole({ calm }: Readonly<{ calm: boolean }>) {
       gl.viewport(0, 0, pw, ph);
       gl.uniform2f(uRes, pw, ph);
       gl.uniform2f(uC, w > 860 ? 0.72 : 0.5, w > 860 ? 0.54 : 0.76); // the hole sits off to the side (high, on a phone); y is up
-      gl.uniform1f(uT, still ? 6 : (now - t0) / 1000);
+      gl.uniform1f(uT, ((now - t0) / 1000) * (calmMotion ? 0.25 : 1));
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      if (still) cancelAnimationFrame(raf);
     };
     raf = requestAnimationFrame(draw);
     const onLost = (e: Event) => {
       e.preventDefault();
       lost = true;
+      if (epoch < 6) setTimeout(() => setEpoch((n) => n + 1), 400);
     };
     cv.addEventListener("webglcontextlost", onLost);
     const onResize = () => {
       last = 0;
-      if (still) requestAnimationFrame(draw);
     };
     window.addEventListener("resize", onResize);
     return () => {
@@ -124,6 +124,6 @@ export default function BlackHole({ calm }: Readonly<{ calm: boolean }>) {
       window.removeEventListener("resize", onResize);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
-  }, []);
-  return <canvas ref={ref} className="bh-canvas" aria-hidden="true" />;
+  }, [epoch]);
+  return <canvas key={epoch} ref={ref} className="bh-canvas" aria-hidden="true" />;
 }

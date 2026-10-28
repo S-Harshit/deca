@@ -82,6 +82,56 @@ const CSP = [
   "form-action 'self'",
 ].join("; ");
 
+
+// Which STUN/TURN servers browsers use to find each other. STUN alone fails on carrier-grade NAT and strict firewalls (many mobile and
+// home ISPs): those people need a TURN relay. Three ways to provide one, first match wins:
+//   ICE_SERVERS      a JSON list you wrote (any TURN service, or your own coturn)
+//   TURN_KEY_ID + TURN_KEY_API_TOKEN   Cloudflare Realtime TURN: this server mints short-lived credentials, so no secret reaches the page
+//   neither          public STUN only (works for most networks, not all)
+const STUN = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun.cloudflare.com:3478" }];
+const TURN_API = process.env.TURN_API_BASE || "https://rtc.live.cloudflare.com";
+const TURN_TTL = 12 * 3600; // seconds a credential is good for
+let turnCache = { servers: null, until: 0 };
+let turnPending = null;
+async function mintTurn() {
+  const r = await fetch(`${TURN_API}/v1/turn/keys/${encodeURIComponent(process.env.TURN_KEY_ID)}/credentials/generate-ice-servers`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.TURN_KEY_API_TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ ttl: TURN_TTL }),
+    signal: AbortSignal.timeout(4000),
+  });
+  if (!r.ok) throw new Error(`TURN credential request failed (${r.status})`);
+  const data = await r.json();
+  const list = (Array.isArray(data.iceServers) ? data.iceServers : data.iceServers ? [data.iceServers] : []).filter((x) => x && x.urls);
+  if (!list.some((x) => x.username && x.credential)) throw new Error("TURN credential response had no relay");
+  return list;
+}
+async function iceServers() {
+  if (process.env.ICE_SERVERS) {
+    try {
+      return JSON.parse(process.env.ICE_SERVERS);
+    } catch {
+      console.error("ICE_SERVERS is not valid JSON; using STUN only");
+      return STUN;
+    }
+  }
+  if (!process.env.TURN_KEY_ID || !process.env.TURN_KEY_API_TOKEN) return STUN;
+  if (turnCache.servers && Date.now() < turnCache.until) return turnCache.servers;
+  // One request to the TURN provider at a time, however many people ask; the answer is reused for hours.
+  turnPending ??= mintTurn()
+    .then((list) => {
+      turnCache = { servers: [...STUN, ...list], until: Date.now() + (TURN_TTL / 2) * 1000 };
+      return turnCache.servers;
+    })
+    .catch((err) => {
+      console.error("relay unavailable, using STUN only:", err.message);
+      turnCache = { servers: STUN, until: Date.now() + 30_000 }; // try again in half a minute
+      return STUN;
+    })
+    .finally(() => (turnPending = null));
+  return turnPending;
+}
+
 const server = http.createServer((req, res) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "no-referrer");
@@ -104,7 +154,8 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/ice") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(process.env.ICE_SERVERS || JSON.stringify([{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun.cloudflare.com:3478" }]));
+    res.setHeader("Cache-Control", "no-store");
+    return iceServers().then((list) => res.end(JSON.stringify(list)));
   }
   if (!fs.existsSync(DIST)) {
     res.statusCode = 404;

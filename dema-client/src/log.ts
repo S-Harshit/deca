@@ -150,7 +150,7 @@ export type SpaceState = {
   tools: RoomTools;
   /** When the closing event was authored (the host's clock), or 0. */
   closedAt: number;
-  /** Host choices that are off by default: an end time for the room, and a summary shown when it ends. */
+  /** Host choices: an end time for the room (off by default), and a summary shown when it ends (on by default). */
   options: RoomOptions;
   perms: { chat: boolean; files: boolean; music: boolean };
   /** Rock-paper-scissors throws that were answered: each side maps to the other. */
@@ -200,7 +200,7 @@ export function derive(events: SpaceEvent[], initialHost: string): SpaceState {
   let closed = false;
   let closedAt = 0;
   let perms = { chat: true, files: true, music: true };
-  let options: RoomOptions = { summary: false, endsAt: 0 };
+  let options: RoomOptions = { summary: true, endsAt: 0 };
   const members = new Map<string, Member>();
   const tools = emptyTools();
   const scoreCount = new Map<string, number>();

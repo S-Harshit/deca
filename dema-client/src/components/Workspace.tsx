@@ -1,6 +1,6 @@
 // The workspace: a pane docked beside the chat (a sheet on a phone) with the room's shared things: notes and pages, polls and a
 // drawing board. The chat stays visible and usable next to it. Loaded only when opened (React.lazy in App.tsx).
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import type { Snapshot, Space } from "../space";
 import { notify } from "../toast";
 import { LIMITS, PALETTE, pageDocument, tally, type Doc } from "../tools";
@@ -14,14 +14,57 @@ const TABS: { id: ToolTab; label: string }[] = [
   { id: "board", label: "Board" },
 ];
 
+const WS_MIN = 320;
+const WS_KEY = "deca.ws";
+const wsLoad = (): { w: number | null; max: boolean } => {
+  try {
+    const v = JSON.parse(localStorage.getItem(WS_KEY) ?? "{}");
+    return { w: typeof v.w === "number" ? v.w : null, max: v.max === true };
+  } catch {
+    return { w: null, max: false };
+  }
+};
+
 export default function Workspace({ space, snap, tab, focus }: Readonly<{ space: Space; snap: Snapshot; tab: ToolTab; focus: string | null }>) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && !(e.target instanceof HTMLElement && e.target.closest("[role=alertdialog]")) && openTool(null);
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, []);
+  // The pane can be dragged wider or narrower by its left edge, and maximised over the chat; both are remembered on this device.
+  const [view, setView] = useState(wsLoad);
+  const aside = useRef<HTMLElement>(null);
+  const change = (next: { w: number | null; max: boolean }) => {
+    setView(next);
+    try {
+      localStorage.setItem(WS_KEY, JSON.stringify(next));
+    } catch {
+      /* private window: the size just is not remembered */
+    }
+  };
+  const clamp = (n: number) => Math.round(Math.min(window.innerWidth * 0.85, Math.max(WS_MIN, n)));
+  const drag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const grip = e.currentTarget;
+    const right = aside.current?.getBoundingClientRect().right ?? window.innerWidth;
+    grip.setPointerCapture(e.pointerId);
+    const move = (m: PointerEvent) => change({ w: clamp(right - m.clientX), max: false });
+    const up = () => {
+      grip.removeEventListener("pointermove", move);
+      grip.removeEventListener("pointerup", up);
+    };
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", up);
+  };
+  const nudge = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    const cur = aside.current?.getBoundingClientRect().width ?? 480;
+    if (e.key === "ArrowLeft") change({ w: clamp(cur + 24), max: false });
+    else if (e.key === "ArrowRight") change({ w: clamp(cur - 24), max: false });
+    else return;
+    e.preventDefault();
+  };
   return (
-    <aside className="workspace" aria-label="Workspace">
+    <aside ref={aside} className={`workspace ${view.max ? "ws-max" : ""}`} aria-label="Workspace" style={view.w && !view.max ? { width: view.w } : undefined}>
+      <div className="ws-grip" role="separator" aria-orientation="vertical" aria-label="Resize workspace" tabIndex={0} title="Drag to resize, double-click to reset" onPointerDown={drag} onKeyDown={nudge} onDoubleClick={() => change({ w: null, max: false })} />
       <header className="ws-head">
         <div className="ws-tabs" role="tablist" aria-label="Workspace">
           {TABS.map((t) => (
@@ -30,9 +73,14 @@ export default function Workspace({ space, snap, tab, focus }: Readonly<{ space:
             </button>
           ))}
         </div>
-        <button className="icon-btn small" aria-label="Close workspace" title="Close (Esc)" onClick={() => openTool(null)}>
-          ✕
-        </button>
+        <div className="row">
+          <button className="icon-btn small ws-maxbtn" aria-label={view.max ? "Restore workspace size" : "Maximise workspace"} aria-pressed={view.max} title={view.max ? "Restore size" : "Maximise (hides the chat)"} onClick={() => change({ ...view, max: !view.max })}>
+            {view.max ? "❐" : "▢"}
+          </button>
+          <button className="icon-btn small" aria-label="Close workspace" title="Close (Esc)" onClick={() => openTool(null)}>
+            ✕
+          </button>
+        </div>
       </header>
       <div className="ws-body">
         {tab === "docs" && <DocsTab space={space} snap={snap} focus={focus} />}

@@ -16,7 +16,7 @@ html[data-theme="shadcn"] :focus-visible { outline: 2px solid var(--text); outli
 :where(html[data-theme="shadcn"]) body :is(.button, .icon-btn):active { transform: none; box-shadow: none; }
 /* one control height (shadcn's h-9), so an input and the button beside it line up */
 :where(html[data-theme="shadcn"]) body :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="file"]), select) { height: var(--control-h); padding-block: 0; font-size: 0.9rem; }
-:where(html[data-theme="shadcn"]) body :is(button, .button):not(.icon-btn):not(.small-btn):not(.big):not(.tap-play):not(.scrim) { min-height: var(--control-h); padding-block: 0; }
+:where(html[data-theme="shadcn"]) body :is(button, .button):not(.icon-btn):not(.small-btn):not(.big):not(.tap-play):not(.scrim):not(.swatch):not(.dot) { min-height: var(--control-h); padding-block: 0; }
 :where(html[data-theme="shadcn"]) body .icon-btn:not(.small):not(.glass) { width: var(--control-h); height: var(--control-h); }
 html[data-theme="shadcn"] :is(button.primary, .button.primary, .icon-btn.primary-ish) { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
 html[data-theme="shadcn"] :is(button.primary, .button.primary, .icon-btn.primary-ish):hover { background: color-mix(in srgb, var(--accent) 90%, white); border-color: transparent; }
@@ -327,6 +327,7 @@ html[data-theme="cyberpunk"] :is(.pill, .badge, .count) { background: transparen
 html[data-theme="cyberpunk"] .avatar { box-shadow: 0 0 0 2px #fcee09; }
 html[data-theme="cyberpunk"] .status.on::before { background: #02d7f2; box-shadow: 0 0 8px #02d7f2; }
 html[data-theme="cyberpunk"] :is(.ws-tab, .ws-item, .hit, .poll-opt, .swatch, .dot, .small-btn.primary) { clip-path: none; }
+html[data-theme="cyberpunk"] .swatch { letter-spacing: 0.02em; font-size: 0.64rem; padding-inline: 0.15rem; }
 @media (prefers-reduced-motion: reduce) { html[data-theme="cyberpunk"] .wm { animation: none; } }
 
 /* =============================================== BLACK HOLE: an accretion disk drawn in gradients behind frosted glass =============================================== */

@@ -126,6 +126,7 @@ Any host that runs one Node process and supports WebSockets works. `render.yaml`
 | `MAX_PEERS` | 8 | people per room (0 = no cap) |
 | `GRACE_MS` | 10000 | how long a dropped member can resume |
 | `ICE_SERVERS` | Google STUN | JSON list of STUN/TURN servers; add a TURN service for strict networks |
+| `TURN_KEY_ID`, `TURN_KEY_API_TOKEN` | off | a Cloudflare Realtime TURN key: the server mints short-lived relay credentials so people behind carrier-grade NAT or strict firewalls can connect (the token stays on the server) |
 | `ALLOWED_ORIGINS` | any | comma-separated origins allowed to open the WebSocket |
 | `MAX_PAYLOAD` | 64 KB | largest signaling message |
 | `MAX_SOCKETS` / `MAX_ROOMS` | 4000 / 1000 | global caps |
