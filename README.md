@@ -75,7 +75,7 @@ Want to build a panel (a poll, a whiteboard, a game)? See the [plugin spec](docs
 |---|---|
 | **Easiest** | Download `deca-ready.zip` from the Releases page (already built), unzip it, and double-click **`Start Deca.command`** (Mac) or **`Start Deca.bat`** (Windows). You only need [Node.js](https://nodejs.org) 18 or newer; the start file opens its download page if it is missing. |
 | **From source** | The same two files work in a plain download or clone of this repository. The first run installs and builds everything itself (a few minutes), with a calm progress line instead of build logs. |
-| **Terminal** (Mac, Windows, Linux) | `node scripts/start.mjs` (public link for friends), `node scripts/start.mjs --local` (this computer only), `--port 9000`, `--no-open`. |
+| **Terminal** (Mac, Windows, Linux) | `node scripts/start.mjs` (asks who will join), `--public` (link for friends), `--local` (this computer only), `--port 9000`, `--no-open`. |
 
 <details>
 <summary><b>What the launcher does, and why a public link</b></summary>
@@ -90,7 +90,7 @@ Why a public link, not your local network address? Browsers only allow the camer
 <summary><b>For developers</b></summary>
 <br>
 
-Needs **Node 18+**. The older helper script also needs **bash**, **curl** and **tar** (macOS or Linux; on Windows use WSL): `./deca.sh up` (public link), `./deca.sh up local` (this machine only), `./deca.sh down`.
+Needs **Node 18+**. The older helper script also needs **bash**, **curl** and **tar** (macOS or Linux; on Windows use WSL): `scripts/deca.sh up` (public link), `scripts/deca.sh up local` (this machine only), `scripts/deca.sh down`.
 
 ```bash
 # manual start, no script

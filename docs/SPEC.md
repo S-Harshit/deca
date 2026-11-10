@@ -132,6 +132,8 @@ Join flow: the newcomer dials every peer already in the room; link format `/#/s/
 - **Maximise** (button in the panel header): full-screens the whole music panel, so play/seek/volume stay available; the player is only restyled (`.music.max`), never remounted, so playback continues. Esc exits.
 - Track end: every peer advances locally and identically (`advance()`), nothing is sent.
 - A click or pause *inside* the video acts like the Pause button for everyone; without permission the player is put back with a message. (Only changes after a short window following our own commands count as the person's.)
+- **Read chat in your language** (Appearance, shown only where the browser has the on-device Translator and Language Detector APIs, today Chrome): other people's chat lines get a translation under the original. Detection and translation run on the reader's device, nothing is sent anywhere, the original stays what was signed, your own lines and lines already in your language are left alone. A language pack not yet downloaded shows a "Translate (downloads once)" button, since browsers only start a download from a click. Verified by `tests/browser/translate-chat.cjs` with a faked translator.
+- Seek bar: after a click or drag is released the bar stays at the chosen second until the player reaches it (or 4 s pass), so it never snaps back to the old position first. Verified by `tests/browser/music-seek.cjs`.
 - Per-device: volume, mute, "stop listening". Queue, remove, next, seek.
 - The visualiser is decorative: YouTube's iframe does not expose its audio.
 - The player stays visible (>= 200 px) per YouTube's terms.
@@ -254,11 +256,11 @@ A sparse mesh for chat (about 8 links each, messages hop) would scale to hundred
 
 ### One command
 ```
-./deca.sh up       # build if needed, start server + Cloudflare quick tunnel, print the public URL
-./deca.sh down     # graceful stop of both
-./deca.sh status | logs
+scripts/deca.sh up       # build if needed, start server + Cloudflare quick tunnel, print the public URL
+scripts/deca.sh down     # graceful stop of both
+scripts/deca.sh status | logs
 ```
-State in `.run/`, tunnel binary in `.bin/` (auto-downloaded). Quick-tunnel URLs change on every start. `ICE_SERVERS='[...]' MAX_PEERS=12 ./deca.sh up` passes settings through.
+State in `.run/`, tunnel binary in `.bin/` (auto-downloaded). Quick-tunnel URLs change on every start. `ICE_SERVERS='[...]' MAX_PEERS=12 scripts/deca.sh up` passes settings through.
 
 ### Dev
 ```

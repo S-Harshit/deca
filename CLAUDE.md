@@ -5,16 +5,16 @@ Browser-only "rooms you carry in a link": chat, files, calls, music, games, all 
 ## Layout
 - `dema-client/`: Vite + React + TypeScript (`src/`). Core files: `mesh.ts` (WebRTC + signaling), `space.ts` (state, sync, features), `log.ts` (event types + `derive()`), `identity.ts` / `signing.ts` (Ed25519), `components/`.
 - `dema-server/server.js`: signaling + static hosting + `/games` + `/ice`. Plain Node, one dependency (`ws`).
-- `scripts/deca.sh`: `./deca.sh up|down|status|logs` builds, starts the server and a Cloudflare quick tunnel (developer script, needs bash).
+- `scripts/deca.sh`: `scripts/deca.sh up|down|status|logs` builds, starts the server and a Cloudflare quick tunnel (developer script, needs bash).
 - `scripts/start.mjs` + `Start Deca.command` / `Start Deca.bat` + `START-HERE.md`: the launcher for non-technical people (plain Node, no dependencies, Mac/Windows/Linux). `scripts/package.mjs` builds `deca-ready.zip` (pre-built app, 0.2 MB). Keep user-facing messages in plain words; test changes from a fresh copy with no `node_modules`/`dist`.
 
 ## Commands
 ```
 cd dema-client && npx tsc -b && npx eslint src && npm run build   # must all be clean
-./deca.sh up        # serves the BUILT client from dema-client/dist, so rebuild after client changes
+scripts/deca.sh up        # serves the BUILT client from dema-client/dist, so rebuild after client changes
 cd dema-client && npm run dev   # https dev server (HTTP=1 for plain http); proxies /ws /ice /games to :8080
 ```
-The server serves `dist/` from disk, so a rebuild is live immediately; changes to `server.js` need `./deca.sh down && ./deca.sh up`.
+The server serves `dist/` from disk, so a rebuild is live immediately; changes to `server.js` need `scripts/deca.sh down && scripts/deca.sh up`.
 
 `npm run build:static` (repo root) builds the no-server site (`VITE_STATIC=1`) into `dist-static/`; keep fetches relative (`import.meta.env.BASE_URL`) so it works under a sub-path. Codes in connect-by-code mode are signed and need host approval: never accept a code or relayed `sig` without `verifyText`.
 

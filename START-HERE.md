@@ -13,9 +13,10 @@ Deca is a private room you share with a link: chat, calls, files, music and game
 2. Open the folder and double-click:
    - **Mac:** `Start Deca.command`
    - **Windows:** `Start Deca.bat`
-3. Wait. The first time takes a few minutes while it sets itself up. A window shows what it is doing.
-4. When it says **"Deca is running"**, your browser opens and the window shows a link. **That link is your invitation.** Send it to your friends in any chat. (It may already be copied for you.)
-5. Open the link yourself too, type your name and press **Create a space**.
+3. A window opens and asks **who will join you**. Press **Enter** for friends on the internet (it makes a link to send them), or type **2** if it is only you or devices on your own Wi-Fi.
+4. Wait. The first time takes a few minutes while it sets itself up.
+5. When it says **"Deca is running"**, your browser opens and the window shows a link. **That link is your invitation.** Send it to your friends in any chat. (It may already be copied for you.)
+6. Open the link yourself too, type your name and press **Create a space**.
 
 **Keep that window open while you hang out. Close it to stop Deca.** The link changes every time you start, and a brand-new link can take up to a minute to start working for other people. If a friend sees "not found", wait a moment and refresh.
 
@@ -34,7 +35,7 @@ Everything is plain text you can read: the launcher is `scripts/start.mjs`.
 - Your browser will ask to use your camera and microphone when you start a call. Say yes. It only works on the link you were given (a secure address), not on a plain internet address from your local network.
 - Up to 8 people fit in a room.
 - Can't reach the link, or want no server in the middle? On the first screen pick **No server? Connect by code**. Whoever joins gets a short code to send to whoever invited them; that person pastes it in (Members, then **Connect by code**) and sends a code back.
-- Only on this computer, with no public link? Run `node scripts/start.mjs --local` in a terminal.
+- Skip the question: `node scripts/start.mjs --public` (link for friends) or `--local` (this computer only).
 - Linux: `node scripts/start.mjs`.
 - Something not working? The file `.run/server.log` shows what happened.
 

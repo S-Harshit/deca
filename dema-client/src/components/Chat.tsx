@@ -24,6 +24,7 @@ import { openAsWindow, pageShare } from "../openWindow";
 import { setCodeDialog } from "../codeDialog";
 import { runnerOn, setRunner } from "../runner";
 import { usePrefsValue } from "../theme";
+import { langName, translate, type Result } from "../translate";
 import { notify } from "../toast";
 import { nameColor } from "./colors";
 import { Icon } from "./Icons";
@@ -106,7 +107,7 @@ function Timeline({
   onView,
 }: Readonly<{ space: Space; snap: Snapshot; inviteLink: string; onInvite: () => void; onView: (fileId: string) => void }>) {
   const { state, transfers, me } = snap;
-  const { clock } = usePrefsValue();
+  const { clock, translateTo } = usePrefsValue();
   const name = (id: string) => state.members.get(id)?.name ?? id;
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
@@ -183,7 +184,7 @@ function Timeline({
     prev = e;
     const mine = e.author === me;
     // Plain chat lines are the bulk of a long conversation: a memoised row is skipped when nothing about it changed.
-    if (e.type === "chat") return <ChatLine key={e.id} e={e} mine={mine} grouped={grouped} name={name(e.author)} clock={clock} onMedia={onMedia} />;
+    if (e.type === "chat") return <ChatLine key={e.id} e={e} mine={mine} grouped={grouped} name={name(e.author)} clock={clock} translateTo={mine ? "" : translateTo} onMedia={onMedia} />;
     return (
       <div key={e.id} data-eid={e.id} className={`line ${mine ? "mine" : ""} ${grouped ? "grouped" : ""}`}>
         <span className="t">{time(e.ts, clock)}</span>
@@ -318,8 +319,9 @@ const ChatLine = memo(function ChatLine({
   grouped,
   name,
   clock,
+  translateTo,
   onMedia,
-}: Readonly<{ e: SpaceEvent; mine: boolean; grouped: boolean; name: string; clock: "auto" | "12" | "24"; onMedia: () => void }>) {
+}: Readonly<{ e: SpaceEvent; mine: boolean; grouped: boolean; name: string; clock: "auto" | "12" | "24"; translateTo: string; onMedia: () => void }>) {
   return (
     <div data-eid={e.id} className={`line ${mine ? "mine" : ""} ${grouped ? "grouped" : ""}`}>
       <span className="t">{time(e.ts, clock)}</span>
@@ -328,10 +330,41 @@ const ChatLine = memo(function ChatLine({
       </span>
       <div className="what" data-long={String(e.payload.text ?? "").length > 110 ? "" : undefined}>
         <MessageBody text={e.payload.text} onMedia={onMedia} />
+        {translateTo && <Translated text={String(e.payload.text ?? "")} to={translateTo} onChange={onMedia} />}
       </div>
     </div>
   );
 });
+
+/** The line in the reader's own language, under the original. Shows nothing when it is already in that language. */
+function Translated({ text, to, onChange }: Readonly<{ text: string; to: string; onChange: () => void }>) {
+  const [res, setRes] = useState<Result | null>(null);
+  const run = useCallback(
+    (gesture: boolean) => {
+      let live = true;
+      void translate(text, to, gesture).then((r) => live && setRes(r));
+      return () => void (live = false);
+    },
+    [text, to],
+  );
+  useEffect(() => run(false), [run]);
+  useEffect(() => {
+    if (res?.kind === "done") onChange(); // the row grew: keep a chat that was scrolled to the bottom there
+  }, [res, onChange]);
+  if (res?.kind === "done")
+    return (
+      <div className="xl" lang={to} title={`Translated from ${langName(res.from)} on this device`}>
+        {res.text}
+      </div>
+    );
+  if (res?.kind === "needs-click")
+    return (
+      <button className="xl-btn" onClick={() => run(true)}>
+        Translate to {langName(to)} (downloads once)
+      </button>
+    );
+  return null;
+}
 
 /** Imported history: read-only, above the live conversation, clearly marked, never part of the room's log. */
 function ArchiveSection({

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { canTranslate, LANGS, langName } from "../translate";
 import { ACCENTS, LIGHT_THEMES, RADII, SCALES, THEMES, type Prefs } from "../theme";
 import { clearWallpaper, saveWallpaper, accentFrom } from "../wallpaper";
 import { Icon } from "./Icons";
@@ -77,6 +78,20 @@ export function ThemePanel({ prefs, update, reset }: Props) {
           <Segmented options={SCALES} value={prefs.scale} onChange={(scale) => update({ scale })} />
           <h4>Corners</h4>
           <Segmented options={RADII} value={prefs.radius} onChange={(radius) => update({ radius })} />
+          {canTranslate() && (
+            <>
+              <h4>Read chat in</h4>
+              <select aria-label="Read chat in" value={prefs.translateTo} onChange={(e) => update({ translateTo: e.target.value })}>
+                <option value="">Original language only</option>
+                {LANGS.map((c) => (
+                  <option key={c} value={c}>
+                    {langName(c)}
+                  </option>
+                ))}
+              </select>
+              <div className="muted small">Other people's messages are also shown in this language. Translated on your device; nothing is sent anywhere.</div>
+            </>
+          )}
           <h4>Time format</h4>
           <Segmented
             options={[

@@ -51,6 +51,7 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
   const [blocked, setBlocked] = useState(false);
   const [prog, setProg] = useState({ t: 0, d: 0 });
   const [scrub, setScrub] = useState<number | null>(null);
+  const [landing, setLanding] = useState<number | null>(null); // where a released seek is heading, held until the player catches up so the bar does not jump back
   const [link, setLink] = useState("");
   const [busy, setBusy] = useState(false);
   const [showQ, setShowQ] = useState(false); // full screen only: the up-next list opens over the picture when asked for, instead of taking room from it
@@ -326,7 +327,19 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
     if (err) notify(err, "error");
   };
 
-  const shown = scrub ?? prog.t;
+  useEffect(() => {
+    if (landing === null) return;
+    if (Math.abs(prog.t - landing) < 2) return void setLanding(null);
+    const id = setTimeout(() => setLanding(null), 4000); // the seek never arrived (not allowed, track changed): follow the player again
+    return () => clearTimeout(id);
+  }, [landing, prog.t]);
+  const release = () => {
+    if (scrub === null) return;
+    space.musicSeek(scrub);
+    setLanding(scrub);
+    setScrub(null);
+  };
+  const shown = scrub ?? landing ?? prog.t;
   return (
     <section className={`panel music ${max ? "max" : ""} ${softMax ? "soft-max" : ""} ${float ? "float" : ""}`}
       aria-label="Music"
@@ -397,14 +410,8 @@ export function MusicPlayer({ space, snap }: Readonly<{ space: Space; snap: Snap
               value={Math.min(shown, Math.max(1, prog.d))}
               disabled={!canControl || !active || prog.d === 0}
               onChange={(e) => setScrub(Number(e.target.value))}
-              onPointerUp={() => {
-                if (scrub !== null) space.musicSeek(scrub);
-                setScrub(null);
-              }}
-              onKeyUp={() => {
-                if (scrub !== null) space.musicSeek(scrub);
-                setScrub(null);
-              }}
+              onPointerUp={release}
+              onKeyUp={release}
             />
             <span className="clock">{clock(prog.d)}</span>
           </div>

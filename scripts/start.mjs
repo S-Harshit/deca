@@ -2,8 +2,9 @@
 /**
  * One-step launcher for Deca. Works on macOS, Windows and Linux with only Node.js installed.
  *
- *   node scripts/start.mjs            start Deca and make a public link to share
- *   node scripts/start.mjs --local    this computer only (no link, nothing downloaded)
+ *   node scripts/start.mjs            start Deca; asks who will join (friends elsewhere = public link, or just this computer / Wi-Fi)
+ *   node scripts/start.mjs --public   skip the question: make a public link to share
+ *   node scripts/start.mjs --local    skip the question: this computer only (no link, nothing downloaded)
  *   node scripts/start.mjs --port N   use another port
  *   node scripts/start.mjs --no-open  do not open the browser
  *
@@ -13,6 +14,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { chmodSync, closeSync, createWriteStream, existsSync, mkdirSync, openSync, rmSync, writeFileSync } from "node:fs";
 import net from "node:net";
+import { createInterface } from "node:readline/promises";
 import { dirname, join, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -237,9 +239,21 @@ function openBrowser(url) {
   }
 }
 
+/** Ask once who will join, so the choice is visible instead of hidden behind a flag. Enter picks the public link. */
+async function askLocal() {
+  say("");
+  say("  Who will join you?");
+  say("    1  Friends on the internet (makes a public link)   <- press Enter");
+  say("    2  Only me, or devices on my Wi-Fi (no link)");
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const answer = (await rl.question("  Type 1 or 2: ")).trim();
+  rl.close();
+  return answer === "2";
+}
+
 async function main() {
   const args = process.argv.slice(2);
-  const local = args.includes("--local");
+  const local = args.includes("--local") || (!args.includes("--public") && process.stdin.isTTY && (await askLocal()));
   const noOpen = args.includes("--no-open");
   const portArg = args.indexOf("--port");
   const major = Number(process.versions.node.split(".")[0]);

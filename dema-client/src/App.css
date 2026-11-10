@@ -750,3 +750,6 @@ html[data-theme="web95"] .cam-hint::before { top: auto; bottom: -5px; }
 .queue-toggle { display: none; }
 .similar-btn { width: 100%; justify-content: center; margin: 0.5rem 0 0; }
 .queue-head + .queue { margin-top: 0.2rem; }
+
+.line .xl { margin-top: 0.15rem; padding-left: 0.5rem; border-left: 2px solid var(--accent); color: var(--muted, inherit); font-size: 0.95em; }
+.line .xl-btn { margin-top: 0.2rem; font-size: 0.8em; padding: 0.1rem 0.5rem; }
