@@ -17,6 +17,7 @@ import { Mesh, type PeerInfo } from "./mesh";
 import type { Identity } from "./identity";
 import { signEvent, verifyEvent } from "./signing";
 import { advance, EMPTY_MUSIC, fetchTitle, isNewer, parseVideoId, positionNow, sanitize, type MusicState } from "./music";
+import { pushCaption } from "./captions";
 import { isPersonalList, parsePlaylistId, playlistIds } from "./yt";
 
 const ANNOUNCE_TIMEOUT_MS = 4000;
@@ -561,6 +562,15 @@ export class Space {
         for (const fn of this.netListeners) fn(from, who.name, msg.g, msg.d);
         break;
       }
+      case "cap": {
+        // A live caption: what someone in the call just said, as text. Judged on arrival: it comes from a person in the call, it is a
+        // short string, and one peer cannot flood us. Never saved, so history sync cannot replay it.
+        const inCall = this.snapshot.tiles.some((t) => t.peerId === from);
+        const text = typeof msg.x === "string" ? msg.x.trim() : "";
+        if (!inCall || !text || text.length > 300 || !this.capAllowed(from)) break;
+        pushCaption(from, text);
+        break;
+      }
       case "media":
         if (Array.isArray(msg.streams)) {
           const entries = msg.streams
@@ -673,6 +683,25 @@ export class Space {
     if (b.n < 1) return false;
     b.n -= 1;
     return true;
+  }
+  private capBucket = new Map<string, { n: number; t: number }>();
+  /** At most a sentence every couple of seconds per person on average (a short burst is fine). */
+  private capAllowed(from: string) {
+    const now = Date.now();
+    const b = this.capBucket.get(from) ?? { n: 4, t: now };
+    b.n = Math.min(4, b.n + (now - b.t) / 1000 / 1.5);
+    b.t = now;
+    this.capBucket.set(from, b);
+    if (b.n < 1) return false;
+    b.n -= 1;
+    return true;
+  }
+  /** Say a caption for everyone in the call (and show it on your own tile). Only while you are in a call with your microphone on. */
+  caption(text: string) {
+    const t = text.trim().slice(0, 300);
+    if (!t || !this.camera || !this.micOn) return;
+    this.mesh.broadcast({ t: "cap", x: t });
+    pushCaption(this.peerId, t);
   }
   /** Send a small message from this game to the same game in everyone else's frame. */
   gameNet(game: string, data: unknown) {

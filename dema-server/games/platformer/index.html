@@ -7,15 +7,27 @@
   html, body { margin: 0; height: 100%; background: #0d1117; overflow: hidden; }
   body { display: grid; place-items: center; }
   canvas { width: min(100vw, calc(100vh * 320 / 192)); height: min(100vh, calc(100vw * 192 / 320)); image-rendering: pixelated; outline: none; background: #6ec6ff; }
+  /* on-screen pad: only on touch screens (or ?touch=1), where there is no keyboard */
+  #pad { display: none; position: fixed; left: 0; right: 0; bottom: 0; padding: 0 14px 14px; justify-content: space-between; align-items: flex-end; pointer-events: none; }
+  body.touch #pad { display: flex; }
+  #pad .grp { display: flex; gap: 12px; }
+  #pad button { pointer-events: auto; width: 68px; height: 68px; border-radius: 50%; border: 2px solid rgba(255,255,255,.55); background: rgba(13,17,23,.45); color: #fff; font: bold 22px system-ui, sans-serif; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  #pad button.on { background: rgba(255,255,255,.4); }
+  #pad .jump { width: 84px; height: 84px; }
 </style>
 </head>
 <body>
 <canvas id="c" width="320" height="192" tabindex="0"></canvas>
+<div id="pad" aria-label="Touch controls">
+  <div class="grp"><button data-k="ArrowLeft" aria-label="Move left">&#9664;</button><button data-k="ArrowRight" aria-label="Move right">&#9654;</button></div>
+  <div class="grp"><button data-k="Shift" aria-label="Run">RUN</button><button data-k=" " class="jump" aria-label="Jump">JUMP</button></div>
+</div>
 <script>
 /*
  * Pixel Hop: an original side-scrolling platformer. All code, art (drawn in code), level (generated
  * from a fixed seed) and sounds (synthesised) are original to this project, MIT licensed.
  * Arrow keys / WASD move, Space / Up / W jump (hold for higher), Shift runs, R restarts, M mutes.
+ * Touch screens get an on-screen pad (left, right, run, jump); tap the game to go on after a level or a game over.
  * Add ?bot=1 to watch an autopilot play (used to check the level can be finished).
  */
 const W = 320, H = 192, T = 16, ROWS = 12, GROUND = ROWS - 2;
@@ -318,7 +330,20 @@ addEventListener("keydown", (e) => {
 });
 addEventListener("keyup", (e) => { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = false; });
 addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
-cv.addEventListener("pointerdown", () => cv.focus());
+cv.addEventListener("pointerdown", () => {
+  cv.focus();
+  if (document.body.classList.contains("touch") && (state === "clear" || state === "over" || state === "win")) press(" ", true); // no Space key on a phone
+});
+// Touch pad: each button holds one key down while a finger is on it, by sending the same key events the keyboard would.
+function press(k, down) { dispatchEvent(new KeyboardEvent(down ? "keydown" : "keyup", { key: k })); if (down) setTimeout(() => dispatchEvent(new KeyboardEvent("keyup", { key: k })), 0); }
+if (matchMedia("(pointer: coarse)").matches || new URLSearchParams(location.search).has("touch")) document.body.classList.add("touch");
+for (const b of document.querySelectorAll("#pad button")) {
+  const k = b.dataset.k;
+  const set = (down) => { b.classList.toggle("on", down); dispatchEvent(new KeyboardEvent(down ? "keydown" : "keyup", { key: k })); };
+  b.addEventListener("pointerdown", (e) => { e.preventDefault(); b.setPointerCapture(e.pointerId); cv.focus(); set(true); });
+  for (const t of ["pointerup", "pointercancel"]) b.addEventListener(t, () => set(false));
+  b.addEventListener("contextmenu", (e) => e.preventDefault());
+}
 frame = 0; cam = 0; resetWorld(true); cv.focus(); requestAnimationFrame(loop);
 window.__pixelHop = { get p() { return p; }, get state() { return state; }, get score() { return score; }, get lives() { return lives; }, get cols() { return COLS; }, get level() { return level; }, get coins() { return coins; }, get items() { return items; }, bump(tx, ty) { bump(tx, ty); }, hurt() { hurt(); }, get mates() { return activeMates(); }, teleport(x, y) { p.x = x; p.y = y; p.vy = 0; }, get grid() { return grid; }, get levels() { return LEVELS.length; }, nextLevel() { nextLevel(); },  get coinsLeft() { return coins.filter((k) => !k.got).length; }, step(n = 1) { for (let i = 0; i < n; i++) update(); } };
 </script>

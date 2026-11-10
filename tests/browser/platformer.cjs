@@ -48,6 +48,24 @@ let pass = 0, fail = 0; const ok = (n, c, x = "") => { c ? pass++ : fail++; cons
   let state = "play", steps = 0; const seen = new Set();
   while (state !== "win" && steps < 90000) { state = await p.evaluate(() => { __pixelHop.step(600); return [__pixelHop.state, __pixelHop.level].join(); }).then((v) => { const [s2, l] = v.split(","); seen.add(+l); return s2; }); steps += 600; if (state === "over") break; }
   ok("the autopilot finishes all three levels", state === "win" && seen.has(0) && seen.has(1) && seen.has(2), `${state} after ${steps} frames, levels ${[...seen]}`);
+  // touch pad: shown on a touch screen only, and holding a button plays the game
+  const t = await (await b.newContext({ viewport: { width: 400, height: 700 } })).newPage(); t.on("pageerror", (e) => errs.push(e.message));
+  await t.goto("http://localhost:8080/games/platformer/index.html"); await t.waitForFunction(() => window.__pixelHop);
+  ok("no pad without a touch screen", !(await t.locator("#pad").isVisible()));
+  await t.goto("http://localhost:8080/games/platformer/index.html?touch=1"); await t.waitForFunction(() => window.__pixelHop);
+  ok("the pad shows on a touch screen", await t.locator("#pad").isVisible());
+  const x0 = await t.evaluate(() => __pixelHop.p.x);
+  const right = (await t.getByLabel("Move right").boundingBox());
+  await t.mouse.move(right.x + 30, right.y + 30); await t.mouse.down(); await t.evaluate(() => __pixelHop.step(60));
+  const x1 = await t.evaluate(() => __pixelHop.p.x);
+  await t.mouse.up(); await t.evaluate(() => __pixelHop.step(60));
+  const x2 = await t.evaluate(() => __pixelHop.p.x);
+  ok("holding right runs the fox right", x1 > x0 + 20, `${x0} -> ${x1}`);
+  const rest = await t.evaluate(() => { __pixelHop.step(120); return __pixelHop.p.x; });
+  ok("letting go stops it", Math.abs(rest - x2) < 3, `${x2} -> ${rest}`);
+  const jump = await t.getByLabel("Jump").boundingBox();
+  await t.mouse.move(jump.x + 30, jump.y + 30); await t.mouse.down(); await t.evaluate(() => __pixelHop.step(8));
+  ok("jump lifts the fox", await t.evaluate(() => __pixelHop.p.vy < 0 || !__pixelHop.p.on)); await t.mouse.up();
   ok("no page errors", errs.length === 0, errs.join());
   await b.close();
   console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

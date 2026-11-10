@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { canTranslate, LANGS, langName } from "../translate";
+import { speechSupported } from "../captions";
 import { ACCENTS, LIGHT_THEMES, RADII, SCALES, THEMES, type Prefs } from "../theme";
 import { clearWallpaper, saveWallpaper, accentFrom } from "../wallpaper";
 import { Icon } from "./Icons";
@@ -127,6 +128,12 @@ export function ThemePanel({ prefs, update, reset }: Props) {
             <input type="checkbox" checked={prefs.startWithCamera} onChange={(e) => update({ startWithCamera: e.target.checked })} />
             Turn the camera on when I start a call
           </label>
+          {speechSupported() && (
+            <label className="toggle" title="Your browser turns your speech into text and sends the text to others in the call, who see it under your picture (in their language if they chose one). Chrome may send your audio to Google to do this.">
+              <input type="checkbox" checked={prefs.captions} onChange={(e) => update({ captions: e.target.checked })} />
+              Live captions of my voice in calls (Chrome may send my audio to Google)
+            </label>
+          )}
           <label className="toggle" title="A soft chime, and the tab title says who arrived while you are in another tab">
             <input type="checkbox" checked={prefs.joinAlert} onChange={(e) => update({ joinAlert: e.target.checked })} />
             Chime when someone joins

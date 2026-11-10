@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Space, Snapshot, Tile } from "../space";
 import { notify } from "../toast";
 import { usePrefsValue } from "../theme";
+import { startRecognition, useCaption } from "../captions";
+import { translate, type Result } from "../translate";
 import { Avatar } from "./Avatar";
 import { Icon } from "./Icons";
 
@@ -16,7 +18,12 @@ async function popOut(space: Space) {
 /** Call buttons for the top bar: start/leave call, mic, camera, screen share. */
 export function CallControls({ space, snap }: Readonly<{ space: Space; snap: Snapshot }>) {
   const { inCall, sharing, micOn, camOn } = snap;
-  const { startWithCamera } = usePrefsValue();
+  const { startWithCamera, captions } = usePrefsValue();
+  // Captions run only while they are on, you are in the call and your microphone is open.
+  useEffect(() => {
+    if (!captions || !inCall || !micOn) return;
+    return startRecognition((t) => space.caption(t));
+  }, [captions, inCall, micOn, space]);
   // A call starts with the camera off on purpose; say so where the button is, for a few seconds, so nobody wonders why they are not seen.
   const [hint, setHint] = useState(false);
   useEffect(() => {
@@ -169,6 +176,28 @@ export function CallStage({ snap }: Readonly<{ snap: Snapshot }>) {
   );
 }
 
+/** What this person just said, under their picture; in the reader's language too when they picked one (original smaller, below). */
+function TileCaption({ peerId, local }: Readonly<{ peerId: string; local: boolean }>) {
+  const text = useCaption(peerId);
+  const { translateTo } = usePrefsValue();
+  const [res, setRes] = useState<Result | null>(null);
+  useEffect(() => {
+    setRes(null);
+    if (!text || !translateTo || local) return;
+    let live = true;
+    void translate(text, translateTo).then((r) => live && setRes(r));
+    return () => void (live = false);
+  }, [text, translateTo, local]);
+  if (!text) return null;
+  const done = res?.kind === "done";
+  return (
+    <div className="tile-caption" role="status">
+      {done ? res.text : text}
+      {done && <small>{text}</small>}
+    </div>
+  );
+}
+
 function VideoTile({
   tile,
   label,
@@ -225,6 +254,7 @@ function VideoTile({
           Tap to play
         </button>
       )}
+      <TileCaption peerId={tile.peerId} local={tile.local} />
       <div className="tile-label">
         {!tile.mic && !screen && <Icon name="micOff" size={13} />}
         {label}

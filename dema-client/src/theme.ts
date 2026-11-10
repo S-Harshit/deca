@@ -52,6 +52,8 @@ export type Prefs = {
   collapsed: string[];
   /** Language to show other people's chat in (a language code, "" = off). Translated on this device only. */
   translateTo: string;
+  /** Live captions in calls: this device transcribes your microphone and shares the text. Off until chosen. */
+  captions: boolean;
   /** Timestamp style in chat. */
   clock: "auto" | "12" | "24";
   /** Show the unread count in the tab title while the tab is in the background. */
@@ -82,7 +84,7 @@ export const SIDEBAR_MAX = 440;
 const KEY = "deca.prefs";
 
 function defaults(): Prefs {
-  return { theme: "graphite", accent: null, scale: 1, compact: false, radius: 8, linkPreviews: true, home: "simple", hornSound: true, sidebarW: null, collapsed: [], translateTo: "", clock: "auto", titleBadge: true, joinAlert: true, startWithCamera: false, wallpaper: false, wallDim: 55, wallBlur: 0, wallAccent: "complement", wallHue: 210, wallSat: 0, wallColorful: false, wallRev: 0 };
+  return { theme: "graphite", accent: null, scale: 1, compact: false, radius: 8, linkPreviews: true, home: "simple", hornSound: true, sidebarW: null, collapsed: [], translateTo: "", captions: false, clock: "auto", titleBadge: true, joinAlert: true, startWithCamera: false, wallpaper: false, wallDim: 55, wallBlur: 0, wallAccent: "complement", wallHue: 210, wallSat: 0, wallColorful: false, wallRev: 0 };
 }
 
 /** Stored values come from the user's own browser but can be stale, hand-edited or from another version. */
@@ -94,6 +96,7 @@ function sanitize(p: Prefs): Prefs {
     sidebarW: w === null ? null : Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, w)),
     collapsed: Array.isArray(p.collapsed) ? p.collapsed.filter((c) => typeof c === "string").slice(0, 8) : d.collapsed,
     translateTo: typeof p.translateTo === "string" && /^[a-z]{2,3}$/.test(p.translateTo) ? p.translateTo : "",
+    captions: p.captions === true,
     clock: p.clock === "12" || p.clock === "24" ? p.clock : "auto",
     radius: p.radius === 4 ? 0 : p.radius, // "Sharp" used to be 4 px; it is square now, and anyone who picked it keeps it
     titleBadge: typeof p.titleBadge === "boolean" ? p.titleBadge : d.titleBadge,
